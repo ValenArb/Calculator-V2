@@ -134,3 +134,57 @@ allow read, write: if request.auth != null &&
 4. Add module to sidebar navigation in `components/layout/Sidebar`
 5. Update export services to include new calculation type
 6. Add TypeScript types to `src/types/index.ts`
+
+## GitHub Repository
+
+**Repository URL**: https://github.com/ValenArb/Calculator-V2
+
+**Important Instructions for Claude Code**: 
+- This project is version controlled with Git and hosted on GitHub
+- **AFTER EVERY MODIFICATION**, you MUST automatically commit and push changes to GitHub
+- Use descriptive commit messages that explain what was changed and why
+- Always include the Claude Code signature in commit messages
+
+### Git Workflow for Claude Code
+
+**For ANY file modification, addition, or deletion:**
+
+1. **Make your changes** using the appropriate tools (Edit, Write, etc.)
+2. **Stage all changes**: `git add .`
+3. **Commit with descriptive message**: 
+   ```bash
+   git commit -m "Description of changes made
+   
+   🤖 Generated with [Claude Code](https://claude.ai/code)
+   
+   Co-Authored-By: Claude <noreply@anthropic.com>"
+   ```
+4. **Push to GitHub**: `git push origin master`
+
+**Example commit workflow:**
+```bash
+git add .
+git commit -m "Add voltage drop calculation validation
+
+- Implement input validation for cable parameters
+- Add error handling for invalid conductor sizes
+- Update thermal derating calculations per IEC standards
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
+git push origin master
+```
+
+**Repository Configuration:**
+- Main branch: `master`
+- Remote: `origin` (https://github.com/ValenArb/Calculator-V2.git)
+- Owner: ValenArb (valenarbert@gmail.com)
+
+### GitHub Integration Guidelines
+
+- **Always verify changes are pushed** after modifications
+- **Use meaningful commit messages** that describe the electrical engineering context
+- **Group related changes** in single commits when logical
+- **Never commit sensitive information** (Firebase keys, API secrets, etc.)
+- **Maintain clean commit history** with atomic, logical changes
