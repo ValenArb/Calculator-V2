@@ -6,7 +6,6 @@ import { store } from './store/store';
 import useAuth from './features/auth/hooks/useAuth';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import ProjectDetails from './pages/ProjectDetails';
 import Calculator from './pages/Calculator';
 import { Loading } from './components/ui';
 import './styles/globals.css';
@@ -95,14 +94,6 @@ const AppContent = () => {
           element={
             <ProtectedRoute isAuthenticated={isAuthenticated} loading={loading}>
               <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/project/:projectId"
-          element={
-            <ProtectedRoute isAuthenticated={isAuthenticated} loading={loading}>
-              <ProjectDetails />
             </ProtectedRoute>
           }
         />

@@ -2,12 +2,11 @@ import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Calculator, FolderOpen, User, Copy, LogOut, Mail, Hash, Edit3, X, Upload, Menu, ChevronLeft, AlertTriangle, BookOpen } from 'lucide-react';
 import toast from 'react-hot-toast';
-import ProjectList from '../../features/projects/components/ProjectList';
+import ProjectsPlaceholder from '../../components/common/ProjectsPlaceholder';
 import CalculatorApp from '../../components/calculator/CalculatorApp';
 import ErrorCodesApp from '../../components/error-codes/ErrorCodesApp';
 import { Modal } from '../../components/ui';
 import { authService } from '../../services/firebase/auth';
-import { storageService } from '../../services/firebase/storage';
 import { setUser } from '../../store/slices/authSlice';
 
 const Dashboard = () => {
@@ -75,13 +74,14 @@ const Dashboard = () => {
     const file = e.target.files[0];
     if (file) {
       // Validate file size (5MB limit)
-      if (storageService.getFileSizeInMB(file) > 5) {
+      if (file.size > 5 * 1024 * 1024) {
         toast.error('La imagen no puede ser mayor a 5MB');
         return;
       }
       
       // Validate file type
-      if (!storageService.isValidImageFile(file)) {
+      const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
         toast.error('Por favor selecciona una imagen válida (JPEG, PNG, GIF, WebP)');
         return;
       }
@@ -112,19 +112,11 @@ const Dashboard = () => {
       
       let photoURL = user.photoURL; // Keep existing photo by default
       
-      // If there's a new photo file, upload it to Firebase Storage
+      // Photo upload functionality temporarily disabled
+      // Will be implemented with new storage solution
       if (photoFile) {
-        const loadingToast = toast.loading('Subiendo imagen...');
-        try {
-          uploadedPhotoURL = await storageService.uploadProfilePhoto(user.uid, photoFile);
-          photoURL = uploadedPhotoURL;
-          toast.dismiss(loadingToast);
-        } catch (uploadError) {
-          toast.dismiss(loadingToast);
-          console.error('Error uploading photo:', uploadError);
-          toast.error('Error al subir la imagen: ' + uploadError.message);
-          return;
-        }
+        toast.error('La subida de fotos será implementada en la próxima versión');
+        return;
       }
       
       // If user removed photo
@@ -157,14 +149,7 @@ const Dashboard = () => {
       console.error('Error code:', error.code);
       console.error('Error message:', error.message);
       
-      // If photo was uploaded but profile update failed, try to clean it up
-      if (uploadedPhotoURL) {
-        try {
-          await storageService.deleteProfilePhoto(uploadedPhotoURL);
-        } catch (deleteError) {
-          console.error('Error cleaning up uploaded photo:', deleteError);
-        }
-      }
+      // Photo cleanup not needed in simplified version
       
       let errorMessage = 'Error al actualizar perfil';
       if (error.code === 'auth/user-not-found') {
@@ -191,9 +176,9 @@ const Dashboard = () => {
       case 'error-codes':
         return <ErrorCodesApp />;
       case 'projects':
-        return <ProjectList />;
+        return <ProjectsPlaceholder />;
       default:
-        return <ProjectList />;
+        return <ProjectsPlaceholder />;
     }
   };
 
