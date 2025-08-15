@@ -38,6 +38,70 @@ const RecentProjectsGrid = ({ userId }) => {
       status: 'active',
       updated_at: '2024-08-12T14:20:00Z',
       calculation_count: 5
+    },
+    {
+      id: '5',
+      name: 'Edificio de Oficinas Central',
+      project_type: 'commercial',
+      status: 'active',
+      updated_at: '2024-08-11T11:15:00Z',
+      calculation_count: 12
+    },
+    {
+      id: '6',
+      name: 'Fábrica de Alimentos',
+      project_type: 'industrial',
+      status: 'completed',
+      updated_at: '2024-08-10T08:45:00Z',
+      calculation_count: 18
+    },
+    {
+      id: '7',
+      name: 'Residencia Martínez',
+      project_type: 'residential',
+      status: 'draft',
+      updated_at: '2024-08-09T15:20:00Z',
+      calculation_count: 2
+    },
+    {
+      id: '8',
+      name: 'Shopping Mall Sur',
+      project_type: 'commercial',
+      status: 'active',
+      updated_at: '2024-08-08T13:30:00Z',
+      calculation_count: 25
+    },
+    {
+      id: '9',
+      name: 'Complejo Industrial Norte',
+      project_type: 'industrial',
+      status: 'active',
+      updated_at: '2024-08-07T09:10:00Z',
+      calculation_count: 22
+    },
+    {
+      id: '10',
+      name: 'Apartamentos Vista Linda',
+      project_type: 'residential',
+      status: 'completed',
+      updated_at: '2024-08-06T16:00:00Z',
+      calculation_count: 14
+    },
+    {
+      id: '11',
+      name: 'Torre de Oficinas Este',
+      project_type: 'commercial',
+      status: 'draft',
+      updated_at: '2024-08-05T10:25:00Z',
+      calculation_count: 6
+    },
+    {
+      id: '12',
+      name: 'Casa García',
+      project_type: 'residential',
+      status: 'active',
+      updated_at: '2024-08-04T14:40:00Z',
+      calculation_count: 7
     }
   ];
 

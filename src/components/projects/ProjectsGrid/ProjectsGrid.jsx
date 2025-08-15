@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Plus, FileText } from 'lucide-react';
 import RecentProjectsGrid from '../RecentProjectsCard';
-import StatisticsSection from '../StatisticsSection';
 import CreateProjectModal from '../CreateProjectModal';
 
 const ProjectsGrid = () => {
@@ -44,8 +43,6 @@ const ProjectsGrid = () => {
         <RecentProjectsGrid userId={user?.uid} />
       </div>
 
-      {/* Statistics and KPI Section */}
-      <StatisticsSection userId={user?.uid} />
 
       {/* Bottom Note */}
       <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
