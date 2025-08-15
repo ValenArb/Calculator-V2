@@ -68,6 +68,17 @@ const ProjectsGrid = () => {
       'Patricia Isabel Vargas'
     ];
 
+    const companies = [
+      'Constructora ABC S.A.',
+      'Edificaciones del Norte SRL',
+      'Grupo Constructor Sur',
+      'Inmobiliaria Central',
+      'Constructora Moderna Ltda.',
+      'Desarrollos Urbanos S.A.',
+      'Ingeniería y Construcción Oeste',
+      'Proyectos Residenciales Este'
+    ];
+
     const locations = [
       'Buenos Aires, Argentina',
       'Córdoba, Argentina',
@@ -82,6 +93,7 @@ const ProjectsGrid = () => {
     const randomProject = {
       name: projectNames[Math.floor(Math.random() * projectNames.length)],
       description: descriptions[Math.floor(Math.random() * descriptions.length)],
+      company: companies[Math.floor(Math.random() * companies.length)],
       owner_id: user.uid,
       client_name: clientNames[Math.floor(Math.random() * clientNames.length)],
       client_email: `${clientNames[Math.floor(Math.random() * clientNames.length)].toLowerCase().replace(/\s+/g, '.')}@email.com`,

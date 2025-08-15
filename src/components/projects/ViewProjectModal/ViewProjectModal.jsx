@@ -96,19 +96,40 @@ const ViewProjectModal = ({ isOpen, onClose, userId, projectId }) => {
             </div>
             <div className="flex-1">
               <h3 className="text-lg font-semibold text-gray-900">{project.name}</h3>
-              {project.client_name && (
-                <div className="mt-1">
-                  <span className="text-sm text-gray-500">
-                    Cliente: {project.client_name}
-                  </span>
-                </div>
-              )}
+              <div className="mt-1 space-y-1">
+                {project.company && (
+                  <div>
+                    <span className="text-sm font-medium text-gray-600">
+                      {project.company}
+                    </span>
+                  </div>
+                )}
+                {project.client_name && (
+                  <div>
+                    <span className="text-sm text-gray-500">
+                      Cliente: {project.client_name}
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
         {/* Project Information */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Company */}
+          {project.company && (
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Empresa
+              </label>
+              <div className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900">
+                {project.company}
+              </div>
+            </div>
+          )}
+
           {/* Description */}
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-2">

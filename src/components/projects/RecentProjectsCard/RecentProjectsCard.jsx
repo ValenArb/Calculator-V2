@@ -104,6 +104,7 @@ const RecentProjectsGrid = ({ userId }) => {
     { value: 'name', label: 'Nombre (A-Z)' },
     { value: 'updated_at', label: 'Última Modificación' },
     { value: 'created_at', label: 'Fecha de Creación' },
+    { value: 'company', label: 'Empresa' },
     { value: 'client_name', label: 'Cliente' },
     { value: 'calculation_count', label: 'Cantidad de Cálculos' }
   ];
@@ -116,7 +117,9 @@ const RecentProjectsGrid = ({ userId }) => {
     if (searchTerm) {
       filtered = filtered.filter(project =>
         project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (project.client_name && project.client_name.toLowerCase().includes(searchTerm.toLowerCase()))
+        (project.client_name && project.client_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (project.company && project.company.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (project.description && project.description.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
 
@@ -138,6 +141,10 @@ const RecentProjectsGrid = ({ userId }) => {
         case 'client_name':
           valueA = (a.client_name || '').toLowerCase();
           valueB = (b.client_name || '').toLowerCase();
+          break;
+        case 'company':
+          valueA = (a.company || '').toLowerCase();
+          valueB = (b.company || '').toLowerCase();
           break;
         case 'calculation_count':
           valueA = a.calculation_count;
@@ -192,7 +199,7 @@ const RecentProjectsGrid = ({ userId }) => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Buscar proyectos por nombre o cliente..."
+            placeholder="Buscar proyectos por nombre, empresa, cliente o descripción..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -250,27 +257,45 @@ const RecentProjectsGrid = ({ userId }) => {
             className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group"
             onClick={() => handleViewProject(project.id)}
           >
-            <div className="flex items-center justify-center mb-3">
-              <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition-colors border border-gray-200">
+            {/* Primera fila: Logo cliente | Descripción */}
+            <div className="flex items-start gap-3 mb-3">
+              <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition-colors border border-gray-200 flex-shrink-0">
                 {project.client_logo_url ? (
                   <img
                     src={project.client_logo_url}
                     alt={`Logo de ${project.client_name}`}
-                    className="w-8 h-8 object-contain rounded"
+                    className="w-10 h-10 object-contain rounded"
                   />
                 ) : (
-                  <ImageIcon className="w-5 h-5 text-gray-600 group-hover:text-blue-600" />
+                  <ImageIcon className="w-6 h-6 text-gray-600 group-hover:text-blue-600" />
                 )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
+                  {project.description || project.name}
+                </p>
               </div>
             </div>
             
-            <h4 className="font-medium text-gray-900 mb-2 group-hover:text-blue-900 truncate">
-              {project.name}
-            </h4>
+            {/* Segunda fila: Empresa */}
+            <div className="mb-2">
+              <h4 className="font-semibold text-gray-900 group-hover:text-blue-900 truncate text-sm">
+                {project.company || 'Sin empresa'}
+              </h4>
+            </div>
             
-            <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
-              <span>{project.calculation_count} cálculos</span>
-              <span>{formatDate(project.updated_at)}</span>
+            {/* Tercera fila: Cálculos realizados */}
+            <div className="mb-2">
+              <span className="text-xs font-medium text-gray-600">
+                {project.calculation_count || 0} cálculos realizados
+              </span>
+            </div>
+
+            {/* Cuarta fila: Fecha modificación */}
+            <div className="mb-3">
+              <span className="text-xs text-gray-500">
+                Modificado: {formatDate(project.updated_at)}
+              </span>
             </div>
 
             {/* Action buttons */}
