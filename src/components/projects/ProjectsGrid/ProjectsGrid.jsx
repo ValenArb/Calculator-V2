@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import { Plus, FileText, Shuffle } from 'lucide-react';
 import RecentProjectsGrid from '../RecentProjectsCard';
 import CreateProjectModal from '../CreateProjectModal';
-import apiService from '../../../services/api';
+import projectsService from '../../../services/firebase/projects';
 import toast from 'react-hot-toast';
 
 const ProjectsGrid = () => {
@@ -79,21 +79,19 @@ const ProjectsGrid = () => {
       'Salta, Argentina'
     ];
 
-    const projectTypes = ['residential', 'commercial', 'industrial'];
-
     const randomProject = {
       name: projectNames[Math.floor(Math.random() * projectNames.length)],
       description: descriptions[Math.floor(Math.random() * descriptions.length)],
-      userId: user.uid,
-      projectType: projectTypes[Math.floor(Math.random() * projectTypes.length)],
-      clientName: clientNames[Math.floor(Math.random() * clientNames.length)],
-      clientEmail: `${clientNames[Math.floor(Math.random() * clientNames.length)].toLowerCase().replace(/\s+/g, '.')}@email.com`,
-      clientPhone: `+54 11 ${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`,
-      location: locations[Math.floor(Math.random() * locations.length)]
+      owner_id: user.uid,
+      client_name: clientNames[Math.floor(Math.random() * clientNames.length)],
+      client_email: `${clientNames[Math.floor(Math.random() * clientNames.length)].toLowerCase().replace(/\s+/g, '.')}@email.com`,
+      client_phone: `+54 11 ${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`,
+      location: locations[Math.floor(Math.random() * locations.length)],
+      status: 'draft'
     };
 
     try {
-      await apiService.createProject(randomProject);
+      await projectsService.createProject(randomProject);
       toast.success(`Proyecto "${randomProject.name}" creado exitosamente`);
       handleProjectCreated();
     } catch (error) {

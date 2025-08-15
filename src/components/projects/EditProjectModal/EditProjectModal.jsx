@@ -1,28 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../../ui';
-import { Home, Building2, Factory, User, Mail, Phone, MapPin } from 'lucide-react';
+import { User, Mail, Phone, MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
-import apiService from '../../../services/api';
+import projectsService from '../../../services/firebase/projects';
+import ClientLogoUploader from '../ClientLogoUploader';
 
 const EditProjectModal = ({ isOpen, onClose, userId, projectId, onProjectUpdated }) => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    projectType: 'residential',
     status: 'draft',
     clientName: '',
     clientEmail: '',
     clientPhone: '',
-    location: ''
+    location: '',
+    clientLogoUrl: null
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-
-  const projectTypes = [
-    { id: 'residential', name: 'Residencial', icon: Home, color: 'text-blue-600' },
-    { id: 'commercial', name: 'Comercial', icon: Building2, color: 'text-green-600' },
-    { id: 'industrial', name: 'Industrial', icon: Factory, color: 'text-purple-600' }
-  ];
 
   const statusOptions = [
     { id: 'draft', name: 'Borrador', color: 'text-yellow-600' },
@@ -38,16 +33,16 @@ const EditProjectModal = ({ isOpen, onClose, userId, projectId, onProjectUpdated
       
       setIsLoading(true);
       try {
-        const project = await apiService.getProject(projectId, userId);
+        const project = await projectsService.getProject(projectId, userId);
         setFormData({
           name: project.name || '',
           description: project.description || '',
-          projectType: project.project_type || 'residential',
           status: project.status || 'draft',
           clientName: project.client_name || '',
           clientEmail: project.client_email || '',
           clientPhone: project.client_phone || '',
-          location: project.location || ''
+          location: project.location || '',
+          clientLogoUrl: project.client_logo_url || null
         });
       } catch (error) {
         console.error('Error loading project:', error);
@@ -69,6 +64,13 @@ const EditProjectModal = ({ isOpen, onClose, userId, projectId, onProjectUpdated
     }));
   };
 
+  const handleLogoChange = (logoUrl) => {
+    setFormData(prev => ({
+      ...prev,
+      clientLogoUrl: logoUrl
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -83,16 +85,15 @@ const EditProjectModal = ({ isOpen, onClose, userId, projectId, onProjectUpdated
       const projectData = {
         name: formData.name,
         description: formData.description,
-        userId: userId,
-        projectType: formData.projectType,
         status: formData.status,
-        clientName: formData.clientName,
-        clientEmail: formData.clientEmail,
-        clientPhone: formData.clientPhone,
-        location: formData.location
+        client_name: formData.clientName,
+        client_email: formData.clientEmail,
+        client_phone: formData.clientPhone,
+        location: formData.location,
+        client_logo_url: formData.clientLogoUrl
       };
 
-      const updatedProject = await apiService.updateProject(projectId, projectData);
+      const updatedProject = await projectsService.updateProject(projectId, projectData, userId);
       
       toast.success('Proyecto actualizado exitosamente');
       
@@ -130,36 +131,6 @@ const EditProjectModal = ({ isOpen, onClose, userId, projectId, onProjectUpdated
       size="lg"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Project Type Selection */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            Tipo de Proyecto
-          </label>
-          <div className="grid grid-cols-3 gap-3">
-            {projectTypes.map((type) => {
-              const Icon = type.icon;
-              const isSelected = formData.projectType === type.id;
-              return (
-                <button
-                  key={type.id}
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, projectType: type.id }))}
-                  className={`p-4 border-2 rounded-lg text-center transition-all ${
-                    isSelected 
-                      ? 'border-blue-500 bg-blue-50' 
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <Icon className={`w-8 h-8 mx-auto mb-2 ${isSelected ? 'text-blue-600' : 'text-gray-400'}`} />
-                  <span className={`text-sm font-medium ${isSelected ? 'text-blue-900' : 'text-gray-700'}`}>
-                    {type.name}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         {/* Project Information */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
@@ -282,6 +253,16 @@ const EditProjectModal = ({ isOpen, onClose, userId, projectId, onProjectUpdated
                 />
               </div>
             </div>
+          </div>
+
+          {/* Client Logo Upload */}
+          <div className="mt-6">
+            <ClientLogoUploader
+              userId={userId}
+              clientName={formData.clientName}
+              currentLogoUrl={formData.clientLogoUrl}
+              onLogoChange={handleLogoChange}
+            />
           </div>
         </div>
 

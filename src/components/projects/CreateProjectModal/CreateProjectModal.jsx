@@ -1,32 +1,34 @@
 import React, { useState } from 'react';
 import { Modal } from '../../ui';
-import { Home, Building2, Factory, User, Mail, Phone, MapPin } from 'lucide-react';
+import { User, Mail, Phone, MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
-import apiService from '../../../services/api';
+import projectsService from '../../../services/firebase/projects';
+import ClientLogoUploader from '../ClientLogoUploader';
 
-const CreateProjectModal = ({ isOpen, onClose, userId, defaultType = 'residential', onProjectCreated }) => {
+const CreateProjectModal = ({ isOpen, onClose, userId, onProjectCreated }) => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    projectType: defaultType,
     clientName: '',
     clientEmail: '',
     clientPhone: '',
-    location: ''
+    location: '',
+    clientLogoUrl: null
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const projectTypes = [
-    { id: 'residential', name: 'Residencial', icon: Home, color: 'text-blue-600' },
-    { id: 'commercial', name: 'Comercial', icon: Building2, color: 'text-green-600' },
-    { id: 'industrial', name: 'Industrial', icon: Factory, color: 'text-purple-600' }
-  ];
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
+    }));
+  };
+
+  const handleLogoChange = (logoUrl) => {
+    setFormData(prev => ({
+      ...prev,
+      clientLogoUrl: logoUrl
     }));
   };
 
@@ -44,15 +46,16 @@ const CreateProjectModal = ({ isOpen, onClose, userId, defaultType = 'residentia
       const projectData = {
         name: formData.name,
         description: formData.description,
-        userId: userId,
-        projectType: formData.projectType,
-        clientName: formData.clientName,
-        clientEmail: formData.clientEmail,
-        clientPhone: formData.clientPhone,
-        location: formData.location
+        owner_id: userId,
+        client_name: formData.clientName,
+        client_email: formData.clientEmail,
+        client_phone: formData.clientPhone,
+        location: formData.location,
+        client_logo_url: formData.clientLogoUrl,
+        status: 'draft'
       };
 
-      const createdProject = await apiService.createProject(projectData);
+      const createdProject = await projectsService.createProject(projectData);
       
       toast.success('Proyecto creado exitosamente');
       
@@ -60,11 +63,11 @@ const CreateProjectModal = ({ isOpen, onClose, userId, defaultType = 'residentia
       setFormData({
         name: '',
         description: '',
-        projectType: defaultType,
         clientName: '',
         clientEmail: '',
         clientPhone: '',
-        location: ''
+        location: '',
+        clientLogoUrl: null
       });
       
       // Notify parent component to refresh projects
@@ -90,36 +93,6 @@ const CreateProjectModal = ({ isOpen, onClose, userId, defaultType = 'residentia
       size="lg"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Project Type Selection */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            Tipo de Proyecto
-          </label>
-          <div className="grid grid-cols-3 gap-3">
-            {projectTypes.map((type) => {
-              const Icon = type.icon;
-              const isSelected = formData.projectType === type.id;
-              return (
-                <button
-                  key={type.id}
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, projectType: type.id }))}
-                  className={`p-4 border-2 rounded-lg text-center transition-all ${
-                    isSelected 
-                      ? 'border-blue-500 bg-blue-50' 
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <Icon className={`w-8 h-8 mx-auto mb-2 ${isSelected ? 'text-blue-600' : 'text-gray-400'}`} />
-                  <span className={`text-sm font-medium ${isSelected ? 'text-blue-900' : 'text-gray-700'}`}>
-                    {type.name}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         {/* Project Information */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
@@ -224,6 +197,16 @@ const CreateProjectModal = ({ isOpen, onClose, userId, defaultType = 'residentia
                 />
               </div>
             </div>
+          </div>
+
+          {/* Client Logo Upload */}
+          <div className="mt-6">
+            <ClientLogoUploader
+              userId={userId}
+              clientName={formData.clientName}
+              currentLogoUrl={formData.clientLogoUrl}
+              onLogoChange={handleLogoChange}
+            />
           </div>
         </div>
 

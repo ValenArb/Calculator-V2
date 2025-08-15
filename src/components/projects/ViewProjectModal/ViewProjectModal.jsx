@@ -1,18 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../../ui';
-import { Home, Building2, Factory, User, Mail, Phone, MapPin, Calendar, FileText, Hash } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Calendar, FileText, Hash, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
-import apiService from '../../../services/api';
+import projectsService from '../../../services/firebase/projects';
 
 const ViewProjectModal = ({ isOpen, onClose, userId, projectId }) => {
   const [project, setProject] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  const projectTypes = {
-    'residential': { name: 'Residencial', icon: Home, color: 'text-blue-600' },
-    'commercial': { name: 'Comercial', icon: Building2, color: 'text-green-600' },
-    'industrial': { name: 'Industrial', icon: Factory, color: 'text-purple-600' }
-  };
 
   const statusOptions = {
     'draft': { name: 'Borrador', color: 'bg-yellow-100 text-yellow-800' },
@@ -28,7 +22,7 @@ const ViewProjectModal = ({ isOpen, onClose, userId, projectId }) => {
       
       setIsLoading(true);
       try {
-        const projectData = await apiService.getProject(projectId, userId);
+        const projectData = await projectsService.getProject(projectId, userId);
         setProject(projectData);
       } catch (error) {
         console.error('Error loading project:', error);
@@ -73,8 +67,6 @@ const ViewProjectModal = ({ isOpen, onClose, userId, projectId }) => {
     );
   }
 
-  const ProjectTypeIcon = projectTypes[project.project_type]?.icon || Home;
-
   return (
     <Modal
       isOpen={isOpen}
@@ -86,11 +78,17 @@ const ViewProjectModal = ({ isOpen, onClose, userId, projectId }) => {
         {/* Project Header */}
         <div className="bg-gray-50 rounded-lg p-4">
           <div className="flex items-center gap-4">
-            <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-              project.project_type === 'residential' ? 'bg-blue-100' :
-              project.project_type === 'commercial' ? 'bg-green-100' : 'bg-purple-100'
-            }`}>
-              <ProjectTypeIcon className={`w-6 h-6 ${projectTypes[project.project_type]?.color}`} />
+            {/* Client Logo or Default Icon */}
+            <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-gray-100 border border-gray-200">
+              {project.client_logo_url ? (
+                <img
+                  src={project.client_logo_url}
+                  alt={`Logo de ${project.client_name}`}
+                  className="w-10 h-10 object-contain rounded"
+                />
+              ) : (
+                <ImageIcon className="w-6 h-6 text-gray-400" />
+              )}
             </div>
             <div className="flex-1">
               <h3 className="text-lg font-semibold text-gray-900">{project.name}</h3>
@@ -100,9 +98,11 @@ const ViewProjectModal = ({ isOpen, onClose, userId, projectId }) => {
                 }`}>
                   {statusOptions[project.status]?.name}
                 </span>
-                <span className="text-sm text-gray-500">
-                  {projectTypes[project.project_type]?.name}
-                </span>
+                {project.client_name && (
+                  <span className="text-sm text-gray-500">
+                    Cliente: {project.client_name}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -159,6 +159,23 @@ const ViewProjectModal = ({ isOpen, onClose, userId, projectId }) => {
                 {project.client_name || 'No especificado'}
               </div>
             </div>
+
+            {/* Client Logo Display */}
+            {project.client_logo_url && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                  <ImageIcon className="w-4 h-4" />
+                  Logo del Cliente
+                </label>
+                <div className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg">
+                  <img
+                    src={project.client_logo_url}
+                    alt={`Logo de ${project.client_name}`}
+                    className="h-16 object-contain bg-white rounded border border-gray-100"
+                  />
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">

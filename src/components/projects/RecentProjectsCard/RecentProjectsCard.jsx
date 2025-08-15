@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Clock, Home, Building2, Factory, ChevronRight, Eye, Edit, Search, SortAsc, Filter } from 'lucide-react';
-import apiService from '../../../services/api';
+import { Clock, Image as ImageIcon, Eye, Edit, Search, SortAsc, Filter } from 'lucide-react';
+import projectsService from '../../../services/firebase/projects';
 import toast from 'react-hot-toast';
 import EditProjectModal from '../EditProjectModal';
 import ViewProjectModal from '../ViewProjectModal';
@@ -25,7 +25,7 @@ const RecentProjectsGrid = ({ userId }) => {
       
       setIsLoading(true);
       try {
-        const projects = await apiService.getProjects(userId);
+        const projects = await projectsService.getProjects(userId);
         setRecentProjects(projects);
       } catch (error) {
         console.error('Error fetching recent projects:', error);
@@ -39,14 +39,6 @@ const RecentProjectsGrid = ({ userId }) => {
     fetchRecentProjects();
   }, [userId]);
 
-  const getProjectTypeIcon = (type) => {
-    switch (type) {
-      case 'residential': return Home;
-      case 'commercial': return Building2;
-      case 'industrial': return Factory;
-      default: return Home;
-    }
-  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -102,7 +94,7 @@ const RecentProjectsGrid = ({ userId }) => {
       
       setIsLoading(true);
       try {
-        const projects = await apiService.getProjects(userId);
+        const projects = await projectsService.getProjects(userId);
         setRecentProjects(projects);
       } catch (error) {
         console.error('Error fetching recent projects:', error);
@@ -121,7 +113,7 @@ const RecentProjectsGrid = ({ userId }) => {
     { value: 'name', label: 'Nombre (A-Z)' },
     { value: 'updated_at', label: 'Última Modificación' },
     { value: 'created_at', label: 'Fecha de Creación' },
-    { value: 'project_type', label: 'Tipo de Proyecto' },
+    { value: 'client_name', label: 'Cliente' },
     { value: 'status', label: 'Estado' },
     { value: 'calculation_count', label: 'Cantidad de Cálculos' }
   ];
@@ -134,7 +126,7 @@ const RecentProjectsGrid = ({ userId }) => {
     if (searchTerm) {
       filtered = filtered.filter(project =>
         project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        project.project_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (project.client_name && project.client_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
         project.status.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
@@ -153,10 +145,9 @@ const RecentProjectsGrid = ({ userId }) => {
           valueA = new Date(a[sortBy]);
           valueB = new Date(b[sortBy]);
           break;
-        case 'project_type':
-          const typeOrder = { residential: 1, commercial: 2, industrial: 3 };
-          valueA = typeOrder[a.project_type];
-          valueB = typeOrder[b.project_type];
+        case 'client_name':
+          valueA = (a.client_name || '').toLowerCase();
+          valueB = (b.client_name || '').toLowerCase();
           break;
         case 'status':
           const statusOrder = { active: 1, draft: 2, completed: 3, archived: 4 };
@@ -216,7 +207,7 @@ const RecentProjectsGrid = ({ userId }) => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Buscar proyectos por nombre, tipo o estado..."
+            placeholder="Buscar proyectos por nombre, cliente o estado..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -268,7 +259,6 @@ const RecentProjectsGrid = ({ userId }) => {
           </div>
         ) : (
           filteredAndSortedProjects.map((project) => {
-        const TypeIcon = getProjectTypeIcon(project.project_type);
         return (
           <div
             key={project.id}
@@ -276,8 +266,16 @@ const RecentProjectsGrid = ({ userId }) => {
             onClick={() => handleViewProject(project.id)}
           >
             <div className="flex items-center justify-center mb-3">
-              <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition-colors">
-                <TypeIcon className="w-5 h-5 text-gray-600 group-hover:text-blue-600" />
+              <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition-colors border border-gray-200">
+                {project.client_logo_url ? (
+                  <img
+                    src={project.client_logo_url}
+                    alt={`Logo de ${project.client_name}`}
+                    className="w-8 h-8 object-contain rounded"
+                  />
+                ) : (
+                  <ImageIcon className="w-5 h-5 text-gray-600 group-hover:text-blue-600" />
+                )}
               </div>
             </div>
             
