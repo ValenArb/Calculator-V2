@@ -1,9 +1,14 @@
 -- Calculator V2 Database Schema
 -- SQLite3 schema for electrical project management
 
+-- Drop existing tables if they exist
+DROP TABLE IF EXISTS project_activities;
+DROP TABLE IF EXISTS project_templates;
+DROP TABLE IF EXISTS projects;
+
 -- Projects table
 CREATE TABLE projects (
-    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-a' || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
+    id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     description TEXT,
     owner_id TEXT NOT NULL, -- Firebase Auth UID
@@ -25,7 +30,7 @@ CREATE TABLE projects (
 
 -- Project templates table
 CREATE TABLE project_templates (
-    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-a' || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
+    id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     description TEXT,
     project_type TEXT NOT NULL,
@@ -39,7 +44,7 @@ CREATE TABLE project_templates (
 
 -- Project activity log (for tracking changes)
 CREATE TABLE project_activities (
-    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-a' || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
+    id TEXT PRIMARY KEY,
     project_id TEXT NOT NULL,
     user_id TEXT NOT NULL,
     activity_type TEXT NOT NULL,
