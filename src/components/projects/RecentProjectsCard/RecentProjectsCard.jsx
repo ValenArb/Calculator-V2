@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Clock, Home, Building2, Factory, ChevronRight, Eye, Edit, Search, SortAsc, Filter } from 'lucide-react';
 import apiService from '../../../services/api';
 import toast from 'react-hot-toast';
+import EditProjectModal from '../EditProjectModal';
+import ViewProjectModal from '../ViewProjectModal';
 
 const RecentProjectsGrid = ({ userId }) => {
   const [recentProjects, setRecentProjects] = useState([]);
@@ -9,6 +11,9 @@ const RecentProjectsGrid = ({ userId }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('updated_at');
   const [sortOrder, setSortOrder] = useState('desc');
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState(null);
 
 
   useEffect(() => {
@@ -81,13 +86,34 @@ const RecentProjectsGrid = ({ userId }) => {
   };
 
   const handleViewProject = (projectId) => {
-    console.log('View project:', projectId);
-    // TODO: Navigate to project details
+    setSelectedProjectId(projectId);
+    setShowViewModal(true);
   };
 
   const handleEditProject = (projectId) => {
-    console.log('Edit project:', projectId);
-    // TODO: Open edit modal or navigate to edit page
+    setSelectedProjectId(projectId);
+    setShowEditModal(true);
+  };
+
+  const handleProjectUpdated = () => {
+    // Refresh projects list
+    const fetchRecentProjects = async () => {
+      if (!userId) return;
+      
+      setIsLoading(true);
+      try {
+        const projects = await apiService.getProjects(userId);
+        setRecentProjects(projects);
+      } catch (error) {
+        console.error('Error fetching recent projects:', error);
+        toast.error('Error al cargar los proyectos');
+        setRecentProjects([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchRecentProjects();
   };
 
   // Sort options
@@ -294,6 +320,33 @@ const RecentProjectsGrid = ({ userId }) => {
         })
         )}
       </div>
+
+      {/* Edit Project Modal */}
+      {showEditModal && (
+        <EditProjectModal
+          isOpen={showEditModal}
+          onClose={() => {
+            setShowEditModal(false);
+            setSelectedProjectId(null);
+          }}
+          userId={userId}
+          projectId={selectedProjectId}
+          onProjectUpdated={handleProjectUpdated}
+        />
+      )}
+
+      {/* View Project Modal */}
+      {showViewModal && (
+        <ViewProjectModal
+          isOpen={showViewModal}
+          onClose={() => {
+            setShowViewModal(false);
+            setSelectedProjectId(null);
+          }}
+          userId={userId}
+          projectId={selectedProjectId}
+        />
+      )}
     </div>
   );
 };
