@@ -60,8 +60,18 @@ const RecentProjectsGrid = ({ userId }) => {
     }
   };
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
+  const formatDate = (timestamp) => {
+    let date;
+    if (timestamp?.toDate) {
+      // Firestore Timestamp
+      date = timestamp.toDate();
+    } else if (timestamp) {
+      // String timestamp
+      date = new Date(timestamp);
+    } else {
+      date = new Date();
+    }
+    
     const now = new Date();
     const diffTime = Math.abs(now - date);
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
@@ -142,8 +152,9 @@ const RecentProjectsGrid = ({ userId }) => {
           break;
         case 'updated_at':
         case 'created_at':
-          valueA = new Date(a[sortBy]);
-          valueB = new Date(b[sortBy]);
+          // Handle Firestore timestamps
+          valueA = a[sortBy]?.toDate ? a[sortBy].toDate() : new Date(a[sortBy] || 0);
+          valueB = b[sortBy]?.toDate ? b[sortBy].toDate() : new Date(b[sortBy] || 0);
           break;
         case 'client_name':
           valueA = (a.client_name || '').toLowerCase();

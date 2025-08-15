@@ -69,10 +69,10 @@ class ProjectsService {
 
   async getProjects(userId, limitCount = null) {
     try {
+      // Simple query without orderBy to avoid composite index requirement
       let q = query(
         collection(db, PROJECTS_COLLECTION),
-        where('owner_id', '==', userId),
-        orderBy('updated_at', 'desc')
+        where('owner_id', '==', userId)
       );
       
       if (limitCount) {
@@ -80,10 +80,19 @@ class ProjectsService {
       }
       
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({
+      const projects = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
+      
+      // Sort client-side by updated_at descending
+      projects.sort((a, b) => {
+        const dateA = a.updated_at?.toDate ? a.updated_at.toDate() : new Date(a.updated_at || 0);
+        const dateB = b.updated_at?.toDate ? b.updated_at.toDate() : new Date(b.updated_at || 0);
+        return dateB - dateA;
+      });
+      
+      return projects;
     } catch (error) {
       console.error('Error fetching projects:', error);
       throw error;
@@ -228,15 +237,23 @@ class ProjectsService {
     try {
       const q = query(
         collection(db, CLIENT_LOGOS_COLLECTION),
-        where('uploaded_by', '==', userId),
-        orderBy('created_at', 'desc')
+        where('uploaded_by', '==', userId)
       );
       
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({
+      const logos = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
+      
+      // Sort client-side by created_at descending
+      logos.sort((a, b) => {
+        const dateA = a.created_at?.toDate ? a.created_at.toDate() : new Date(a.created_at || 0);
+        const dateB = b.created_at?.toDate ? b.created_at.toDate() : new Date(b.created_at || 0);
+        return dateB - dateA;
+      });
+      
+      return logos;
     } catch (error) {
       console.error('Error fetching client logos:', error);
       throw error;

@@ -36,8 +36,19 @@ const ViewProjectModal = ({ isOpen, onClose, userId, projectId }) => {
     loadProject();
   }, [isOpen, projectId, userId, onClose]);
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
+  const formatDate = (timestamp) => {
+    let date;
+    if (timestamp?.toDate) {
+      // Firestore Timestamp
+      date = timestamp.toDate();
+    } else if (timestamp) {
+      // String timestamp
+      date = new Date(timestamp);
+    } else {
+      date = new Date();
+    }
+    
+    return date.toLocaleDateString('es-ES', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
