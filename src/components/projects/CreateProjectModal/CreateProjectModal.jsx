@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { Modal } from '../../ui';
 import { Home, Building2, Factory, User, Mail, Phone, MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
+import apiService from '../../../services/api';
 
-const CreateProjectModal = ({ isOpen, onClose, userId, defaultType = 'residential' }) => {
+const CreateProjectModal = ({ isOpen, onClose, userId, defaultType = 'residential', onProjectCreated }) => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -40,14 +41,20 @@ const CreateProjectModal = ({ isOpen, onClose, userId, defaultType = 'residentia
     setIsSubmitting(true);
     
     try {
-      // Here we'll implement the API call to create the project
-      console.log('Creating project:', { ...formData, userId });
-      
-      // Simulate API call for now
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const projectData = {
+        name: formData.name,
+        description: formData.description,
+        userId: userId,
+        projectType: formData.projectType,
+        clientName: formData.clientName,
+        clientEmail: formData.clientEmail,
+        clientPhone: formData.clientPhone,
+        location: formData.location
+      };
+
+      const createdProject = await apiService.createProject(projectData);
       
       toast.success('Proyecto creado exitosamente');
-      onClose();
       
       // Reset form
       setFormData({
@@ -60,9 +67,16 @@ const CreateProjectModal = ({ isOpen, onClose, userId, defaultType = 'residentia
         location: ''
       });
       
+      // Notify parent component to refresh projects
+      if (onProjectCreated) {
+        onProjectCreated(createdProject);
+      }
+      
+      onClose();
+      
     } catch (error) {
       console.error('Error creating project:', error);
-      toast.error('Error al crear el proyecto');
+      toast.error('Error al crear el proyecto: ' + error.message);
     } finally {
       setIsSubmitting(false);
     }

@@ -14,87 +14,154 @@ npm run lint                   # Run ESLint with TypeScript support
 npm run typecheck              # Run TypeScript type checking without emit
 ```
 
-## Development Server Management
-
-**CRITICAL: Always Keep Development Server Running**
-
-- **ALWAYS start the development server** when working on this project: `npm run dev`
-- **Keep the server running in background** throughout the entire work session
-- **Restart the server** after making significant changes to:
-  - Package.json dependencies
-  - Vite configuration
-  - Environment variables
-  - Build configuration files
-  - Major structural changes
-
-**Server Management Commands:**
+### Backend Development (SQLite3 API)
 ```bash
-npm run dev                    # Start development server (ALWAYS run this first)
-# Keep terminal open and server running
-# Use a separate terminal for other commands
-
-# If server needs restart:
-Ctrl+C                        # Stop current server
-npm run dev                   # Start server again
+cd backend
+npm install                    # Install backend dependencies
+npm run db:migrate             # Create database schema
+npm run dev                    # Start backend API server (port 3001)
+npm start                      # Start backend in production mode
 ```
 
+## Development Server Management
+
+**CRITICAL: Always Keep Both Servers Running**
+
+**Frontend Server (Required):**
+- **ALWAYS start the frontend development server**: `npm run dev`
+- **Keep the server running in background** throughout the entire work session
+- **Frontend runs on**: `http://localhost:3000`
+
+**Backend API Server (Required):**
+- **ALWAYS start the backend API server**: `cd backend && npm run dev`
+- **Keep the backend running in background** throughout the entire work session  
+- **Backend runs on**: `http://localhost:3001`
+
+**Development Workflow:**
+```bash
+# Terminal 1 - Backend API
+cd backend
+npm install                    # Only needed once
+npm run db:migrate            # Only needed once or after schema changes
+npm run dev                   # Keep running
+
+# Terminal 2 - Frontend
+npm install                   # Only needed once  
+npm run dev                   # Keep running
+
+# Terminal 3 - Additional commands
+npm run lint
+npm run typecheck
+git commands, etc.
+```
+
+**Server Restart Required After:**
+- Package.json dependencies changes
+- Vite configuration changes
+- Environment variables changes
+- Database schema changes (backend)
+- Major structural changes
+
 **Important Notes:**
-- Development server runs on `http://localhost:3000`
-- Server provides hot reloading for immediate feedback
-- Never commit changes without testing on running development server
-- If application doesn't load, first check if server is running
+- Frontend server provides hot reloading for immediate feedback
+- Backend provides SQLite3 database and REST API
+- Never commit changes without testing on both running servers
+- If application doesn't load, first check if both servers are running
+- API calls from frontend go to `http://localhost:3001/api`
 
 ## Architecture Overview
 
 This is a streamlined electrical engineering calculator application focused on providing comprehensive calculation tools with user management.
 
-### Current Architecture (Post-Cleanup)
+### Current Architecture (SQLite3 Backend)
 
-**State Management**: Simplified Redux Toolkit setup:
+**Frontend (React + Redux)**:
 - `authSlice`: User authentication (Firebase Auth integration)
-- Clean, minimal state management ready for future expansion
+- Clean, minimal state management focusing on authentication
+- API service layer for backend communication
+
+**Backend (Node.js + Express + SQLite3)**:
+- Local SQLite3 database with optimized performance settings
+- RESTful API endpoints for project CRUD operations
+- Automatic database schema creation and migrations
+- Transaction support for data integrity
 
 **Feature-Based Organization**: 
 - `src/features/auth/`: Authentication components, hooks, and services
 - `src/components/calculator/`: 60+ individual calculator components
-- `src/components/error-codes/`: Error code management system
+- `src/components/projects/`: Project management components with real data
 - `src/components/ui/`: Reusable UI components
+- `src/services/api.js`: Backend API integration service
 - `src/pages/`: Main application pages (Dashboard, Login, Calculator)
+
+**Backend Structure**:
+- `backend/config/database.js`: SQLite3 configuration and helpers
+- `backend/routes/projects.js`: Project CRUD API endpoints
+- `backend/database/schema.sql`: Database schema definition
+- `backend/scripts/migrate.js`: Database migration script
 
 **Key Architectural Patterns**:
 - **Component-Based Architecture**: Modular, reusable calculator components
-- **Clean State Management**: Minimal Redux store focusing on authentication
-- **Firebase Integration**: User auth and error codes only (projects removed for rebuild)
-- **Session-Based Calculations**: Frontend-only calculations without backend dependency
+- **API-First Design**: Clean separation between frontend and backend
+- **Local Database**: SQLite3 for self-hosted deployment
+- **Firebase Auth Integration**: User authentication with local project storage
+- **Session + Persistence**: Calculations stored locally with project context
 
-### Data Flow Architecture (Current)
+### Data Flow Architecture (SQLite3 Backend)
 
-1. **User Input**: Calculator interfaces with form inputs
-2. **Frontend Calculations**: Client-side calculation logic within components
-3. **Session Storage**: Calculations exist only during user session
-4. **Authentication Flow**: Firebase Auth for user management
-5. **Error Codes**: Firebase Firestore for admin error code management
+1. **User Authentication**: Firebase Auth for user login/registration
+2. **Project Management**: Frontend ↔ Backend API ↔ SQLite3 database
+3. **Calculator Operations**: Client-side calculation logic within components
+4. **Data Persistence**: Projects and calculations saved to local SQLite3 database
+5. **Real-time Updates**: API calls update project data and refresh UI
+6. **Search & Filtering**: Client-side filtering with server-side data
 
-### Firebase Integration (Simplified)
+**API Endpoints**:
+- `GET /api/projects?userId={uid}` - Get all user projects
+- `POST /api/projects` - Create new project
+- `PUT /api/projects/{id}` - Update project
+- `DELETE /api/projects/{id}` - Delete project
+- `GET /api/projects/{id}/activity` - Get project activity log
 
-**Authentication**: Firebase Auth with Google SSO and email/password
-**Database**: Firestore for error codes and user admin management only
-**Security Rules**: Simplified rules for error codes collection
+### Database Architecture (SQLite3)
 
-**Current Firestore Collections**:
+**SQLite3 Database**: Local file-based database for self-hosting
+**Location**: `backend/database/calculator.db`
+**Performance**: WAL mode, foreign keys enabled, optimized pragmas
+
+**Database Tables**:
+```sql
+projects
+├── id: TEXT (UUID)
+├── name: TEXT
+├── description: TEXT
+├── owner_id: TEXT (Firebase UID)
+├── project_type: TEXT (residential/commercial/industrial)
+├── status: TEXT (draft/active/completed/archived)
+├── client_name: TEXT
+├── client_email: TEXT
+├── client_phone: TEXT
+├── location: TEXT
+├── calculation_data: TEXT (JSON)
+├── metadata: TEXT (JSON)
+├── calculation_count: INTEGER
+├── created_at: TEXT (ISO datetime)
+└── updated_at: TEXT (ISO datetime)
+
+project_activities
+├── id: TEXT (UUID)
+├── project_id: TEXT → projects(id)
+├── user_id: TEXT (Firebase UID)
+├── activity_type: TEXT
+├── description: TEXT
+├── metadata: TEXT (JSON)
+└── created_at: TEXT (ISO datetime)
 ```
-errorCodes/{errorId}
-├── code: string
-├── description: string
-├── category: string
-├── createdAt: timestamp
-└── updatedAt: timestamp
 
-admins/{userId}
-├── email: string
-├── role: string
-└── permissions: array
-```
+**Firebase Integration**:
+- **Authentication Only**: Firebase Auth with Google SSO and email/password
+- **No Firestore**: All project data stored locally in SQLite3
+- **User IDs**: Firebase UIDs used as foreign keys in local database
 
 ## Electrical Engineering Context
 

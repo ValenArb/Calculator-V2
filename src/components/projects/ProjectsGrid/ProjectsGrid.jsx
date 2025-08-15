@@ -7,9 +7,15 @@ import CreateProjectModal from '../CreateProjectModal';
 const ProjectsGrid = () => {
   const { user } = useSelector((state) => state.auth);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const handleCreateProject = () => {
     setShowCreateModal(true);
+  };
+
+  const handleProjectCreated = () => {
+    // Trigger refresh of projects list
+    setRefreshTrigger(prev => prev + 1);
   };
 
   return (
@@ -40,7 +46,7 @@ const ProjectsGrid = () => {
           <FileText className="w-5 h-5" />
           Proyectos Recientes
         </h2>
-        <RecentProjectsGrid userId={user?.uid} />
+        <RecentProjectsGrid userId={user?.uid} key={refreshTrigger} />
       </div>
 
 
@@ -73,6 +79,7 @@ const ProjectsGrid = () => {
           onClose={() => setShowCreateModal(false)}
           userId={user?.uid}
           defaultType="residential"
+          onProjectCreated={handleProjectCreated}
         />
       )}
     </div>

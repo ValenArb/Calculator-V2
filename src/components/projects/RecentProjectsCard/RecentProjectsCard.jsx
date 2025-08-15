@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Clock, Home, Building2, Factory, ChevronRight, Eye, Edit, Search, SortAsc, Filter } from 'lucide-react';
+import apiService from '../../../services/api';
+import toast from 'react-hot-toast';
 
 const RecentProjectsGrid = ({ userId }) => {
   const [recentProjects, setRecentProjects] = useState([]);
@@ -8,133 +10,21 @@ const RecentProjectsGrid = ({ userId }) => {
   const [sortBy, setSortBy] = useState('updated_at');
   const [sortOrder, setSortOrder] = useState('desc');
 
-  // Mock data for now - will be replaced with API call
-  const mockProjects = [
-    {
-      id: '1',
-      name: 'Edificio Residencial Norte',
-      project_type: 'residential',
-      status: 'active',
-      updated_at: '2024-08-15T10:30:00Z',
-      created_at: '2024-07-20T09:00:00Z',
-      calculation_count: 8
-    },
-    {
-      id: '2', 
-      name: 'Centro Comercial Plaza',
-      project_type: 'commercial',
-      status: 'draft',
-      updated_at: '2024-08-14T16:45:00Z',
-      created_at: '2024-08-10T14:30:00Z',
-      calculation_count: 3
-    },
-    {
-      id: '3',
-      name: 'Planta Industrial Textil',
-      project_type: 'industrial', 
-      status: 'completed',
-      updated_at: '2024-08-13T09:15:00Z',
-      created_at: '2024-06-15T11:20:00Z',
-      calculation_count: 15
-    },
-    {
-      id: '4',
-      name: 'Casa Familiar López',
-      project_type: 'residential',
-      status: 'active',
-      updated_at: '2024-08-12T14:20:00Z',
-      created_at: '2024-07-28T16:45:00Z',
-      calculation_count: 5
-    },
-    {
-      id: '5',
-      name: 'Edificio de Oficinas Central',
-      project_type: 'commercial',
-      status: 'active',
-      updated_at: '2024-08-11T11:15:00Z',
-      created_at: '2024-05-22T10:00:00Z',
-      calculation_count: 12
-    },
-    {
-      id: '6',
-      name: 'Fábrica de Alimentos',
-      project_type: 'industrial',
-      status: 'completed',
-      updated_at: '2024-08-10T08:45:00Z',
-      created_at: '2024-04-10T08:30:00Z',
-      calculation_count: 18
-    },
-    {
-      id: '7',
-      name: 'Residencia Martínez',
-      project_type: 'residential',
-      status: 'draft',
-      updated_at: '2024-08-09T15:20:00Z',
-      created_at: '2024-08-05T13:15:00Z',
-      calculation_count: 2
-    },
-    {
-      id: '8',
-      name: 'Shopping Mall Sur',
-      project_type: 'commercial',
-      status: 'active',
-      updated_at: '2024-08-08T13:30:00Z',
-      created_at: '2024-03-18T12:00:00Z',
-      calculation_count: 25
-    },
-    {
-      id: '9',
-      name: 'Complejo Industrial Norte',
-      project_type: 'industrial',
-      status: 'active',
-      updated_at: '2024-08-07T09:10:00Z',
-      created_at: '2024-06-30T14:45:00Z',
-      calculation_count: 22
-    },
-    {
-      id: '10',
-      name: 'Apartamentos Vista Linda',
-      project_type: 'residential',
-      status: 'completed',
-      updated_at: '2024-08-06T16:00:00Z',
-      created_at: '2024-05-12T09:30:00Z',
-      calculation_count: 14
-    },
-    {
-      id: '11',
-      name: 'Torre de Oficinas Este',
-      project_type: 'commercial',
-      status: 'draft',
-      updated_at: '2024-08-05T10:25:00Z',
-      created_at: '2024-08-01T15:20:00Z',
-      calculation_count: 6
-    },
-    {
-      id: '12',
-      name: 'Casa García',
-      project_type: 'residential',
-      status: 'active',
-      updated_at: '2024-08-04T14:40:00Z',
-      created_at: '2024-07-15T11:10:00Z',
-      calculation_count: 7
-    }
-  ];
 
   useEffect(() => {
     const fetchRecentProjects = async () => {
-      if (!userId) return;
+      if (!userId) {
+        setIsLoading(false);
+        return;
+      }
       
       setIsLoading(true);
       try {
-        // TODO: Replace with actual API call
-        // const response = await fetch(`/api/stats/recent-projects?userId=${userId}&limit=5`);
-        // const data = await response.json();
-        
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 800));
-        setRecentProjects(mockProjects);
+        const projects = await apiService.getProjects(userId);
+        setRecentProjects(projects);
       } catch (error) {
         console.error('Error fetching recent projects:', error);
+        toast.error('Error al cargar los proyectos');
         setRecentProjects([]);
       } finally {
         setIsLoading(false);

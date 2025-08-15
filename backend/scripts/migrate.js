@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { query, testConnection } from '../config/database.js';
+import { runMigration, testConnection } from '../config/database.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,18 +21,29 @@ async function runMigrations() {
     const schemaPath = path.join(__dirname, '..', 'database', 'schema.sql');
     const schema = fs.readFileSync(schemaPath, 'utf8');
     
-    // Execute schema
+    // Split schema into individual statements (split by semicolon and newline)
+    const statements = schema
+      .split(';')
+      .map(stmt => stmt.trim())
+      .filter(stmt => stmt && !stmt.startsWith('--'));
+    
     console.log('📋 Creating database schema...');
-    await query(schema);
+    await runMigration(statements);
     console.log('✅ Schema created successfully');
     
-    // Read and execute seed data
+    // Read and execute seed data if it exists
     const seedPath = path.join(__dirname, '..', 'database', 'seed.sql');
-    const seedData = fs.readFileSync(seedPath, 'utf8');
-    
-    console.log('🌱 Seeding initial data...');
-    await query(seedData);
-    console.log('✅ Seed data inserted successfully');
+    if (fs.existsSync(seedPath)) {
+      const seedData = fs.readFileSync(seedPath, 'utf8');
+      const seedStatements = seedData
+        .split(';')
+        .map(stmt => stmt.trim())
+        .filter(stmt => stmt && !stmt.startsWith('--'));
+      
+      console.log('🌱 Seeding initial data...');
+      await runMigration(seedStatements);
+      console.log('✅ Seed data inserted successfully');
+    }
     
     console.log('🎉 Database migration completed successfully!');
     
