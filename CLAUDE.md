@@ -14,80 +14,86 @@ npm run lint                   # Run ESLint with TypeScript support
 npm run typecheck              # Run TypeScript type checking without emit
 ```
 
-### Backend Development (Python)
+## Development Server Management
+
+**CRITICAL: Always Keep Development Server Running**
+
+- **ALWAYS start the development server** when working on this project: `npm run dev`
+- **Keep the server running in background** throughout the entire work session
+- **Restart the server** after making significant changes to:
+  - Package.json dependencies
+  - Vite configuration
+  - Environment variables
+  - Build configuration files
+  - Major structural changes
+
+**Server Management Commands:**
 ```bash
-cd backend-python
-python -m venv venv            # Create virtual environment
-# Windows: venv\Scripts\activate | macOS/Linux: source venv/bin/activate
-pip install -r requirements.txt
-python main.py                 # Start FastAPI server (port 8000)
-uvicorn main:app --reload      # Start with auto-reload for development
+npm run dev                    # Start development server (ALWAYS run this first)
+# Keep terminal open and server running
+# Use a separate terminal for other commands
+
+# If server needs restart:
+Ctrl+C                        # Stop current server
+npm run dev                   # Start server again
 ```
+
+**Important Notes:**
+- Development server runs on `http://localhost:3000`
+- Server provides hot reloading for immediate feedback
+- Never commit changes without testing on running development server
+- If application doesn't load, first check if server is running
 
 ## Architecture Overview
 
-This is a full-stack electrical engineering calculator application with real-time collaboration capabilities.
+This is a streamlined electrical engineering calculator application focused on providing comprehensive calculation tools with user management.
 
-### Frontend Architecture (React + Redux)
+### Current Architecture (Post-Cleanup)
 
-**State Management**: Redux Toolkit with 4 main slices:
+**State Management**: Simplified Redux Toolkit setup:
 - `authSlice`: User authentication (Firebase Auth integration)
-- `projectsSlice`: Project CRUD operations with Firestore
-- `calculationsSlice`: All electrical calculation data (DPMS, loads, thermal, etc.)
-- `collaborationSlice`: Real-time sync and user presence
+- Clean, minimal state management ready for future expansion
 
-**Feature-Based Organization**: Each domain is self-contained in `src/features/`:
-- `auth/`: Authentication components, hooks, and services
-- `projects/`: Project management (CRUD, favorites, recent)
-- `calculations/`: Calculation modules (DPMS, loads-per-panel, thermal, voltage-drop, short-circuit)
-- `collaboration/`: Real-time sync hooks and collaborator management
-- `export/`: Excel and PDF export functionality
+**Feature-Based Organization**: 
+- `src/features/auth/`: Authentication components, hooks, and services
+- `src/components/calculator/`: 60+ individual calculator components
+- `src/components/error-codes/`: Error code management system
+- `src/components/ui/`: Reusable UI components
+- `src/pages/`: Main application pages (Dashboard, Login, Calculator)
 
 **Key Architectural Patterns**:
-- **Feature Co-location**: Each feature contains its components, hooks, services, and schemas
-- **Redux + Custom Hooks**: Redux for global state, custom hooks for component logic
-- **Real-time Sync**: Firestore listeners with debounced auto-save (2-second debounce)
-- **Optimistic Updates**: UI updates immediately, syncs to Firebase in background
+- **Component-Based Architecture**: Modular, reusable calculator components
+- **Clean State Management**: Minimal Redux store focusing on authentication
+- **Firebase Integration**: User auth and error codes only (projects removed for rebuild)
+- **Session-Based Calculations**: Frontend-only calculations without backend dependency
 
-### Backend Architecture (Python FastAPI)
+### Data Flow Architecture (Current)
 
-**Calculation Engine**: Specialized modules in `backend-python/calculations/`:
-- `dpms.py`: Weighted power factor calculations, demand factors by building type
-- `loads_per_panel.py`: Three-phase vs single-phase current calculations
-- `thermal.py`: Temperature-dependent conductor capacity with IEC compliance
-- `voltage_drop.py`: Exact voltage drop formulas (not approximations)
-- `short_circuit.py`: IEC 60909 compliant short circuit calculations with X/R ratios
-- `electrical_constants.py`: Standards-compliant constants and validation
+1. **User Input**: Calculator interfaces with form inputs
+2. **Frontend Calculations**: Client-side calculation logic within components
+3. **Session Storage**: Calculations exist only during user session
+4. **Authentication Flow**: Firebase Auth for user management
+5. **Error Codes**: Firebase Firestore for admin error code management
 
-**API Structure**: RESTful endpoints following pattern `/calculate/{module}` with Pydantic models for validation.
-
-### Data Flow Architecture
-
-1. **User Input**: Excel-like tables in React components
-2. **State Updates**: Redux actions update calculation slices
-3. **Real-time Sync**: Firestore listeners sync changes across users (debounced)
-4. **Backend Calculations**: Optional Python API calls for complex calculations
-5. **Export Pipeline**: In-browser generation of Excel/PDF from Redux state
-
-### Firebase Integration
+### Firebase Integration (Simplified)
 
 **Authentication**: Firebase Auth with Google SSO and email/password
-**Database**: Firestore with real-time listeners for collaboration
-**Security Rules**: Owner/collaborator permissions with email-based access control
+**Database**: Firestore for error codes and user admin management only
+**Security Rules**: Simplified rules for error codes collection
 
-**Project Structure in Firestore**:
+**Current Firestore Collections**:
 ```
-projects/{projectId}
-├── ownerId: string
-├── collaborators: string[]
-├── data: {
-│   ├── dpms: Array<DPMSData>
-│   ├── loadsByPanel: Array<LoadsByPanelData>
-│   ├── thermal: Array<ThermalData>
-│   ├── voltageDrops: Array<VoltageDropData>
-│   └── shortCircuit: Array<ShortCircuitData>
-├── lastModifiedBy: string
-└── lastModifiedAt: timestamp
+errorCodes/{errorId}
+├── code: string
+├── description: string
+├── category: string
+├── createdAt: timestamp
+└── updatedAt: timestamp
+
+admins/{userId}
+├── email: string
+├── role: string
+└── permissions: array
 ```
 
 ## Electrical Engineering Context
@@ -106,34 +112,34 @@ This application implements professional electrical calculations following IEC a
 
 ## Development Considerations
 
-**Real-time Collaboration**: The `useRealTimeSync` hook automatically saves changes after 2 seconds of inactivity. Manual save is available via `forceSave()`.
+**Calculation Accuracy**: All electrical formulas follow IEC and IEEE standards for professional electrical engineering calculations.
 
-**Calculation Accuracy**: All electrical formulas have been reviewed for standards compliance. The `electrical_constants.py` module provides validated constants and formulas.
+**Type Safety**: TypeScript is used throughout with proper typing for electrical parameters. Always run `npm run typecheck` to validate before committing.
 
-**Type Safety**: TypeScript is used throughout with proper typing for electrical parameters. Run `npm run typecheck` to validate.
+**Session-Based Calculations**: All calculations are performed client-side and exist only during the user session. No data persistence for calculations currently.
 
-**Export System**: Uses jsPDF and XLSX libraries for client-side generation. Export options are configurable per module.
-
-**State Persistence**: All calculation data persists to Firestore automatically. Projects can be loaded/resumed from any device.
+**Component-Based Design**: Each calculator is self-contained with its own logic and UI, making them easy to maintain and extend.
 
 ## Firebase Configuration
 
-The Firebase config is in `firebaseconfig.js`. Ensure Firestore security rules allow read/write access for project owners and collaborators:
+The Firebase config is in `firebaseconfig.js`. Current setup includes:
+- Authentication (Google SSO + email/password)
+- Error codes collection for admin management
+- Simplified security rules for admin-only error code management
 
-```javascript
-allow read, write: if request.auth != null && 
-  (request.auth.uid == resource.data.ownerId || 
-   request.auth.token.email in resource.data.collaborators);
-```
+## Adding New Calculator Components
 
-## Adding New Calculation Modules
+**For Individual Calculators:**
+1. Create new calculator component in `src/components/calculator/`
+2. Follow existing patterns for form inputs and result display
+3. Implement client-side calculation logic within the component
+4. Add to CalculatorApp component navigation
+5. Test with development server running
 
-1. Create calculation logic in `backend-python/calculations/new_module.py`
-2. Add Redux actions to `calculationsSlice.js`
-3. Create React table component in `src/features/calculations/new-module/`
-4. Add module to sidebar navigation in `components/layout/Sidebar`
-5. Update export services to include new calculation type
-6. Add TypeScript types to `src/types/index.ts`
+**For Future Project System:**
+- Project management will be rebuilt from scratch
+- New database architecture (SQL) will be implemented
+- Export functionality will be redesigned
 
 ## GitHub Repository
 
