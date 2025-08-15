@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { Clock, Home, Building2, Factory, ChevronRight, Eye, Edit } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Clock, Home, Building2, Factory, ChevronRight, Eye, Edit, Search, SortAsc, Filter } from 'lucide-react';
 
 const RecentProjectsGrid = ({ userId }) => {
   const [recentProjects, setRecentProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('updated_at');
+  const [sortOrder, setSortOrder] = useState('desc');
 
   // Mock data for now - will be replaced with API call
   const mockProjects = [
@@ -13,6 +16,7 @@ const RecentProjectsGrid = ({ userId }) => {
       project_type: 'residential',
       status: 'active',
       updated_at: '2024-08-15T10:30:00Z',
+      created_at: '2024-07-20T09:00:00Z',
       calculation_count: 8
     },
     {
@@ -21,6 +25,7 @@ const RecentProjectsGrid = ({ userId }) => {
       project_type: 'commercial',
       status: 'draft',
       updated_at: '2024-08-14T16:45:00Z',
+      created_at: '2024-08-10T14:30:00Z',
       calculation_count: 3
     },
     {
@@ -29,6 +34,7 @@ const RecentProjectsGrid = ({ userId }) => {
       project_type: 'industrial', 
       status: 'completed',
       updated_at: '2024-08-13T09:15:00Z',
+      created_at: '2024-06-15T11:20:00Z',
       calculation_count: 15
     },
     {
@@ -37,6 +43,7 @@ const RecentProjectsGrid = ({ userId }) => {
       project_type: 'residential',
       status: 'active',
       updated_at: '2024-08-12T14:20:00Z',
+      created_at: '2024-07-28T16:45:00Z',
       calculation_count: 5
     },
     {
@@ -45,6 +52,7 @@ const RecentProjectsGrid = ({ userId }) => {
       project_type: 'commercial',
       status: 'active',
       updated_at: '2024-08-11T11:15:00Z',
+      created_at: '2024-05-22T10:00:00Z',
       calculation_count: 12
     },
     {
@@ -53,6 +61,7 @@ const RecentProjectsGrid = ({ userId }) => {
       project_type: 'industrial',
       status: 'completed',
       updated_at: '2024-08-10T08:45:00Z',
+      created_at: '2024-04-10T08:30:00Z',
       calculation_count: 18
     },
     {
@@ -61,6 +70,7 @@ const RecentProjectsGrid = ({ userId }) => {
       project_type: 'residential',
       status: 'draft',
       updated_at: '2024-08-09T15:20:00Z',
+      created_at: '2024-08-05T13:15:00Z',
       calculation_count: 2
     },
     {
@@ -69,6 +79,7 @@ const RecentProjectsGrid = ({ userId }) => {
       project_type: 'commercial',
       status: 'active',
       updated_at: '2024-08-08T13:30:00Z',
+      created_at: '2024-03-18T12:00:00Z',
       calculation_count: 25
     },
     {
@@ -77,6 +88,7 @@ const RecentProjectsGrid = ({ userId }) => {
       project_type: 'industrial',
       status: 'active',
       updated_at: '2024-08-07T09:10:00Z',
+      created_at: '2024-06-30T14:45:00Z',
       calculation_count: 22
     },
     {
@@ -85,6 +97,7 @@ const RecentProjectsGrid = ({ userId }) => {
       project_type: 'residential',
       status: 'completed',
       updated_at: '2024-08-06T16:00:00Z',
+      created_at: '2024-05-12T09:30:00Z',
       calculation_count: 14
     },
     {
@@ -93,6 +106,7 @@ const RecentProjectsGrid = ({ userId }) => {
       project_type: 'commercial',
       status: 'draft',
       updated_at: '2024-08-05T10:25:00Z',
+      created_at: '2024-08-01T15:20:00Z',
       calculation_count: 6
     },
     {
@@ -101,6 +115,7 @@ const RecentProjectsGrid = ({ userId }) => {
       project_type: 'residential',
       status: 'active',
       updated_at: '2024-08-04T14:40:00Z',
+      created_at: '2024-07-15T11:10:00Z',
       calculation_count: 7
     }
   ];
@@ -185,6 +200,70 @@ const RecentProjectsGrid = ({ userId }) => {
     // TODO: Open edit modal or navigate to edit page
   };
 
+  // Sort options
+  const sortOptions = [
+    { value: 'name', label: 'Nombre (A-Z)' },
+    { value: 'updated_at', label: 'Última Modificación' },
+    { value: 'created_at', label: 'Fecha de Creación' },
+    { value: 'project_type', label: 'Tipo de Proyecto' },
+    { value: 'status', label: 'Estado' },
+    { value: 'calculation_count', label: 'Cantidad de Cálculos' }
+  ];
+
+  // Filter and sort projects
+  const filteredAndSortedProjects = useMemo(() => {
+    let filtered = recentProjects;
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(project =>
+        project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        project.project_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        project.status.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let valueA, valueB;
+
+      switch (sortBy) {
+        case 'name':
+          valueA = a.name.toLowerCase();
+          valueB = b.name.toLowerCase();
+          break;
+        case 'updated_at':
+        case 'created_at':
+          valueA = new Date(a[sortBy]);
+          valueB = new Date(b[sortBy]);
+          break;
+        case 'project_type':
+          const typeOrder = { residential: 1, commercial: 2, industrial: 3 };
+          valueA = typeOrder[a.project_type];
+          valueB = typeOrder[b.project_type];
+          break;
+        case 'status':
+          const statusOrder = { active: 1, draft: 2, completed: 3, archived: 4 };
+          valueA = statusOrder[a.status];
+          valueB = statusOrder[b.status];
+          break;
+        case 'calculation_count':
+          valueA = a.calculation_count;
+          valueB = b.calculation_count;
+          break;
+        default:
+          valueA = a.updated_at;
+          valueB = b.updated_at;
+      }
+
+      if (valueA < valueB) return sortOrder === 'asc' ? -1 : 1;
+      if (valueA > valueB) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return filtered;
+  }, [recentProjects, searchTerm, sortBy, sortOrder]);
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -213,8 +292,66 @@ const RecentProjectsGrid = ({ userId }) => {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      {recentProjects.map((project) => {
+    <div className="space-y-6">
+      {/* Search and Sort Controls */}
+      <div className="flex flex-col md:flex-row gap-4">
+        {/* Search Bar */}
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Buscar proyectos por nombre, tipo o estado..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+
+        {/* Sort Controls */}
+        <div className="flex items-center gap-2">
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+          >
+            {sortOptions.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+
+          <button
+            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+            className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            title={`Ordenar ${sortOrder === 'asc' ? 'descendente' : 'ascendente'}`}
+          >
+            <SortAsc className={`w-4 h-4 text-gray-600 transition-transform ${sortOrder === 'desc' ? 'rotate-180' : ''}`} />
+          </button>
+        </div>
+      </div>
+
+      {/* Results Count */}
+      <div className="text-sm text-gray-600">
+        {searchTerm ? (
+          <span>Mostrando {filteredAndSortedProjects.length} de {recentProjects.length} proyectos</span>
+        ) : (
+          <span>{recentProjects.length} proyectos totales</span>
+        )}
+      </div>
+
+      {/* Projects Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {filteredAndSortedProjects.length === 0 ? (
+          <div className="col-span-full bg-white rounded-lg border border-gray-200 shadow-sm p-8 text-center">
+            <Search className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500 mb-2">No se encontraron proyectos</p>
+            <p className="text-sm text-gray-400">
+              Intenta con otros términos de búsqueda
+            </p>
+          </div>
+        ) : (
+          filteredAndSortedProjects.map((project) => {
         const TypeIcon = getProjectTypeIcon(project.project_type);
         return (
           <div
@@ -222,14 +359,9 @@ const RecentProjectsGrid = ({ userId }) => {
             className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group"
             onClick={() => handleViewProject(project.id)}
           >
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center justify-center mb-3">
               <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition-colors">
                 <TypeIcon className="w-5 h-5 text-gray-600 group-hover:text-blue-600" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(project.status)}`}>
-                  {getStatusText(project.status)}
-                </span>
               </div>
             </div>
             
@@ -269,7 +401,9 @@ const RecentProjectsGrid = ({ userId }) => {
             </div>
           </div>
         );
-      })}
+        })
+        )}
+      </div>
     </div>
   );
 };
