@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Calculator, FolderOpen, User, Copy, LogOut, Mail, Hash, Edit3, X, Upload, Menu, ChevronLeft, AlertTriangle, BookOpen } from 'lucide-react';
 import toast from 'react-hot-toast';
-import ProjectsPlaceholder from '../../components/common/ProjectsPlaceholder';
+import ProjectsGrid from '../../components/projects/ProjectsGrid';
 import CalculatorApp from '../../components/calculator/CalculatorApp';
 import ErrorCodesApp from '../../components/error-codes/ErrorCodesApp';
 import { Modal } from '../../components/ui';
@@ -176,9 +176,9 @@ const Dashboard = () => {
       case 'error-codes':
         return <ErrorCodesApp />;
       case 'projects':
-        return <ProjectsPlaceholder />;
+        return <ProjectsGrid />;
       default:
-        return <ProjectsPlaceholder />;
+        return <ProjectsGrid />;
     }
   };
 
