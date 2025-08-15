@@ -267,17 +267,10 @@ class ProjectsService {
       
       const stats = {
         total: projects.length,
-        draft: 0,
-        active: 0,
-        completed: 0,
-        archived: 0,
         total_calculations: 0
       };
       
       projects.forEach(project => {
-        if (project.status) {
-          stats[project.status]++;
-        }
         stats.total_calculations += project.calculation_count || 0;
       });
       

@@ -8,13 +8,6 @@ const ViewProjectModal = ({ isOpen, onClose, userId, projectId }) => {
   const [project, setProject] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const statusOptions = {
-    'draft': { name: 'Borrador', color: 'bg-yellow-100 text-yellow-800' },
-    'active': { name: 'Activo', color: 'bg-green-100 text-green-800' },
-    'completed': { name: 'Completado', color: 'bg-blue-100 text-blue-800' },
-    'archived': { name: 'Archivado', color: 'bg-gray-100 text-gray-800' }
-  };
-
   // Load project data when modal opens
   useEffect(() => {
     const loadProject = async () => {
@@ -103,18 +96,13 @@ const ViewProjectModal = ({ isOpen, onClose, userId, projectId }) => {
             </div>
             <div className="flex-1">
               <h3 className="text-lg font-semibold text-gray-900">{project.name}</h3>
-              <div className="flex items-center gap-4 mt-1">
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                  statusOptions[project.status]?.color
-                }`}>
-                  {statusOptions[project.status]?.name}
-                </span>
-                {project.client_name && (
+              {project.client_name && (
+                <div className="mt-1">
                   <span className="text-sm text-gray-500">
                     Cliente: {project.client_name}
                   </span>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -40,25 +40,6 @@ const RecentProjectsGrid = ({ userId }) => {
   }, [userId]);
 
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'completed': return 'bg-blue-100 text-blue-800';
-      case 'draft': return 'bg-yellow-100 text-yellow-800';
-      case 'archived': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusText = (status) => {
-    switch (status) {
-      case 'active': return 'Activo';
-      case 'completed': return 'Completado';
-      case 'draft': return 'Borrador';
-      case 'archived': return 'Archivado';
-      default: return status;
-    }
-  };
 
   const formatDate = (timestamp) => {
     let date;
@@ -124,7 +105,6 @@ const RecentProjectsGrid = ({ userId }) => {
     { value: 'updated_at', label: 'Última Modificación' },
     { value: 'created_at', label: 'Fecha de Creación' },
     { value: 'client_name', label: 'Cliente' },
-    { value: 'status', label: 'Estado' },
     { value: 'calculation_count', label: 'Cantidad de Cálculos' }
   ];
 
@@ -136,8 +116,7 @@ const RecentProjectsGrid = ({ userId }) => {
     if (searchTerm) {
       filtered = filtered.filter(project =>
         project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (project.client_name && project.client_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        project.status.toLowerCase().includes(searchTerm.toLowerCase())
+        (project.client_name && project.client_name.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
 
@@ -159,11 +138,6 @@ const RecentProjectsGrid = ({ userId }) => {
         case 'client_name':
           valueA = (a.client_name || '').toLowerCase();
           valueB = (b.client_name || '').toLowerCase();
-          break;
-        case 'status':
-          const statusOrder = { active: 1, draft: 2, completed: 3, archived: 4 };
-          valueA = statusOrder[a.status];
-          valueB = statusOrder[b.status];
           break;
         case 'calculation_count':
           valueA = a.calculation_count;
@@ -218,7 +192,7 @@ const RecentProjectsGrid = ({ userId }) => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Buscar proyectos por nombre, cliente o estado..."
+            placeholder="Buscar proyectos por nombre o cliente..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"

@@ -86,8 +86,7 @@ const ProjectsGrid = () => {
       client_name: clientNames[Math.floor(Math.random() * clientNames.length)],
       client_email: `${clientNames[Math.floor(Math.random() * clientNames.length)].toLowerCase().replace(/\s+/g, '.')}@email.com`,
       client_phone: `+54 11 ${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`,
-      location: locations[Math.floor(Math.random() * locations.length)],
-      status: 'draft'
+      location: locations[Math.floor(Math.random() * locations.length)]
     };
 
     try {

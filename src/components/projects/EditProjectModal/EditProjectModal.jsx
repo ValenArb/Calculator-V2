@@ -9,7 +9,6 @@ const EditProjectModal = ({ isOpen, onClose, userId, projectId, onProjectUpdated
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    status: 'draft',
     clientName: '',
     clientEmail: '',
     clientPhone: '',
@@ -18,13 +17,6 @@ const EditProjectModal = ({ isOpen, onClose, userId, projectId, onProjectUpdated
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-
-  const statusOptions = [
-    { id: 'draft', name: 'Borrador', color: 'text-yellow-600' },
-    { id: 'active', name: 'Activo', color: 'text-green-600' },
-    { id: 'completed', name: 'Completado', color: 'text-blue-600' },
-    { id: 'archived', name: 'Archivado', color: 'text-gray-600' }
-  ];
 
   // Load project data when modal opens
   useEffect(() => {
@@ -37,7 +29,6 @@ const EditProjectModal = ({ isOpen, onClose, userId, projectId, onProjectUpdated
         setFormData({
           name: project.name || '',
           description: project.description || '',
-          status: project.status || 'draft',
           clientName: project.client_name || '',
           clientEmail: project.client_email || '',
           clientPhone: project.client_phone || '',
@@ -85,7 +76,6 @@ const EditProjectModal = ({ isOpen, onClose, userId, projectId, onProjectUpdated
       const projectData = {
         name: formData.name,
         description: formData.description,
-        status: formData.status,
         client_name: formData.clientName,
         client_email: formData.clientEmail,
         client_phone: formData.clientPhone,
@@ -148,25 +138,7 @@ const EditProjectModal = ({ isOpen, onClose, userId, projectId, onProjectUpdated
             />
           </div>
 
-          <div className="md:col-span-1">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Estado del Proyecto
-            </label>
-            <select
-              name="status"
-              value={formData.status}
-              onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {statusOptions.map((status) => (
-                <option key={status.id} value={status.id}>
-                  {status.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="md:col-span-1">
+          <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Descripción
             </label>

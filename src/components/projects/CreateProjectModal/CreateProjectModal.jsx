@@ -51,8 +51,7 @@ const CreateProjectModal = ({ isOpen, onClose, userId, onProjectCreated }) => {
         client_email: formData.clientEmail,
         client_phone: formData.clientPhone,
         location: formData.location,
-        client_logo_url: formData.clientLogoUrl,
-        status: 'draft'
+        client_logo_url: formData.clientLogoUrl
       };
 
       const createdProject = await projectsService.createProject(projectData);
