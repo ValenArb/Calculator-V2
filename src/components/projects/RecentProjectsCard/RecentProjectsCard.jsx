@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, Home, Building2, Factory, ChevronRight, Eye, Edit } from 'lucide-react';
 
-const RecentProjectsCard = ({ userId }) => {
+const RecentProjectsGrid = ({ userId }) => {
   const [recentProjects, setRecentProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -121,126 +121,93 @@ const RecentProjectsCard = ({ userId }) => {
     // TODO: Open edit modal or navigate to edit page
   };
 
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {[...Array(4)].map((_, index) => (
+          <div key={index} className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 animate-pulse">
+            <div className="w-10 h-10 bg-gray-200 rounded-lg mb-3"></div>
+            <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+            <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
+            <div className="h-3 bg-gray-200 rounded w-full"></div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (recentProjects.length === 0) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-8 text-center">
+        <Clock className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+        <p className="text-gray-500 mb-2">No hay proyectos recientes</p>
+        <p className="text-sm text-gray-400">
+          Crea tu primer proyecto para empezar
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm h-full">
-      <div className="p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <Clock className="w-6 h-6 text-green-600" />
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {recentProjects.map((project) => {
+        const TypeIcon = getProjectTypeIcon(project.project_type);
+        return (
+          <div
+            key={project.id}
+            className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group"
+            onClick={() => handleViewProject(project.id)}
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition-colors">
+                <TypeIcon className="w-5 h-5 text-gray-600 group-hover:text-blue-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(project.status)}`}>
+                  {getStatusText(project.status)}
+                </span>
+              </div>
             </div>
-            <div>
-              <h3 className="text-xl font-semibold text-gray-900">
-                Proyectos Recientes
-              </h3>
-              <p className="text-sm text-gray-600">
-                Últimos proyectos modificados
-              </p>
+            
+            <h4 className="font-medium text-gray-900 mb-2 group-hover:text-blue-900 truncate">
+              {project.name}
+            </h4>
+            
+            <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+              <span>{project.calculation_count} cálculos</span>
+              <span>{formatDate(project.updated_at)}</span>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleViewProject(project.id);
+                }}
+                className="flex-1 p-1.5 text-xs text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors flex items-center justify-center gap-1"
+                title="Ver proyecto"
+              >
+                <Eye className="w-3 h-3" />
+                Ver
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEditProject(project.id);
+                }}
+                className="flex-1 p-1.5 text-xs text-gray-600 hover:text-green-600 hover:bg-green-50 rounded transition-colors flex items-center justify-center gap-1"
+                title="Editar proyecto"
+              >
+                <Edit className="w-3 h-3" />
+                Editar
+              </button>
             </div>
           </div>
-        </div>
-
-        {/* Content */}
-        <div className="space-y-3">
-          {isLoading ? (
-            // Loading state
-            <div className="space-y-3">
-              {[...Array(4)].map((_, index) => (
-                <div key={index} className="animate-pulse">
-                  <div className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg">
-                    <div className="w-8 h-8 bg-gray-200 rounded-lg"></div>
-                    <div className="flex-1">
-                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                    </div>
-                    <div className="w-16 h-6 bg-gray-200 rounded"></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : recentProjects.length === 0 ? (
-            // Empty state
-            <div className="text-center py-8">
-              <Clock className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500 mb-2">No hay proyectos recientes</p>
-              <p className="text-sm text-gray-400">
-                Crea tu primer proyecto para empezar
-              </p>
-            </div>
-          ) : (
-            // Projects list
-            <>
-              {recentProjects.map((project) => {
-                const TypeIcon = getProjectTypeIcon(project.project_type);
-                return (
-                  <div
-                    key={project.id}
-                    className="group border border-gray-200 rounded-lg p-3 hover:border-blue-300 hover:bg-blue-50 transition-all cursor-pointer"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition-colors">
-                        <TypeIcon className="w-5 h-5 text-gray-600 group-hover:text-blue-600" />
-                      </div>
-                      
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-gray-900 truncate group-hover:text-blue-900">
-                          {project.name}
-                        </h4>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(project.status)}`}>
-                            {getStatusText(project.status)}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            {project.calculation_count} cálculos
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {formatDate(project.updated_at)}
-                        </p>
-                      </div>
-
-                      {/* Action buttons */}
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleViewProject(project.id);
-                          }}
-                          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-white rounded transition-colors"
-                          title="Ver proyecto"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEditProject(project.id);
-                          }}
-                          className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-white rounded transition-colors"
-                          title="Editar proyecto"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600" />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {/* View All Projects Link */}
-              <div className="pt-3 border-t border-gray-200">
-                <button className="w-full text-sm text-blue-600 hover:text-blue-700 font-medium py-2 px-3 rounded-lg hover:bg-blue-50 transition-colors">
-                  Ver todos los proyectos
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
+        );
+      })}
     </div>
   );
 };
 
-export default RecentProjectsCard;
+export default RecentProjectsGrid;

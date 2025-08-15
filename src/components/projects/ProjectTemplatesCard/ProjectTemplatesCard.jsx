@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileTemplate, Home, Building2, Factory, Plus, Star, ChevronRight } from 'lucide-react';
+import { FileText, Home, Building2, Factory, Plus, Star, ChevronRight } from 'lucide-react';
 
 const ProjectTemplatesCard = () => {
   const [templates, setTemplates] = useState([]);
@@ -35,7 +35,7 @@ const ProjectTemplatesCard = () => {
   ];
 
   const typeFilters = [
-    { id: 'all', name: 'Todos', icon: FileTemplate },
+    { id: 'all', name: 'Todos', icon: FileText },
     { id: 'residential', name: 'Residencial', icon: Home },
     { id: 'commercial', name: 'Comercial', icon: Building2 },
     { id: 'industrial', name: 'Industrial', icon: Factory }
@@ -68,7 +68,7 @@ const ProjectTemplatesCard = () => {
       case 'residential': return Home;
       case 'commercial': return Building2;
       case 'industrial': return Factory;
-      default: return FileTemplate;
+      default: return FileText;
     }
   };
 
@@ -102,7 +102,7 @@ const ProjectTemplatesCard = () => {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-              <FileTemplate className="w-6 h-6 text-purple-600" />
+              <FileText className="w-6 h-6 text-purple-600" />
             </div>
             <div>
               <h3 className="text-xl font-semibold text-gray-900">
@@ -157,7 +157,7 @@ const ProjectTemplatesCard = () => {
           ) : filteredTemplates.length === 0 ? (
             // Empty state
             <div className="text-center py-8">
-              <FileTemplate className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
               <p className="text-gray-500 mb-2">
                 {selectedType === 'all' 
                   ? 'No hay plantillas disponibles' 

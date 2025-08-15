@@ -1,42 +1,47 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
-import CreateProjectCard from '../CreateProjectCard';
-import RecentProjectsCard from '../RecentProjectsCard';
-import ProjectTemplatesCard from '../ProjectTemplatesCard';
+import { Plus, FileText } from 'lucide-react';
+import RecentProjectsGrid from '../RecentProjectsCard';
 import StatisticsSection from '../StatisticsSection';
+import CreateProjectModal from '../CreateProjectModal';
 
 const ProjectsGrid = () => {
   const { user } = useSelector((state) => state.auth);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  const handleCreateProject = () => {
+    setShowCreateModal(true);
+  };
 
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header Section */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Gestión de Proyectos
-        </h1>
-        <p className="text-lg text-gray-600">
-          Administra tus proyectos eléctricos de forma eficiente. Crea nuevos proyectos, 
-          utiliza plantillas predefinidas y mantén un seguimiento completo de tu trabajo.
-        </p>
+      <div className="mb-8 flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Gestión de Proyectos
+          </h1>
+          <p className="text-lg text-gray-600">
+            Administra tus proyectos eléctricos de forma eficiente.
+          </p>
+        </div>
+        
+        <button
+          onClick={handleCreateProject}
+          className="bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium shadow-sm"
+        >
+          <Plus className="w-5 h-5" />
+          Crear Proyecto
+        </button>
       </div>
 
-      {/* Main Cards Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        {/* Card 1: Create New Project */}
-        <div className="lg:col-span-1">
-          <CreateProjectCard userId={user?.uid} />
-        </div>
-
-        {/* Card 2: Recent Projects */}
-        <div className="lg:col-span-1">
-          <RecentProjectsCard userId={user?.uid} />
-        </div>
-
-        {/* Card 3: Project Templates */}
-        <div className="lg:col-span-1">
-          <ProjectTemplatesCard />
-        </div>
+      {/* Recent Projects Section */}
+      <div className="mb-8">
+        <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <FileText className="w-5 h-5" />
+          Proyectos Recientes
+        </h2>
+        <RecentProjectsGrid userId={user?.uid} />
       </div>
 
       {/* Statistics and KPI Section */}
@@ -63,6 +68,16 @@ const ProjectsGrid = () => {
           </div>
         </div>
       </div>
+
+      {/* Create Project Modal */}
+      {showCreateModal && (
+        <CreateProjectModal
+          isOpen={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          userId={user?.uid}
+          defaultType="residential"
+        />
+      )}
     </div>
   );
 };

@@ -131,7 +131,7 @@ const CreateProjectModal = ({ isOpen, onClose, userId, defaultType = 'residentia
               name="description"
               value={formData.description}
               onChange={handleInputChange}
-              rows={3}
+              rows={2}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Descripción detallada del proyecto..."
             />
@@ -142,7 +142,7 @@ const CreateProjectModal = ({ isOpen, onClose, userId, defaultType = 'residentia
         <div>
           <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center gap-2">
             <User className="w-5 h-5" />
-            Información del Cliente
+            Contacto con Cliente
           </h4>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
