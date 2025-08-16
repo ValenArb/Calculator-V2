@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { ArrowLeft, Building2, User, Mail, Phone, MapPin, Calendar, Calculator, FileText, Edit, Trash2 } from 'lucide-react';
+import { ArrowLeft, Building2, User, Mail, Phone, MapPin, Calendar, Calculator, FileText, Edit, Trash2, CheckSquare, X, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import projectsService from '../../services/firebase/projects';
 import EditProjectModal from '../../components/projects/EditProjectModal';
@@ -21,6 +21,35 @@ const ProjectDetail = () => {
     name: 'Información del Proyecto',
     description: 'Datos básicos y detalles del proyecto',
     color: 'bg-green-100 text-green-700 border-green-200'
+  });
+  
+  // Estado para el protocolo de ensayos
+  const [protocolData, setProtocolData] = useState({
+    fecha: '',
+    estado: 'PENDIENTE', // APROBADO, PENDIENTE, RECHAZADO
+    estructura: {
+      '1.1': { estado: '', observacion: '' },
+      '1.2': { estado: '', observacion: '' },
+      '1.3': { estado: '', observacion: '' },
+      '1.4': { estado: '', observacion: '' }
+    },
+    electromontaje: {
+      '2.1': { estado: '', observacion: '' },
+      '2.2': { estado: '', observacion: '' },
+      '2.3': { estado: '', observacion: '' },
+      '2.4': { estado: '', observacion: '' },
+      '2.5': { estado: '', observacion: '' },
+      '2.6': { estado: '', observacion: '' },
+      '2.7': { estado: '', observacion: '' },
+      '2.8': { estado: '', observacion: '' }
+    },
+    pruebas: {
+      '3.1': { estado: '', observacion: '' },
+      '3.2': { estado: '', observacion: '' },
+      '3.3': { estado: '', observacion: '' },
+      '3.4': { estado: '', observacion: '' },
+      '3.5': { estado: '', observacion: '' }
+    }
   });
 
   useEffect(() => {
@@ -99,6 +128,61 @@ const ProjectDetail = () => {
   const handleDocumentTypeSelect = (documentType) => {
     setSelectedDocumentType(documentType);
     console.log('Selected document type in project:', documentType);
+  };
+
+  // Funciones para manejar el protocolo de ensayos
+  const updateProtocolItem = (seccion, item, campo, valor) => {
+    setProtocolData(prev => ({
+      ...prev,
+      [seccion]: {
+        ...prev[seccion],
+        [item]: {
+          ...prev[seccion][item],
+          [campo]: valor
+        }
+      }
+    }));
+    calcularEstadoGeneral();
+  };
+
+  const calcularEstadoGeneral = () => {
+    const allItems = {
+      ...protocolData.estructura,
+      ...protocolData.electromontaje,
+      ...protocolData.pruebas
+    };
+    
+    const hasNo = Object.values(allItems).some(item => item.estado === 'NO');
+    const hasEmpty = Object.values(allItems).some(item => item.estado === '');
+    
+    let nuevoEstado;
+    if (hasNo) {
+      nuevoEstado = 'RECHAZADO';
+    } else if (hasEmpty) {
+      nuevoEstado = 'PENDIENTE';
+    } else {
+      nuevoEstado = 'APROBADO';
+    }
+    
+    setProtocolData(prev => ({ ...prev, estado: nuevoEstado }));
+  };
+
+  const getEstadoColor = (estado) => {
+    switch (estado) {
+      case 'APROBADO': return 'text-green-700 bg-green-50 border-green-200';
+      case 'RECHAZADO': return 'text-red-700 bg-red-50 border-red-200';
+      case 'PENDIENTE': return 'text-yellow-700 bg-yellow-50 border-yellow-200';
+      default: return 'text-gray-700 bg-gray-50 border-gray-200';
+    }
+  };
+
+  const getEstadoIcon = (estado) => {
+    switch (estado) {
+      case 'APROBADO': return <CheckSquare className="w-4 h-4" />;
+      case 'RECHAZADO': return <X className="w-4 h-4" />;
+      case 'PENDIENTE': return <AlertTriangle className="w-4 h-4" />;
+      default: return <AlertTriangle className="w-4 h-4" />;
+    }
   };
 
   if (isLoading) {
@@ -291,6 +375,278 @@ const ProjectDetail = () => {
                               <span className="text-blue-900 font-bold">{project.calculation_count || 0}</span>
                             </div>
                           </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : selectedDocumentType.id === 'protocolo-ensayos' ? (
+                  // Vista específica para Protocolo de Ensayos
+                  <div className="space-y-6">
+                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                      <p className="text-orange-800 text-sm font-medium mb-2">
+                        Protocolo de Ensayos: {project.name}
+                      </p>
+                      <p className="text-orange-700 text-sm">
+                        Informe de ensayo y control de tablero eléctrico
+                      </p>
+                    </div>
+
+                    {/* Header del protocolo */}
+                    <div className="bg-white border border-gray-200 rounded-lg p-6">
+                      <div className="flex justify-between items-start mb-6">
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                            Informe de Ensayo y Control de Tablero Eléctrico
+                          </h3>
+                          <div className="flex items-center gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Fecha:</label>
+                              <input
+                                type="date"
+                                value={protocolData.fecha}
+                                onChange={(e) => setProtocolData(prev => ({ ...prev, fecha: e.target.value }))}
+                                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        <div className={`px-4 py-2 rounded-lg border flex items-center gap-2 ${getEstadoColor(protocolData.estado)}`}>
+                          {getEstadoIcon(protocolData.estado)}
+                          <span className="font-medium">{protocolData.estado}</span>
+                        </div>
+                      </div>
+
+                      {/* Condiciones de aprobación */}
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                        <h4 className="font-medium text-blue-900 mb-2">Condiciones de Aprobación</h4>
+                        <div className="text-sm text-blue-800 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <CheckSquare className="w-4 h-4 text-green-600" />
+                            <span><strong>APROBADO:</strong> Todos los ítems marcados con SI o N/C (No corresponde)</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                            <span><strong>PENDIENTE:</strong> Algún ítem sin marcar</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <X className="w-4 h-4 text-red-600" />
+                            <span><strong>RECHAZADO:</strong> Algún ítem marcado con NO</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Sección 1: ESTRUCTURA */}
+                      <div className="mb-8">
+                        <h4 className="text-md font-semibold text-gray-900 mb-4 bg-gray-100 p-3 rounded-t-lg">
+                          1. ESTRUCTURA
+                        </h4>
+                        <div className="border border-gray-200 rounded-b-lg overflow-hidden">
+                          <table className="w-full">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">Ítem</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
+                                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-16">SI</th>
+                                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-16">NO</th>
+                                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-16">N/C</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">OBS</th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                              {[
+                                { id: '1.1', desc: 'Integridad y ordenamiento' },
+                                { id: '1.2', desc: 'Ensamble mecánico' },
+                                { id: '1.3', desc: 'Puertas, cierres y protecciones' },
+                                { id: '1.4', desc: 'Protección superficial' }
+                              ].map((item) => (
+                                <tr key={item.id} className="hover:bg-gray-50">
+                                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.id}</td>
+                                  <td className="px-4 py-3 text-sm text-gray-900">{item.desc}</td>
+                                  <td className="px-4 py-3 text-center">
+                                    <input
+                                      type="radio"
+                                      name={`estructura-${item.id}`}
+                                      checked={protocolData.estructura[item.id]?.estado === 'SI'}
+                                      onChange={() => updateProtocolItem('estructura', item.id, 'estado', 'SI')}
+                                      className="text-green-600 focus:ring-green-500"
+                                    />
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
+                                    <input
+                                      type="radio"
+                                      name={`estructura-${item.id}`}
+                                      checked={protocolData.estructura[item.id]?.estado === 'NO'}
+                                      onChange={() => updateProtocolItem('estructura', item.id, 'estado', 'NO')}
+                                      className="text-red-600 focus:ring-red-500"
+                                    />
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
+                                    <input
+                                      type="radio"
+                                      name={`estructura-${item.id}`}
+                                      checked={protocolData.estructura[item.id]?.estado === 'NC'}
+                                      onChange={() => updateProtocolItem('estructura', item.id, 'estado', 'NC')}
+                                      className="text-gray-600 focus:ring-gray-500"
+                                    />
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <input
+                                      type="text"
+                                      value={protocolData.estructura[item.id]?.observacion || ''}
+                                      onChange={(e) => updateProtocolItem('estructura', item.id, 'observacion', e.target.value)}
+                                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-orange-500"
+                                      placeholder="Observación"
+                                    />
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      {/* Sección 2: ELECTROMONTAJE */}
+                      <div className="mb-8">
+                        <h4 className="text-md font-semibold text-gray-900 mb-4 bg-gray-100 p-3 rounded-t-lg">
+                          2. ELECTROMONTAJE
+                        </h4>
+                        <div className="border border-gray-200 rounded-b-lg overflow-hidden">
+                          <table className="w-full">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">Ítem</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
+                                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-16">SI</th>
+                                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-16">NO</th>
+                                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-16">N/C</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">OBS</th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                              {[
+                                { id: '2.1', desc: 'Datos técnicos de aparatos' },
+                                { id: '2.2', desc: 'Integridad, ubicación e identificación' },
+                                { id: '2.3', desc: 'Carteles, indicadores, símbolos' },
+                                { id: '2.4', desc: 'Ejecución de barras y cableado' },
+                                { id: '2.5', desc: 'Disposición y ejecución de borneras' },
+                                { id: '2.6', desc: 'Puesta a tierra y medios de seguridad' },
+                                { id: '2.7', desc: 'Componentes de aislación' },
+                                { id: '2.8', desc: 'Plano conforme a fabricación' }
+                              ].map((item) => (
+                                <tr key={item.id} className="hover:bg-gray-50">
+                                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.id}</td>
+                                  <td className="px-4 py-3 text-sm text-gray-900">{item.desc}</td>
+                                  <td className="px-4 py-3 text-center">
+                                    <input
+                                      type="radio"
+                                      name={`electromontaje-${item.id}`}
+                                      checked={protocolData.electromontaje[item.id]?.estado === 'SI'}
+                                      onChange={() => updateProtocolItem('electromontaje', item.id, 'estado', 'SI')}
+                                      className="text-green-600 focus:ring-green-500"
+                                    />
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
+                                    <input
+                                      type="radio"
+                                      name={`electromontaje-${item.id}`}
+                                      checked={protocolData.electromontaje[item.id]?.estado === 'NO'}
+                                      onChange={() => updateProtocolItem('electromontaje', item.id, 'estado', 'NO')}
+                                      className="text-red-600 focus:ring-red-500"
+                                    />
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
+                                    <input
+                                      type="radio"
+                                      name={`electromontaje-${item.id}`}
+                                      checked={protocolData.electromontaje[item.id]?.estado === 'NC'}
+                                      onChange={() => updateProtocolItem('electromontaje', item.id, 'estado', 'NC')}
+                                      className="text-gray-600 focus:ring-gray-500"
+                                    />
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <input
+                                      type="text"
+                                      value={protocolData.electromontaje[item.id]?.observacion || ''}
+                                      onChange={(e) => updateProtocolItem('electromontaje', item.id, 'observacion', e.target.value)}
+                                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-orange-500"
+                                      placeholder="Observación"
+                                    />
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      {/* Sección 3: PRUEBAS Y ENSAYO */}
+                      <div className="mb-8">
+                        <h4 className="text-md font-semibold text-gray-900 mb-4 bg-gray-100 p-3 rounded-t-lg">
+                          3. PRUEBAS Y ENSAYO
+                        </h4>
+                        <div className="border border-gray-200 rounded-b-lg overflow-hidden">
+                          <table className="w-full">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">Ítem</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
+                                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-16">SI</th>
+                                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-16">NO</th>
+                                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-16">N/C</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">OBS</th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                              {[
+                                { id: '3.1', desc: 'Accionamientos manuales y accesorios' },
+                                { id: '3.2', desc: 'Enclavamiento y bloqueos' },
+                                { id: '3.3', desc: 'Aislación principal y auxiliar' },
+                                { id: '3.4', desc: 'Resistencia del circuito de protección' },
+                                { id: '3.5', desc: 'Funcionamiento eléctrico' }
+                              ].map((item) => (
+                                <tr key={item.id} className="hover:bg-gray-50">
+                                  <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.id}</td>
+                                  <td className="px-4 py-3 text-sm text-gray-900">{item.desc}</td>
+                                  <td className="px-4 py-3 text-center">
+                                    <input
+                                      type="radio"
+                                      name={`pruebas-${item.id}`}
+                                      checked={protocolData.pruebas[item.id]?.estado === 'SI'}
+                                      onChange={() => updateProtocolItem('pruebas', item.id, 'estado', 'SI')}
+                                      className="text-green-600 focus:ring-green-500"
+                                    />
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
+                                    <input
+                                      type="radio"
+                                      name={`pruebas-${item.id}`}
+                                      checked={protocolData.pruebas[item.id]?.estado === 'NO'}
+                                      onChange={() => updateProtocolItem('pruebas', item.id, 'estado', 'NO')}
+                                      className="text-red-600 focus:ring-red-500"
+                                    />
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
+                                    <input
+                                      type="radio"
+                                      name={`pruebas-${item.id}`}
+                                      checked={protocolData.pruebas[item.id]?.estado === 'NC'}
+                                      onChange={() => updateProtocolItem('pruebas', item.id, 'estado', 'NC')}
+                                      className="text-gray-600 focus:ring-gray-500"
+                                    />
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <input
+                                      type="text"
+                                      value={protocolData.pruebas[item.id]?.observacion || ''}
+                                      onChange={(e) => updateProtocolItem('pruebas', item.id, 'observacion', e.target.value)}
+                                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-orange-500"
+                                      placeholder="Observación"
+                                    />
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
                       </div>
                     </div>

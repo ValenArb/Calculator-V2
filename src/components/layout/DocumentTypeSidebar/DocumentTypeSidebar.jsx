@@ -13,6 +13,13 @@ const DocumentTypeSidebar = ({ onDocumentTypeSelect, selectedType, defaultCollap
       color: 'bg-green-100 text-green-700 border-green-200'
     },
     {
+      id: 'protocolo-ensayos',
+      name: 'Protocolo de Ensayos',
+      description: 'Control y ensayo de tablero eléctrico',
+      icon: FileText,
+      color: 'bg-orange-100 text-orange-700 border-orange-200'
+    },
+    {
       id: 'informe-tecnico',
       name: 'Informe Técnico',
       description: 'Documentación técnica completa del proyecto',
