@@ -5,6 +5,7 @@ import { ArrowLeft, Building2, User, Mail, Phone, MapPin, Calendar, Calculator, 
 import toast from 'react-hot-toast';
 import projectsService from '../../services/firebase/projects';
 import notificationsService from '../../services/firebase/notifications';
+import usersService from '../../services/firebase/users';
 import EditProjectModal from '../../components/projects/EditProjectModal';
 import MainSidebar from '../../components/layout/MainSidebar';
 import DocumentTypeSidebar from '../../components/layout/DocumentTypeSidebar';
@@ -298,8 +299,18 @@ const ProjectDetail = () => {
 
     setIsInviting(true);
     try {
+      // Buscar el usuario por email para obtener su UID
+      const recipientUser = await usersService.getUserByEmail(inviteData.email);
+      
+      if (!recipientUser) {
+        toast.error('Usuario no encontrado. El usuario debe estar registrado en la aplicación.');
+        setIsInviting(false);
+        return;
+      }
+
       await notificationsService.createProjectInvitation({
         recipientEmail: inviteData.email,
+        recipientUid: recipientUser.uid,
         senderUid: user.uid,
         senderName: user.displayName || user.email,
         senderEmail: user.email,

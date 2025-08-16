@@ -178,21 +178,37 @@ class NotificationsService {
   }
 
   // Listen to real-time notifications for a user
-  onNotificationsChange(userEmail, callback) {
+  onNotificationsChange(userEmail, callback, userUid = null) {
     const notificationsRef = collection(db, this.notificationsCollection);
-    const q = query(
-      notificationsRef,
-      where('recipientEmail', 'in', [userEmail.toLowerCase(), null]),
-      orderBy('createdAt', 'desc'),
-      limit(50)
-    );
+    
+    // For project invitations, we need to check both email and UID
+    let q;
+    if (userUid) {
+      q = query(
+        notificationsRef,
+        where('recipientEmail', 'in', [userEmail.toLowerCase(), null]),
+        orderBy('createdAt', 'desc'),
+        limit(50)
+      );
+    } else {
+      q = query(
+        notificationsRef,
+        where('recipientEmail', 'in', [userEmail.toLowerCase(), null]),
+        orderBy('createdAt', 'desc'),
+        limit(50)
+      );
+    }
 
     return onSnapshot(q, (snapshot) => {
       const notifications = [];
       snapshot.forEach(doc => {
         const data = doc.data();
-        // Check if notification is not expired
-        if (!data.expiresAt || data.expiresAt.toDate() > new Date()) {
+        // Check if notification is not expired and matches user
+        const isForUser = data.recipientEmail === userEmail.toLowerCase() || 
+                         data.recipientEmail === null ||
+                         (userUid && data.recipientUid === userUid);
+        
+        if (isForUser && (!data.expiresAt || data.expiresAt.toDate() > new Date())) {
           notifications.push({
             id: doc.id,
             ...data,
