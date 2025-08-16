@@ -701,28 +701,33 @@ const ProjectDetail = () => {
                 ) : selectedDocumentType.id === 'protocolo-ensayos' ? (
                   // Vista específica para Protocolo de Ensayos
                   <div className="space-y-6">
+                    {/* Selector de Tablero - Fuera de la tabla */}
+                    <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg p-4">
+                      <h2 className="text-lg font-semibold text-gray-900">Protocolo de Ensayos</h2>
+                      <div className="flex items-center space-x-3">
+                        <label className="text-sm font-medium text-gray-700">Seleccionar Tablero:</label>
+                        <select
+                          value={selectedTablero?.id || ''}
+                          onChange={(e) => {
+                            const tablero = tableros.find(t => t.id === e.target.value);
+                            setSelectedTablero(tablero || null);
+                          }}
+                          className="px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">Seleccionar Tablero</option>
+                          {tableros.map((tablero) => (
+                            <option key={tablero.id} value={tablero.id}>
+                              {tablero.nombre}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
                     {/* Header del protocolo simple */}
                     <div className="bg-white border border-gray-800 rounded-lg overflow-hidden">
-                      <div className="bg-orange-500 text-white p-4">
-                        <div className="flex items-center justify-center space-x-4">
-                          <h3 className="text-xl font-bold">PROTOCOLO DE ENSAYOS</h3>
-                          <span className="text-lg font-bold">-</span>
-                          <select
-                            value={selectedTablero?.id || ''}
-                            onChange={(e) => {
-                              const tablero = tableros.find(t => t.id === e.target.value);
-                              setSelectedTablero(tablero || null);
-                            }}
-                            className="px-3 py-2 border border-gray-300 rounded text-lg bg-white text-gray-900 font-bold"
-                          >
-                            <option value="">Seleccionar Tablero</option>
-                            {tableros.map((tablero) => (
-                              <option key={tablero.id} value={tablero.id}>
-                                {tablero.nombre}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
+                      <div className="bg-orange-500 text-white p-4 text-center">
+                        <h3 className="text-xl font-bold">PROTOCOLO DE ENSAYOS</h3>
                       </div>
                       <div className="bg-orange-400 text-white p-3">
                         <div className="grid grid-cols-2 gap-4 text-sm font-medium">
