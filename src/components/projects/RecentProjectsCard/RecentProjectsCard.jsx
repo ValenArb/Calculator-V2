@@ -257,7 +257,7 @@ const RecentProjectsGrid = ({ userId }) => {
             className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group"
             onClick={() => handleViewProject(project.id)}
           >
-            {/* Primera fila: Logo cliente | Descripción */}
+            {/* Primera fila: Logo cliente | Empresa */}
             <div className="flex items-start gap-3 mb-3">
               <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition-colors border border-gray-200 flex-shrink-0">
                 {project.client_logo_url ? (
@@ -271,17 +271,17 @@ const RecentProjectsGrid = ({ userId }) => {
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
-                  {project.description || project.name}
-                </p>
+                <h4 className="font-semibold text-gray-900 group-hover:text-blue-900 line-clamp-2 text-sm leading-relaxed">
+                  {project.company || 'Sin empresa'}
+                </h4>
               </div>
             </div>
             
-            {/* Segunda fila: Empresa */}
+            {/* Segunda fila: Descripción */}
             <div className="mb-2">
-              <h4 className="font-semibold text-gray-900 group-hover:text-blue-900 truncate text-sm">
-                {project.company || 'Sin empresa'}
-              </h4>
+              <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
+                {project.description || project.name}
+              </p>
             </div>
             
             {/* Tercera fila: Cálculos realizados */}
