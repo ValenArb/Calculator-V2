@@ -150,7 +150,7 @@ const ProjectsGrid = () => {
           <FileText className="w-5 h-5" />
           Proyectos Recientes
         </h2>
-        <RecentProjectsCard userId={user?.uid} key={refreshTrigger} />
+        <RecentProjectsCard userId={user?.uid} refreshTrigger={refreshTrigger} />
       </div>
 
 

@@ -1,13 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Clock, Image as ImageIcon, Eye, Edit, Search, SortAsc, Filter } from 'lucide-react';
+import { Clock, Image as ImageIcon, Eye, Edit, Search, SortAsc, Filter, Loader } from 'lucide-react';
 import projectsService from '../../../services/firebase/projects';
 import toast from 'react-hot-toast';
 import EditProjectModal from '../EditProjectModal';
 import ViewProjectModal from '../ViewProjectModal';
 
-const RecentProjectsCard = ({ userId }) => {
+const RecentProjectsCard = ({ userId, refreshTrigger }) => {
   const [recentProjects, setRecentProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  console.log('RecentProjectsCard: Component initialized with userId:', userId, 'isLoading:', true);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('updated_at');
   const [sortOrder, setSortOrder] = useState('desc');
@@ -18,26 +20,37 @@ const RecentProjectsCard = ({ userId }) => {
 
   useEffect(() => {
     const fetchRecentProjects = async () => {
+      console.log('RecentProjectsCard: Starting fetch, userId:', userId);
       if (!userId) {
+        console.log('RecentProjectsCard: No userId, setting loading to false');
         setIsLoading(false);
         return;
       }
       
+      console.log('RecentProjectsCard: Setting loading to true');
       setIsLoading(true);
+      
       try {
-        const projects = await projectsService.getProjects(userId);
+        console.log('RecentProjectsCard: Fetching projects from Firestore...');
+        // Add minimum loading time so users can see the loading screen
+        const [projects] = await Promise.all([
+          projectsService.getProjects(userId),
+          new Promise(resolve => setTimeout(resolve, 800)) // 800ms minimum for better UX
+        ]);
+        console.log('RecentProjectsCard: Projects fetched:', projects.length);
         setRecentProjects(projects);
       } catch (error) {
         console.error('Error fetching recent projects:', error);
         toast.error('Error al cargar los proyectos');
         setRecentProjects([]);
       } finally {
+        console.log('RecentProjectsCard: Setting loading to false');
         setIsLoading(false);
       }
     };
 
     fetchRecentProjects();
-  }, [userId]);
+  }, [userId, refreshTrigger]);
 
 
 
@@ -163,53 +176,21 @@ const RecentProjectsCard = ({ userId }) => {
     return filtered;
   }, [recentProjects, searchTerm, sortBy, sortOrder]);
 
+  console.log('RecentProjectsCard: Rendering with isLoading:', isLoading, 'userId:', userId, 'projects count:', recentProjects.length);
+  console.log('RecentProjectsCard: Component state - isLoading:', isLoading, 'hasUserId:', !!userId, 'projectCount:', recentProjects.length);
+
   if (isLoading) {
+    console.log('RecentProjectsCard: 🔄 SHOWING SIMPLE LOADING SCREEN');
     return (
-      <div className="space-y-6">
-        {/* Search and Sort Controls Skeleton */}
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1 relative">
-            <div className="w-full h-10 bg-gray-200 rounded-lg animate-pulse"></div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-32 h-10 bg-gray-200 rounded-lg animate-pulse"></div>
-            <div className="w-10 h-10 bg-gray-200 rounded-lg animate-pulse"></div>
-          </div>
-        </div>
-
-        {/* Results Count Skeleton */}
-        <div className="w-40 h-5 bg-gray-200 rounded animate-pulse"></div>
-
-        {/* Project Cards Skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {[...Array(6)].map((_, index) => (
-            <div key={index} className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 animate-pulse">
-              {/* Primera fila: Logo | Empresa */}
-              <div className="flex items-start gap-3 mb-3">
-                <div className="w-12 h-12 bg-gray-200 rounded-lg flex-shrink-0"></div>
-                <div className="flex-1">
-                  <div className="h-4 bg-gray-200 rounded w-4/5 mb-1"></div>
-                  <div className="h-4 bg-gray-200 rounded w-3/5"></div>
-                </div>
-              </div>
-              
-              {/* Segunda fila: Descripción */}
-              <div className="mb-2">
-                <div className="h-3 bg-gray-200 rounded w-full mb-1"></div>
-                <div className="h-3 bg-gray-200 rounded w-3/4"></div>
-              </div>
-              
-              {/* Tercera fila: Cálculos */}
-              <div className="mb-2">
-                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-              </div>
-
-              {/* Cuarta fila: Fecha */}
-              <div className="mb-3">
-                <div className="h-3 bg-gray-200 rounded w-2/3"></div>
-              </div>
-            </div>
-          ))}
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <Loader className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Cargando Proyectos
+          </h3>
+          <p className="text-gray-600">
+            Obteniendo datos de la base de datos...
+          </p>
         </div>
       </div>
     );
