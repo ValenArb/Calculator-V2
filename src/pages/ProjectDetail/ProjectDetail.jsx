@@ -16,7 +16,12 @@ const ProjectDetail = () => {
   const [project, setProject] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedDocumentType, setSelectedDocumentType] = useState(null);
+  const [selectedDocumentType, setSelectedDocumentType] = useState({
+    id: 'informacion-proyecto',
+    name: 'Información del Proyecto',
+    description: 'Datos básicos y detalles del proyecto',
+    color: 'bg-green-100 text-green-700 border-green-200'
+  });
 
   useEffect(() => {
     const loadProject = async () => {
