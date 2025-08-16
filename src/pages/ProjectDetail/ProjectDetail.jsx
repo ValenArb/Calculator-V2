@@ -729,9 +729,10 @@ const ProjectDetail = () => {
                         <h3 className="text-xl font-bold">PROTOCOLO DE ENSAYOS</h3>
                       </div>
                       <div className="bg-orange-400 text-white p-3">
-                        <div className="grid grid-cols-2 gap-4 text-sm font-medium">
+                        <div className="grid grid-cols-3 gap-4 text-sm font-medium">
                           <div>CLIENTE: {project.company || 'N/A'}</div>
                           <div>OBRA: {project.location || 'N/A'}</div>
+                          <div>TABLERO: {selectedTablero?.nombre || 'No seleccionado'}</div>
                         </div>
                       </div>
                       <div className="p-3">
