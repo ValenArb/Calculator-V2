@@ -762,12 +762,12 @@ const ProjectDetail = () => {
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="bg-green-600 text-white">
-                            <th className="border border-gray-800 px-2 py-1 text-left font-bold text-xs">1.</th>
-                            <th className="border border-gray-800 px-2 py-1 text-left font-bold">ESTRUCTURA</th>
+                            <th className="border border-gray-800 px-2 py-1 text-left font-bold text-xs w-16">1.</th>
+                            <th className="border border-gray-800 px-2 py-1 text-left font-bold w-64">ESTRUCTURA</th>
                             <th className="border border-gray-800 px-2 py-1 text-center font-bold w-12">SI</th>
                             <th className="border border-gray-800 px-2 py-1 text-center font-bold w-12">NO</th>
                             <th className="border border-gray-800 px-2 py-1 text-center font-bold w-12">N/A</th>
-                            <th className="border border-gray-800 px-2 py-1 text-center font-bold bg-orange-500 w-32">OBS.</th>
+                            <th className="border border-gray-800 px-2 py-1 text-center font-bold bg-orange-500 w-80">OBS.</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -781,31 +781,37 @@ const ProjectDetail = () => {
                               <td className="border border-gray-800 px-2 py-1 font-medium text-xs">{item.id}</td>
                               <td className="border border-gray-800 px-2 py-1 text-xs">{item.desc}</td>
                               <td className="border border-gray-800 px-1 py-1 text-center">
-                                <input
-                                  type="radio"
-                                  name={`estructura-${item.id}`}
-                                  checked={protocolData.estructura[item.id]?.estado === 'SI'}
-                                  onChange={() => updateProtocolItem('estructura', item.id, 'estado', 'SI')}
-                                  className="scale-75"
-                                />
+                                <label className="flex justify-center items-center h-full w-full cursor-pointer py-2">
+                                  <input
+                                    type="radio"
+                                    name={`estructura-${item.id}`}
+                                    checked={protocolData.estructura[item.id]?.estado === 'SI'}
+                                    onChange={() => updateProtocolItem('estructura', item.id, 'estado', 'SI')}
+                                    className="w-4 h-4 cursor-pointer"
+                                  />
+                                </label>
                               </td>
                               <td className="border border-gray-800 px-1 py-1 text-center">
-                                <input
-                                  type="radio"
-                                  name={`estructura-${item.id}`}
-                                  checked={protocolData.estructura[item.id]?.estado === 'NO'}
-                                  onChange={() => updateProtocolItem('estructura', item.id, 'estado', 'NO')}
-                                  className="scale-75"
-                                />
+                                <label className="flex justify-center items-center h-full w-full cursor-pointer py-2">
+                                  <input
+                                    type="radio"
+                                    name={`estructura-${item.id}`}
+                                    checked={protocolData.estructura[item.id]?.estado === 'NO'}
+                                    onChange={() => updateProtocolItem('estructura', item.id, 'estado', 'NO')}
+                                    className="w-4 h-4 cursor-pointer"
+                                  />
+                                </label>
                               </td>
                               <td className="border border-gray-800 px-1 py-1 text-center">
-                                <input
-                                  type="radio"
-                                  name={`estructura-${item.id}`}
-                                  checked={protocolData.estructura[item.id]?.estado === 'NA'}
-                                  onChange={() => updateProtocolItem('estructura', item.id, 'estado', 'NA')}
-                                  className="scale-75"
-                                />
+                                <label className="flex justify-center items-center h-full w-full cursor-pointer py-2">
+                                  <input
+                                    type="radio"
+                                    name={`estructura-${item.id}`}
+                                    checked={protocolData.estructura[item.id]?.estado === 'NA'}
+                                    onChange={() => updateProtocolItem('estructura', item.id, 'estado', 'NA')}
+                                    className="w-4 h-4 cursor-pointer"
+                                  />
+                                </label>
                               </td>
                               <td className="border border-gray-800 px-2 py-2 bg-orange-50">
                                 <textarea
@@ -827,12 +833,12 @@ const ProjectDetail = () => {
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="bg-green-600 text-white">
-                            <th className="border border-gray-800 px-2 py-1 text-left font-bold text-xs">2.</th>
-                            <th className="border border-gray-800 px-2 py-1 text-left font-bold">ELECTROMONTAJE</th>
+                            <th className="border border-gray-800 px-2 py-1 text-left font-bold text-xs w-16">2.</th>
+                            <th className="border border-gray-800 px-2 py-1 text-left font-bold w-64">ELECTROMONTAJE</th>
                             <th className="border border-gray-800 px-2 py-1 text-center font-bold w-12">SI</th>
                             <th className="border border-gray-800 px-2 py-1 text-center font-bold w-12">NO</th>
                             <th className="border border-gray-800 px-2 py-1 text-center font-bold w-12">N/A</th>
-                            <th className="border border-gray-800 px-2 py-1 text-center font-bold bg-orange-500 w-32">OBS.</th>
+                            <th className="border border-gray-800 px-2 py-1 text-center font-bold bg-orange-500 w-80">OBS.</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -850,31 +856,37 @@ const ProjectDetail = () => {
                               <td className="border border-gray-800 px-2 py-1 font-medium text-xs">{item.id}</td>
                               <td className="border border-gray-800 px-2 py-1 text-xs">{item.desc}</td>
                               <td className="border border-gray-800 px-1 py-1 text-center">
-                                <input
-                                  type="radio"
-                                  name={`electromontaje-${item.id}`}
-                                  checked={protocolData.electromontaje[item.id]?.estado === 'SI'}
-                                  onChange={() => updateProtocolItem('electromontaje', item.id, 'estado', 'SI')}
-                                  className="scale-75"
-                                />
+                                <label className="flex justify-center items-center h-full w-full cursor-pointer py-2">
+                                  <input
+                                    type="radio"
+                                    name={`electromontaje-${item.id}`}
+                                    checked={protocolData.electromontaje[item.id]?.estado === 'SI'}
+                                    onChange={() => updateProtocolItem('electromontaje', item.id, 'estado', 'SI')}
+                                    className="w-4 h-4 cursor-pointer"
+                                  />
+                                </label>
                               </td>
                               <td className="border border-gray-800 px-1 py-1 text-center">
-                                <input
-                                  type="radio"
-                                  name={`electromontaje-${item.id}`}
-                                  checked={protocolData.electromontaje[item.id]?.estado === 'NO'}
-                                  onChange={() => updateProtocolItem('electromontaje', item.id, 'estado', 'NO')}
-                                  className="scale-75"
-                                />
+                                <label className="flex justify-center items-center h-full w-full cursor-pointer py-2">
+                                  <input
+                                    type="radio"
+                                    name={`electromontaje-${item.id}`}
+                                    checked={protocolData.electromontaje[item.id]?.estado === 'NO'}
+                                    onChange={() => updateProtocolItem('electromontaje', item.id, 'estado', 'NO')}
+                                    className="w-4 h-4 cursor-pointer"
+                                  />
+                                </label>
                               </td>
                               <td className="border border-gray-800 px-1 py-1 text-center">
-                                <input
-                                  type="radio"
-                                  name={`electromontaje-${item.id}`}
-                                  checked={protocolData.electromontaje[item.id]?.estado === 'NA'}
-                                  onChange={() => updateProtocolItem('electromontaje', item.id, 'estado', 'NA')}
-                                  className="scale-75"
-                                />
+                                <label className="flex justify-center items-center h-full w-full cursor-pointer py-2">
+                                  <input
+                                    type="radio"
+                                    name={`electromontaje-${item.id}`}
+                                    checked={protocolData.electromontaje[item.id]?.estado === 'NA'}
+                                    onChange={() => updateProtocolItem('electromontaje', item.id, 'estado', 'NA')}
+                                    className="w-4 h-4 cursor-pointer"
+                                  />
+                                </label>
                               </td>
                               <td className="border border-gray-800 px-1 py-1 bg-orange-50">
                                 <input
@@ -896,12 +908,12 @@ const ProjectDetail = () => {
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="bg-green-600 text-white">
-                            <th className="border border-gray-800 px-2 py-1 text-left font-bold text-xs">3.</th>
-                            <th className="border border-gray-800 px-2 py-1 text-left font-bold">PRUEBAS Y ENSAYO</th>
+                            <th className="border border-gray-800 px-2 py-1 text-left font-bold text-xs w-16">3.</th>
+                            <th className="border border-gray-800 px-2 py-1 text-left font-bold w-64">PRUEBAS Y ENSAYO</th>
                             <th className="border border-gray-800 px-2 py-1 text-center font-bold w-12">SI</th>
                             <th className="border border-gray-800 px-2 py-1 text-center font-bold w-12">NO</th>
                             <th className="border border-gray-800 px-2 py-1 text-center font-bold w-12">N/A</th>
-                            <th className="border border-gray-800 px-2 py-1 text-center font-bold bg-orange-500 w-32">OBS.</th>
+                            <th className="border border-gray-800 px-2 py-1 text-center font-bold bg-orange-500 w-80">OBS.</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -922,31 +934,37 @@ const ProjectDetail = () => {
                               <td className="border border-gray-800 px-2 py-1 font-medium text-xs">{item.id}</td>
                               <td className="border border-gray-800 px-2 py-1 text-xs">{item.desc}</td>
                               <td className="border border-gray-800 px-1 py-1 text-center">
-                                <input
-                                  type="radio"
-                                  name={`pruebas-${item.id}`}
-                                  checked={protocolData.pruebas[item.id]?.estado === 'SI'}
-                                  onChange={() => updateProtocolItem('pruebas', item.id, 'estado', 'SI')}
-                                  className="scale-75"
-                                />
+                                <label className="flex justify-center items-center h-full w-full cursor-pointer py-2">
+                                  <input
+                                    type="radio"
+                                    name={`pruebas-${item.id}`}
+                                    checked={protocolData.pruebas[item.id]?.estado === 'SI'}
+                                    onChange={() => updateProtocolItem('pruebas', item.id, 'estado', 'SI')}
+                                    className="w-4 h-4 cursor-pointer"
+                                  />
+                                </label>
                               </td>
                               <td className="border border-gray-800 px-1 py-1 text-center">
-                                <input
-                                  type="radio"
-                                  name={`pruebas-${item.id}`}
-                                  checked={protocolData.pruebas[item.id]?.estado === 'NO'}
-                                  onChange={() => updateProtocolItem('pruebas', item.id, 'estado', 'NO')}
-                                  className="scale-75"
-                                />
+                                <label className="flex justify-center items-center h-full w-full cursor-pointer py-2">
+                                  <input
+                                    type="radio"
+                                    name={`pruebas-${item.id}`}
+                                    checked={protocolData.pruebas[item.id]?.estado === 'NO'}
+                                    onChange={() => updateProtocolItem('pruebas', item.id, 'estado', 'NO')}
+                                    className="w-4 h-4 cursor-pointer"
+                                  />
+                                </label>
                               </td>
                               <td className="border border-gray-800 px-1 py-1 text-center">
-                                <input
-                                  type="radio"
-                                  name={`pruebas-${item.id}`}
-                                  checked={protocolData.pruebas[item.id]?.estado === 'NA'}
-                                  onChange={() => updateProtocolItem('pruebas', item.id, 'estado', 'NA')}
-                                  className="scale-75"
-                                />
+                                <label className="flex justify-center items-center h-full w-full cursor-pointer py-2">
+                                  <input
+                                    type="radio"
+                                    name={`pruebas-${item.id}`}
+                                    checked={protocolData.pruebas[item.id]?.estado === 'NA'}
+                                    onChange={() => updateProtocolItem('pruebas', item.id, 'estado', 'NA')}
+                                    className="w-4 h-4 cursor-pointer"
+                                  />
+                                </label>
                               </td>
                               <td className="border border-gray-800 px-2 py-2 bg-orange-50">
                                 <textarea
