@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { ArrowLeft, Building2, User, Mail, Phone, MapPin, Calendar, Calculator, FileText, Edit, Trash2, CheckSquare, X, AlertTriangle, Plus, UserPlus } from 'lucide-react';
@@ -111,6 +111,11 @@ const ProjectDetail = () => {
     (protocolosPorTablero[selectedTablero.id] || getProtocoloDefecto()) : 
     getProtocoloDefecto();
 
+  // Referencias para debouncing y control de guardado
+  const saveTimeoutRef = useRef(null);
+  const isUpdatingRef = useRef(false);
+  const pendingUpdatesRef = useRef({});
+
   useEffect(() => {
     const loadProject = async () => {
       if (!projectId || !user?.uid) return;
@@ -178,6 +183,15 @@ const ProjectDetail = () => {
       });
     }
   }, [tableros]);
+
+  // Cleanup del timeout al desmontar el componente
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const formatDate = (timestamp) => {
     let date;
@@ -391,32 +405,42 @@ const ProjectDetail = () => {
     }
   };
 
-  // Función para guardar datos del protocolo del tablero actual en la base de datos
-  const saveProtocolData = async (newProtocolData) => {
-    if (!selectedTablero) return;
+  // Función para guardar datos del protocolo con debouncing
+  const saveProtocolDataToDatabase = useCallback(async () => {
+    if (!selectedTablero || isUpdatingRef.current) return;
+    
+    isUpdatingRef.current = true;
     
     try {
-      const nuevosProtocolos = {
-        ...protocolosPorTablero,
-        [selectedTablero.id]: newProtocolData
-      };
-      
       const calculationData = {
         ...project?.calculation_data,
-        protocolosPorTablero: nuevosProtocolos
+        protocolosPorTablero: protocolosPorTablero
       };
       
       await projectsService.updateProject(projectId, { 
         calculation_data: calculationData 
       }, user.uid);
       
-      // Actualizar estado local
-      setProtocolosPorTablero(nuevosProtocolos);
+      // Limpiar actualizaciones pendientes
+      pendingUpdatesRef.current = {};
     } catch (error) {
       console.error('Error saving protocol data:', error);
       toast.error('Error al guardar los datos del protocolo');
+    } finally {
+      isUpdatingRef.current = false;
     }
-  };
+  }, [selectedTablero, protocolosPorTablero, project?.calculation_data, projectId, user.uid]);
+
+  // Función con debouncing para evitar múltiples llamadas simultáneas
+  const debouncedSave = useCallback(() => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    
+    saveTimeoutRef.current = setTimeout(() => {
+      saveProtocolDataToDatabase();
+    }, 500); // Esperar 500ms antes de guardar
+  }, [saveProtocolDataToDatabase]);
 
   // Función para actualizar campos generales del protocolo del tablero actual
   const updateProtocolField = (field, value) => {
@@ -424,17 +448,19 @@ const ProjectDetail = () => {
     
     const newData = { ...protocolData, [field]: value };
     
+    // Actualización optimista del estado local
     setProtocolosPorTablero(prev => ({
       ...prev,
       [selectedTablero.id]: newData
     }));
     
-    saveProtocolData(newData);
+    // Guardar con debouncing
+    debouncedSave();
   };
 
   // Funciones para manejar el protocolo de ensayos del tablero actual
   const updateProtocolItem = (seccion, item, campo, valor) => {
-    if (!selectedTablero) return;
+    if (!selectedTablero || isUpdatingRef.current) return;
     
     // Actualizar el item específico
     const newData = {
@@ -475,14 +501,14 @@ const ProjectDetail = () => {
       estado: nuevoEstado
     };
     
-    // Actualizar estado local
+    // Actualización optimista del estado local (inmediata)
     setProtocolosPorTablero(prev => ({
       ...prev,
       [selectedTablero.id]: finalData
     }));
     
-    // Guardar en la base de datos
-    saveProtocolData(finalData);
+    // Guardar en la base de datos con debouncing
+    debouncedSave();
   };
 
   const getEstadoColor = (estado) => {
