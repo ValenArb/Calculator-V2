@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from '../../ui';
-import { User, Mail, Phone, MapPin, Calendar, FileText, Hash, Image as ImageIcon } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Calendar, FileText, Hash, Image as ImageIcon, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import projectsService from '../../../services/firebase/projects';
 
-const ViewProjectModal = ({ isOpen, onClose, userId, projectId }) => {
+const ViewProjectModal = ({ isOpen, onClose, userId, projectId, onProjectDeleted }) => {
   const [project, setProject] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -48,6 +48,33 @@ const ViewProjectModal = ({ isOpen, onClose, userId, projectId }) => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const handleDeleteProject = async () => {
+    if (!project) return;
+
+    // Show confirmation dialog
+    const confirmed = window.confirm(
+      `¿Estás seguro de que quieres eliminar el proyecto "${project.name}"?\n\nEsta acción no se puede deshacer y eliminará todos los datos asociados.`
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      setIsLoading(true);
+      await projectsService.deleteProject(projectId, userId);
+      toast.success(`Proyecto "${project.name}" eliminado exitosamente`);
+      
+      // Close modal and notify parent
+      onClose();
+      if (onProjectDeleted) {
+        onProjectDeleted();
+      }
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      toast.error('Error al eliminar el proyecto: ' + error.message);
+      setIsLoading(false);
+    }
   };
 
   if (isLoading) {
@@ -248,7 +275,17 @@ const ViewProjectModal = ({ isOpen, onClose, userId, projectId }) => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+        <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+          <button
+            type="button"
+            onClick={handleDeleteProject}
+            disabled={isLoading}
+            className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+          >
+            <Trash2 className="w-4 h-4" />
+            Eliminar Proyecto
+          </button>
+          
           <button
             type="button"
             onClick={onClose}
