@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { ArrowLeft, Building2, User, Mail, Phone, MapPin, Calendar, Calculator, FileText, Edit, Trash2, CheckSquare, X, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Building2, User, Mail, Phone, MapPin, Calendar, Calculator, FileText, Edit, Trash2, CheckSquare, X, AlertTriangle, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import projectsService from '../../services/firebase/projects';
 import EditProjectModal from '../../components/projects/EditProjectModal';
@@ -23,6 +23,12 @@ const ProjectDetail = () => {
     color: 'bg-green-100 text-green-700 border-green-200'
   });
   
+  // Estado para gestión de tableros
+  const [tableros, setTableros] = useState([]);
+  const [showAddTablero, setShowAddTablero] = useState(false);
+  const [newTablero, setNewTablero] = useState({ nombre: '', descripcion: '' });
+  const [selectedTablero, setSelectedTablero] = useState(null);
+  
   // Estado para el protocolo de ensayos
   const [protocolData, setProtocolData] = useState({
     fecha: '',
@@ -37,6 +43,13 @@ const ProjectDetail = () => {
     tipo: '',
     ip: '',
     nSerie: '',
+    // Campos editables para nombres y cargos
+    realizo_nombre: '',
+    realizo_cargo: '',
+    controlo_nombre: '',
+    controlo_cargo: '',
+    aprobo_nombre: '',
+    aprobo_cargo: '',
     estructura: {
       '1.1': { estado: '', observacion: '' },
       '1.2': { estado: '', observacion: '' },
@@ -123,6 +136,23 @@ const ProjectDetail = () => {
     });
   };
 
+  const formatDateDDMMYYYY = (timestamp) => {
+    let date;
+    if (timestamp?.toDate) {
+      date = timestamp.toDate();
+    } else if (timestamp) {
+      date = new Date(timestamp);
+    } else {
+      date = new Date();
+    }
+    
+    return date.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
   const handleProjectUpdated = () => {
     // Reload project data
     const loadProject = async () => {
@@ -160,6 +190,34 @@ const ProjectDetail = () => {
   const handleDocumentTypeSelect = (documentType) => {
     setSelectedDocumentType(documentType);
     console.log('Selected document type in project:', documentType);
+  };
+
+  // Funciones para gestión de tableros
+  const addTablero = () => {
+    if (!newTablero.nombre.trim()) {
+      toast.error('El nombre del tablero es requerido');
+      return;
+    }
+    
+    const tablero = {
+      id: Date.now().toString(),
+      nombre: newTablero.nombre,
+      descripcion: newTablero.descripcion,
+      createdAt: new Date().toISOString()
+    };
+    
+    setTableros(prev => [...prev, tablero]);
+    setNewTablero({ nombre: '', descripcion: '' });
+    setShowAddTablero(false);
+    toast.success('Tablero agregado exitosamente');
+  };
+
+  const removeTablero = (tableroId) => {
+    setTableros(prev => prev.filter(t => t.id !== tableroId));
+    if (selectedTablero?.id === tableroId) {
+      setSelectedTablero(null);
+    }
+    toast.success('Tablero eliminado');
   };
 
   // Funciones para manejar el protocolo de ensayos
@@ -338,6 +396,105 @@ const ProjectDetail = () => {
                               <p className="text-gray-900">{project.location}</p>
                             </div>
                           )}
+                          <div>
+                            <span className="text-sm font-medium text-gray-600">Número de Obra:</span>
+                            <p className="text-gray-900">{project.work_number || 'No especificado'}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Gestión de Tableros */}
+                      <div className="bg-white border border-gray-200 rounded-lg p-6 lg:col-span-2">
+                        <h3 className="text-md font-medium text-gray-900 mb-4 flex items-center gap-2">
+                          <FileText className="w-4 h-4" />
+                          Tableros del Proyecto
+                        </h3>
+                        
+                        <div className="space-y-4">
+                          {/* Lista de tableros */}
+                          {tableros.length === 0 ? (
+                            <div className="text-center py-6 text-gray-500">
+                              <FileText className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                              <p className="text-sm">No hay tableros agregados</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {tableros.map((tablero) => (
+                                <div key={tablero.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                  <div>
+                                    <h4 className="font-medium text-gray-900">{tablero.nombre}</h4>
+                                    {tablero.descripcion && (
+                                      <p className="text-sm text-gray-600">{tablero.descripcion}</p>
+                                    )}
+                                  </div>
+                                  <button
+                                    onClick={() => removeTablero(tablero.id)}
+                                    className="text-red-600 hover:text-red-800 p-1"
+                                    title="Eliminar tablero"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          
+                          {/* Formulario para agregar tablero */}
+                          {showAddTablero ? (
+                            <div className="border border-gray-200 rounded-lg p-4 bg-blue-50">
+                              <div className="space-y-3">
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Nombre del Tablero
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={newTablero.nombre}
+                                    onChange={(e) => setNewTablero(prev => ({ ...prev, nombre: e.target.value }))}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Ej: Tablero Principal MT"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Descripción (opcional)
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={newTablero.descripcion}
+                                    onChange={(e) => setNewTablero(prev => ({ ...prev, descripcion: e.target.value }))}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    placeholder="Descripción del tablero"
+                                  />
+                                </div>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={addTablero}
+                                    className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                                  >
+                                    Agregar
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setShowAddTablero(false);
+                                      setNewTablero({ nombre: '', descripcion: '' });
+                                    }}
+                                    className="px-3 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
+                                  >
+                                    Cancelar
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setShowAddTablero(true)}
+                              className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors flex items-center justify-center gap-2"
+                            >
+                              <Plus className="w-4 h-4" />
+                              Agregar Tablero
+                            </button>
+                          )}
                         </div>
                       </div>
 
@@ -415,143 +572,38 @@ const ProjectDetail = () => {
                 ) : selectedDocumentType.id === 'protocolo-ensayos' ? (
                   // Vista específica para Protocolo de Ensayos
                   <div className="space-y-6">
-                    {/* Header del protocolo similar al PDF */}
+                    {/* Header del protocolo simple */}
                     <div className="bg-white border border-gray-800 rounded-lg overflow-hidden">
-                      {/* Título principal */}
                       <div className="bg-orange-500 text-white p-4 text-center">
                         <h3 className="text-xl font-bold">PROTOCOLO DE ENSAYOS</h3>
                       </div>
-
-                      {/* Header con información del cliente */}
-                      <div className="bg-orange-400 text-white p-2">
+                      <div className="bg-orange-400 text-white p-3">
                         <div className="grid grid-cols-3 gap-4 text-sm font-medium">
-                          <div>CLIENTE: {project.client_name || 'YPF GAS S.A.'}</div>
-                          <div>OBRA: {project.location || 'CORDOBA'}</div>
-                          <div></div>
-                        </div>
-                      </div>
-
-                      <div className="bg-orange-400 text-white p-2 border-t border-orange-500">
-                        <div className="text-sm font-medium">
-                          TABLERO: {project.name || 'TABLERO DE ENTRADA'}
-                        </div>
-                      </div>
-
-                      {/* Información técnica del proyecto */}
-                      <div className="p-4 border border-gray-300">
-                        <div className="grid grid-cols-2 gap-4 mb-4">
+                          <div>CLIENTE: {project.company || 'N/A'}</div>
+                          <div>OBRA: {project.location || 'N/A'}</div>
                           <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">CLIENTE:</label>
-                            <input
-                              type="text"
-                              value={protocolData.cliente}
-                              onChange={(e) => setProtocolData(prev => ({ ...prev, cliente: e.target.value }))}
-                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
-                              placeholder={project.client_name || "YPF GAS"}
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">PROYECTO:</label>
-                            <input
-                              type="text"
-                              value={protocolData.proyecto}
-                              onChange={(e) => setProtocolData(prev => ({ ...prev, proyecto: e.target.value }))}
-                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
-                              placeholder="P-1656-YPF-TABLERO DE ENTRADA"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-6 gap-2 text-xs">
-                          <div>
-                            <label className="block font-medium text-gray-700 mb-1">Un(V):</label>
-                            <input
-                              type="text"
-                              value={protocolData.unV}
-                              onChange={(e) => setProtocolData(prev => ({ ...prev, unV: e.target.value }))}
-                              className="w-full px-2 py-1 border border-gray-300 rounded"
-                              placeholder="380"
-                            />
-                          </div>
-                          <div>
-                            <label className="block font-medium text-gray-700 mb-1">F(Hz):</label>
-                            <input
-                              type="text"
-                              value={protocolData.fHz}
-                              onChange={(e) => setProtocolData(prev => ({ ...prev, fHz: e.target.value }))}
-                              className="w-full px-2 py-1 border border-gray-300 rounded"
-                              placeholder="50"
-                            />
-                          </div>
-                          <div>
-                            <label className="block font-medium text-gray-700 mb-1">In(A):</label>
-                            <input
-                              type="text"
-                              value={protocolData.inA}
-                              onChange={(e) => setProtocolData(prev => ({ ...prev, inA: e.target.value }))}
-                              className="w-full px-2 py-1 border border-gray-300 rounded"
-                              placeholder="630"
-                            />
-                          </div>
-                          <div>
-                            <label className="block font-medium text-gray-700 mb-1">Icc(kA):</label>
-                            <input
-                              type="text"
-                              value={protocolData.iccKA}
-                              onChange={(e) => setProtocolData(prev => ({ ...prev, iccKA: e.target.value }))}
-                              className="w-full px-2 py-1 border border-gray-300 rounded"
-                              placeholder="50"
-                            />
-                          </div>
-                          <div>
-                            <label className="block font-medium text-gray-700 mb-1">TIPO:</label>
-                            <input
-                              type="text"
-                              value={protocolData.tipo}
-                              onChange={(e) => setProtocolData(prev => ({ ...prev, tipo: e.target.value }))}
-                              className="w-full px-2 py-1 border border-gray-300 rounded"
-                              placeholder="ESTANDARD"
-                            />
-                          </div>
-                          <div>
-                            <label className="block font-medium text-gray-700 mb-1">IP:</label>
-                            <input
-                              type="text"
-                              value={protocolData.ip}
-                              onChange={(e) => setProtocolData(prev => ({ ...prev, ip: e.target.value }))}
-                              className="w-full px-2 py-1 border border-gray-300 rounded"
-                              placeholder="65"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4 mt-2">
-                          <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">Nº SERIE:</label>
-                            <input
-                              type="text"
-                              value={protocolData.nSerie}
-                              onChange={(e) => setProtocolData(prev => ({ ...prev, nSerie: e.target.value }))}
-                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
-                              placeholder="735461023"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">FECHA:</label>
-                            <input
-                              type="date"
-                              value={protocolData.fecha}
-                              onChange={(e) => setProtocolData(prev => ({ ...prev, fecha: e.target.value }))}
-                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
-                            />
+                            TABLERO: 
+                            <select
+                              value={selectedTablero?.id || ''}
+                              onChange={(e) => {
+                                const tablero = tableros.find(t => t.id === e.target.value);
+                                setSelectedTablero(tablero || null);
+                              }}
+                              className="ml-2 px-2 py-1 border border-gray-300 rounded text-xs bg-white"
+                            >
+                              <option value="">Seleccionar tablero</option>
+                              {tableros.map((tablero) => (
+                                <option key={tablero.id} value={tablero.id}>
+                                  {tablero.nombre}
+                                </option>
+                              ))}
+                            </select>
                           </div>
                         </div>
                       </div>
-
-                      {/* Estado del protocolo */}
-                      <div className="p-2">
+                      <div className="p-3">
                         <div className="flex justify-between items-center">
-                          <span className="text-sm font-medium">FECHA: {protocolData.fecha || new Date().toLocaleDateString()}</span>
+                          <span className="text-sm font-medium">FECHA: {formatDateDDMMYYYY(project.updated_at)}</span>
                           <div className={`px-4 py-2 rounded border text-center font-bold ${getEstadoColor(protocolData.estado)}`}>
                             {protocolData.estado}
                           </div>
@@ -569,7 +621,7 @@ const ProjectDetail = () => {
                             <th className="border border-gray-800 px-2 py-1 text-center font-bold w-12">SI</th>
                             <th className="border border-gray-800 px-2 py-1 text-center font-bold w-12">NO</th>
                             <th className="border border-gray-800 px-2 py-1 text-center font-bold w-12">N/A</th>
-                            <th className="border border-gray-800 px-2 py-1 text-center font-bold bg-orange-500 w-20">OBS.</th>
+                            <th className="border border-gray-800 px-2 py-1 text-center font-bold bg-orange-500 w-32">OBS.</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -609,13 +661,13 @@ const ProjectDetail = () => {
                                   className="scale-75"
                                 />
                               </td>
-                              <td className="border border-gray-800 px-1 py-1 bg-orange-50">
-                                <input
-                                  type="text"
+                              <td className="border border-gray-800 px-2 py-2 bg-orange-50">
+                                <textarea
                                   value={protocolData.estructura[item.id]?.observacion || ''}
                                   onChange={(e) => updateProtocolItem('estructura', item.id, 'observacion', e.target.value)}
-                                  className="w-full px-1 py-0 text-xs border-0 bg-transparent focus:outline-none"
+                                  className="w-full px-2 py-1 text-xs border-0 bg-transparent focus:outline-none resize-none"
                                   placeholder="-"
+                                  rows="2"
                                 />
                               </td>
                             </tr>
@@ -634,7 +686,7 @@ const ProjectDetail = () => {
                             <th className="border border-gray-800 px-2 py-1 text-center font-bold w-12">SI</th>
                             <th className="border border-gray-800 px-2 py-1 text-center font-bold w-12">NO</th>
                             <th className="border border-gray-800 px-2 py-1 text-center font-bold w-12">N/A</th>
-                            <th className="border border-gray-800 px-2 py-1 text-center font-bold bg-orange-500 w-20">OBS.</th>
+                            <th className="border border-gray-800 px-2 py-1 text-center font-bold bg-orange-500 w-32">OBS.</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -691,6 +743,342 @@ const ProjectDetail = () => {
                           ))}
                         </tbody>
                       </table>
+                    </div>
+
+                    {/* Sección 3: PRUEBAS Y ENSAYO */}
+                    <div className="bg-white border border-gray-800 rounded-lg overflow-hidden mt-4">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-green-600 text-white">
+                            <th className="border border-gray-800 px-2 py-1 text-left font-bold text-xs">3.</th>
+                            <th className="border border-gray-800 px-2 py-1 text-left font-bold">PRUEBAS Y ENSAYO</th>
+                            <th className="border border-gray-800 px-2 py-1 text-center font-bold w-12">SI</th>
+                            <th className="border border-gray-800 px-2 py-1 text-center font-bold w-12">NO</th>
+                            <th className="border border-gray-800 px-2 py-1 text-center font-bold w-12">N/A</th>
+                            <th className="border border-gray-800 px-2 py-1 text-center font-bold bg-orange-500 w-32">OBS.</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[
+                            { id: '3.1', desc: 'Accionamientos manuales y accesorios' },
+                            { id: '3.2', desc: 'Enclavamiento y bloqueos' },
+                            { id: '3.3', desc: 'Sujeción de aparatos y conexionado' },
+                            { id: '3.4', desc: 'Control de cableado' },
+                            { id: '3.5', desc: 'Prueba funcional eléctrica' },
+                            { id: '3.5.1', desc: '    Verificación de Tensiones en Bornes' },
+                            { id: '3.5.2', desc: '    Apertura/Cierre de Protecciones' },
+                            { id: '3.5.3', desc: '    Funcionamiento de Elem. de Comando' },
+                            { id: '3.5.4', desc: '    Ensayo de Arranques Especiales' },
+                            { id: '3.5.5', desc: '    Verificación de I/O de PLC' },
+                            { id: '3.5.6', desc: '    Otros' }
+                          ].map((item) => (
+                            <tr key={item.id}>
+                              <td className="border border-gray-800 px-2 py-1 font-medium text-xs">{item.id}</td>
+                              <td className="border border-gray-800 px-2 py-1 text-xs">{item.desc}</td>
+                              <td className="border border-gray-800 px-1 py-1 text-center">
+                                <input
+                                  type="radio"
+                                  name={`pruebas-${item.id}`}
+                                  checked={protocolData.pruebas[item.id]?.estado === 'SI'}
+                                  onChange={() => updateProtocolItem('pruebas', item.id, 'estado', 'SI')}
+                                  className="scale-75"
+                                />
+                              </td>
+                              <td className="border border-gray-800 px-1 py-1 text-center">
+                                <input
+                                  type="radio"
+                                  name={`pruebas-${item.id}`}
+                                  checked={protocolData.pruebas[item.id]?.estado === 'NO'}
+                                  onChange={() => updateProtocolItem('pruebas', item.id, 'estado', 'NO')}
+                                  className="scale-75"
+                                />
+                              </td>
+                              <td className="border border-gray-800 px-1 py-1 text-center">
+                                <input
+                                  type="radio"
+                                  name={`pruebas-${item.id}`}
+                                  checked={protocolData.pruebas[item.id]?.estado === 'NA'}
+                                  onChange={() => updateProtocolItem('pruebas', item.id, 'estado', 'NA')}
+                                  className="scale-75"
+                                />
+                              </td>
+                              <td className="border border-gray-800 px-2 py-2 bg-orange-50">
+                                <textarea
+                                  value={protocolData.pruebas[item.id]?.observacion || ''}
+                                  onChange={(e) => updateProtocolItem('pruebas', item.id, 'observacion', e.target.value)}
+                                  className="w-full px-2 py-1 text-xs border-0 bg-transparent focus:outline-none resize-none"
+                                  placeholder="-"
+                                  rows="2"
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Sección 4: AISLACIÓN */}
+                    <div className="bg-white border border-gray-800 rounded-lg overflow-hidden mt-4">
+                      <div className="bg-green-600 text-white p-3">
+                        <h4 className="font-bold">4. AISLACIÓN:</h4>
+                      </div>
+                      <div className="p-4">
+                        <div className="grid grid-cols-4 gap-4 mb-4">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">MARCA:</label>
+                            <input
+                              type="text"
+                              value={protocolData.aislacion.marca}
+                              onChange={(e) => setProtocolData(prev => ({ ...prev, aislacion: { ...prev.aislacion, marca: e.target.value } }))}
+                              className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                              placeholder="SONEL"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">MODELO:</label>
+                            <input
+                              type="text"
+                              value={protocolData.aislacion.modelo}
+                              onChange={(e) => setProtocolData(prev => ({ ...prev, aislacion: { ...prev.aislacion, modelo: e.target.value } }))}
+                              className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                              placeholder="MIC-5000"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">ESCALA:</label>
+                            <input
+                              type="text"
+                              value={protocolData.aislacion.escala}
+                              onChange={(e) => setProtocolData(prev => ({ ...prev, aislacion: { ...prev.aislacion, escala: e.target.value } }))}
+                              className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                              placeholder="2,5 Kv"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">TIEMPO:</label>
+                            <input
+                              type="text"
+                              value={protocolData.aislacion.tiempo}
+                              onChange={(e) => setProtocolData(prev => ({ ...prev, aislacion: { ...prev.aislacion, tiempo: e.target.value } }))}
+                              className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
+                              placeholder="60 s"
+                            />
+                          </div>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-xs border border-gray-800">
+                            <thead>
+                              <tr className="bg-orange-400 text-white">
+                                <th className="border border-gray-800 px-2 py-1 font-bold">RESISTENCIA 2</th>
+                                <th className="border border-gray-800 px-2 py-1 font-bold">RESISTENCIA 1</th>
+                                <th className="border border-gray-800 px-2 py-1 font-bold">CORRIENTE 2</th>
+                                <th className="border border-gray-800 px-2 py-1 font-bold">CORRIENTE 1</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              <tr className="bg-gray-100">
+                                <td className="border border-gray-800 px-2 py-1 font-bold">N-RST</td>
+                                <td className="border border-gray-800 px-2 py-1 font-bold">R-NST</td>
+                                <td className="border border-gray-800 px-2 py-1 font-bold">S-NRT</td>
+                                <td className="border border-gray-800 px-2 py-1 font-bold">T-NSR</td>
+                              </tr>
+                              <tr>
+                                <td className="border border-gray-800 px-2 py-1">
+                                  <input
+                                    type="text"
+                                    value={protocolData.aislacion.resistencia2}
+                                    onChange={(e) => setProtocolData(prev => ({ ...prev, aislacion: { ...prev.aislacion, resistencia2: e.target.value } }))}
+                                    className="w-full px-1 py-1 text-center border-0 bg-transparent focus:outline-none"
+                                    placeholder="N/A"
+                                  />
+                                </td>
+                                <td className="border border-gray-800 px-2 py-1">
+                                  <input
+                                    type="text"
+                                    value={protocolData.aislacion.resistencia1}
+                                    onChange={(e) => setProtocolData(prev => ({ ...prev, aislacion: { ...prev.aislacion, resistencia1: e.target.value } }))}
+                                    className="w-full px-1 py-1 text-center border-0 bg-transparent focus:outline-none"
+                                    placeholder="N/A"
+                                  />
+                                </td>
+                                <td className="border border-gray-800 px-2 py-1">
+                                  <input
+                                    type="text"
+                                    value={protocolData.aislacion.corriente2}
+                                    onChange={(e) => setProtocolData(prev => ({ ...prev, aislacion: { ...prev.aislacion, corriente2: e.target.value } }))}
+                                    className="w-full px-1 py-1 text-center border-0 bg-transparent focus:outline-none"
+                                    placeholder="N/A"
+                                  />
+                                </td>
+                                <td className="border border-gray-800 px-2 py-1">
+                                  <input
+                                    type="text"
+                                    value={protocolData.aislacion.corriente1}
+                                    onChange={(e) => setProtocolData(prev => ({ ...prev, aislacion: { ...prev.aislacion, corriente1: e.target.value } }))}
+                                    className="w-full px-1 py-1 text-center border-0 bg-transparent focus:outline-none"
+                                    placeholder="N/A"
+                                  />
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Sección 5: CONTROL FINAL */}
+                    <div className="bg-white border border-gray-800 rounded-lg overflow-hidden mt-4">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-green-600 text-white">
+                            <th className="border border-gray-800 px-2 py-1 text-left font-bold text-xs">5.</th>
+                            <th className="border border-gray-800 px-2 py-1 text-left font-bold">CONTROL FINAL</th>
+                            <th className="border border-gray-800 px-2 py-1 text-center font-bold w-12">SI</th>
+                            <th className="border border-gray-800 px-2 py-1 text-center font-bold w-12">NO</th>
+                            <th className="border border-gray-800 px-2 py-1 text-center font-bold w-12">N/A</th>
+                            <th className="border border-gray-800 px-2 py-1 text-center font-bold bg-orange-500 w-32">OBS.</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[
+                            { id: '5.1', desc: 'Identificaciones y ordenamiento' },
+                            { id: '5.2', desc: 'Inspección con presencia del cliente' },
+                            { id: '5.3', desc: 'Detalles de terminación' },
+                            { id: '5.4', desc: 'Accesorios y embalaje' }
+                          ].map((item) => (
+                            <tr key={item.id}>
+                              <td className="border border-gray-800 px-2 py-1 font-medium text-xs">{item.id}</td>
+                              <td className="border border-gray-800 px-2 py-1 text-xs">{item.desc}</td>
+                              <td className="border border-gray-800 px-1 py-1 text-center">
+                                <input
+                                  type="radio"
+                                  name={`controlFinal-${item.id}`}
+                                  checked={protocolData.controlFinal[item.id]?.estado === 'SI'}
+                                  onChange={() => updateProtocolItem('controlFinal', item.id, 'estado', 'SI')}
+                                  className="scale-75"
+                                />
+                              </td>
+                              <td className="border border-gray-800 px-1 py-1 text-center">
+                                <input
+                                  type="radio"
+                                  name={`controlFinal-${item.id}`}
+                                  checked={protocolData.controlFinal[item.id]?.estado === 'NO'}
+                                  onChange={() => updateProtocolItem('controlFinal', item.id, 'estado', 'NO')}
+                                  className="scale-75"
+                                />
+                              </td>
+                              <td className="border border-gray-800 px-1 py-1 text-center">
+                                <input
+                                  type="radio"
+                                  name={`controlFinal-${item.id}`}
+                                  checked={protocolData.controlFinal[item.id]?.estado === 'NA'}
+                                  onChange={() => updateProtocolItem('controlFinal', item.id, 'estado', 'NA')}
+                                  className="scale-75"
+                                />
+                              </td>
+                              <td className="border border-gray-800 px-2 py-2 bg-orange-50">
+                                <textarea
+                                  value={protocolData.controlFinal[item.id]?.observacion || ''}
+                                  onChange={(e) => updateProtocolItem('controlFinal', item.id, 'observacion', e.target.value)}
+                                  className="w-full px-2 py-1 text-xs border-0 bg-transparent focus:outline-none resize-none"
+                                  placeholder="-"
+                                  rows="2"
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Normas de referencia */}
+                    <div className="bg-white border border-gray-800 rounded-lg p-4 mt-4">
+                      <h4 className="font-bold text-sm mb-3">ENSAYOS BASADOS EN LAS SIGUIENTES NORMAS:</h4>
+                      <div className="text-xs space-y-1 text-gray-700">
+                        <p>Norma IEC 62208 "Envolventes vacías destinadas a los conjuntos de aparamenta de baja tensión. Requisitos generales."</p>
+                        <p>Norma IEC 60439-1 "Conjuntos de aparamenta de baja tensión. Parte 1: Conjuntos de serie y conjuntos derivados de serie."</p>
+                        <p>Norma IEC 60439-2 "Conjuntos de aparamenta de baja tensión. Parte 2: Requisitos particulares para las canalizaciones prefabricadas."</p>
+                        <p>Norma IEC 60439-3 "Requerimientos particulares para los tableros equipados destinados a ser instalados en lugares accesibles al personal no calificado durante su utilización"</p>
+                        <p>Norma: IEC 60670-24 "Requisitos generales para las envolturas de los accesorios para instalaciones eléctricas fijas para usos domiciliarios y similares".</p>
+                      </div>
+                    </div>
+
+                    {/* Firmas */}
+                    <div className="bg-white border border-gray-800 rounded-lg p-4 mt-4">
+                      <div className="grid grid-cols-3 gap-6">
+                        <div className="text-center">
+                          <div className="mb-2">
+                            <label className="block text-xs font-medium text-gray-700 mb-1">REALIZÓ:</label>
+                            <input
+                              type="text"
+                              value={protocolData.realizo_nombre}
+                              onChange={(e) => setProtocolData(prev => ({ ...prev, realizo_nombre: e.target.value }))}
+                              className="w-full px-2 py-1 text-xs border border-gray-300 rounded text-center"
+                              placeholder="Nombre"
+                            />
+                          </div>
+                          <div className="mb-2">
+                            <label className="block text-xs font-medium text-gray-700 mb-1">CARGO:</label>
+                            <input
+                              type="text"
+                              value={protocolData.realizo_cargo}
+                              onChange={(e) => setProtocolData(prev => ({ ...prev, realizo_cargo: e.target.value }))}
+                              className="w-full px-2 py-1 text-xs border border-gray-300 rounded text-center"
+                              placeholder="Cargo"
+                            />
+                          </div>
+                          <div className="border-b border-gray-400 mb-1 h-8"></div>
+                          <p className="text-xs">FIRMA: ................................</p>
+                        </div>
+                        <div className="text-center">
+                          <div className="mb-2">
+                            <label className="block text-xs font-medium text-gray-700 mb-1">CONTROLÓ:</label>
+                            <input
+                              type="text"
+                              value={protocolData.controlo_nombre}
+                              onChange={(e) => setProtocolData(prev => ({ ...prev, controlo_nombre: e.target.value }))}
+                              className="w-full px-2 py-1 text-xs border border-gray-300 rounded text-center"
+                              placeholder="Nombre"
+                            />
+                          </div>
+                          <div className="mb-2">
+                            <label className="block text-xs font-medium text-gray-700 mb-1">CARGO:</label>
+                            <input
+                              type="text"
+                              value={protocolData.controlo_cargo}
+                              onChange={(e) => setProtocolData(prev => ({ ...prev, controlo_cargo: e.target.value }))}
+                              className="w-full px-2 py-1 text-xs border border-gray-300 rounded text-center"
+                              placeholder="Cargo"
+                            />
+                          </div>
+                          <div className="border-b border-gray-400 mb-1 h-8"></div>
+                          <p className="text-xs">FIRMA: ................................</p>
+                        </div>
+                        <div className="text-center">
+                          <div className="mb-2">
+                            <label className="block text-xs font-medium text-gray-700 mb-1">APROBÓ:</label>
+                            <input
+                              type="text"
+                              value={protocolData.aprobo_nombre}
+                              onChange={(e) => setProtocolData(prev => ({ ...prev, aprobo_nombre: e.target.value }))}
+                              className="w-full px-2 py-1 text-xs border border-gray-300 rounded text-center"
+                              placeholder="Nombre"
+                            />
+                          </div>
+                          <div className="mb-2">
+                            <label className="block text-xs font-medium text-gray-700 mb-1">CARGO:</label>
+                            <input
+                              type="text"
+                              value={protocolData.aprobo_cargo}
+                              onChange={(e) => setProtocolData(prev => ({ ...prev, aprobo_cargo: e.target.value }))}
+                              className="w-full px-2 py-1 text-xs border border-gray-300 rounded text-center"
+                              placeholder="Cargo"
+                            />
+                          </div>
+                          <div className="border-b border-gray-400 mb-1 h-8"></div>
+                          <p className="text-xs">FIRMA: ................................</p>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ) : (

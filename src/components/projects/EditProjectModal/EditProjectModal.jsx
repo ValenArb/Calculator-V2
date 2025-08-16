@@ -13,6 +13,7 @@ const EditProjectModal = ({ isOpen, onClose, userId, projectId, onProjectUpdated
     clientEmail: '',
     clientPhone: '',
     location: '',
+    workNumber: '',
     clientLogoUrl: null
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -33,6 +34,7 @@ const EditProjectModal = ({ isOpen, onClose, userId, projectId, onProjectUpdated
           clientEmail: project.client_email || '',
           clientPhone: project.client_phone || '',
           location: project.location || '',
+          workNumber: project.work_number || '',
           clientLogoUrl: project.client_logo_url || null
         });
       } catch (error) {
@@ -80,6 +82,7 @@ const EditProjectModal = ({ isOpen, onClose, userId, projectId, onProjectUpdated
         client_email: formData.clientEmail,
         client_phone: formData.clientPhone,
         location: formData.location,
+        work_number: formData.workNumber,
         client_logo_url: formData.clientLogoUrl
       };
 
@@ -225,6 +228,20 @@ const EditProjectModal = ({ isOpen, onClose, userId, projectId, onProjectUpdated
                   placeholder="Ciudad, Provincia"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Número de Obra
+              </label>
+              <input
+                type="text"
+                name="workNumber"
+                value={formData.workNumber}
+                onChange={handleInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Ej: OB-2024-001"
+              />
             </div>
           </div>
 
