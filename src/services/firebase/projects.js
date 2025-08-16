@@ -8,7 +8,6 @@ import {
   getDocs, 
   query, 
   where, 
-  orderBy, 
   limit as limitQuery,
   serverTimestamp 
 } from 'firebase/firestore';
@@ -22,7 +21,6 @@ import { db, storage } from './config';
 
 // Firestore collections
 const PROJECTS_COLLECTION = 'projects';
-const CLIENT_LOGOS_COLLECTION = 'client_logos';
 
 class ProjectsService {
   // Project CRUD operations
@@ -109,8 +107,15 @@ class ProjectsService {
         throw new Error('Project not found');
       }
       
-      if (currentDoc.data().owner_id !== userId) {
+      const currentProjectData = currentDoc.data();
+      if (currentProjectData.owner_id !== userId) {
         throw new Error('Unauthorized: Not your project');
+      }
+      
+      // If logo is being changed, delete the old one
+      if (currentProjectData.client_logo_url && 
+          projectData.client_logo_url !== currentProjectData.client_logo_url) {
+        await this.deleteClientLogo(currentProjectData.client_logo_url);
       }
       
       // Update the document
@@ -182,21 +187,11 @@ class ProjectsService {
       const snapshot = await uploadBytes(logoRef, file);
       const downloadURL = await getDownloadURL(snapshot.ref);
       
-      // Save logo metadata to Firestore
-      const logoDoc = await addDoc(collection(db, CLIENT_LOGOS_COLLECTION), {
-        client_name: clientName,
-        filename: filename,
-        url: downloadURL,
-        uploaded_by: userId,
-        file_size: file.size,
-        file_type: file.type,
-        created_at: serverTimestamp()
-      });
-      
       return {
-        id: logoDoc.id,
         url: downloadURL,
-        filename: filename
+        filename: filename,
+        file_size: file.size,
+        file_type: file.type
       };
     } catch (error) {
       console.error('Error uploading client logo:', error);
@@ -206,6 +201,8 @@ class ProjectsService {
 
   async deleteClientLogo(logoUrl) {
     try {
+      if (!logoUrl) return { success: true };
+      
       // Extract filename from URL
       const url = new URL(logoUrl);
       const pathname = decodeURIComponent(url.pathname);
@@ -215,16 +212,6 @@ class ProjectsService {
       const logoRef = ref(storage, `client_logos/${filename}`);
       await deleteObject(logoRef);
       
-      // Delete metadata from Firestore
-      const q = query(
-        collection(db, CLIENT_LOGOS_COLLECTION),
-        where('url', '==', logoUrl)
-      );
-      const snapshot = await getDocs(q);
-      
-      const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
-      await Promise.all(deletePromises);
-      
       return { success: true };
     } catch (error) {
       console.error('Error deleting client logo:', error);
@@ -233,32 +220,6 @@ class ProjectsService {
     }
   }
 
-  async getClientLogos(userId) {
-    try {
-      const q = query(
-        collection(db, CLIENT_LOGOS_COLLECTION),
-        where('uploaded_by', '==', userId)
-      );
-      
-      const snapshot = await getDocs(q);
-      const logos = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      
-      // Sort client-side by created_at descending
-      logos.sort((a, b) => {
-        const dateA = a.created_at?.toDate ? a.created_at.toDate() : new Date(a.created_at || 0);
-        const dateB = b.created_at?.toDate ? b.created_at.toDate() : new Date(b.created_at || 0);
-        return dateB - dateA;
-      });
-      
-      return logos;
-    } catch (error) {
-      console.error('Error fetching client logos:', error);
-      throw error;
-    }
-  }
 
   // Statistics and analytics
   async getProjectStats(userId) {
@@ -295,6 +256,5 @@ export const {
   deleteProject,
   uploadClientLogo,
   deleteClientLogo,
-  getClientLogos,
   getProjectStats
 } = projectsService;
