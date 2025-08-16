@@ -117,8 +117,6 @@ const ProjectDetail = () => {
           client_phone: projectData.client_phone || '',
           location: projectData.location || '',
           work_number: projectData.work_number || '',
-          project_type: projectData.project_type || '',
-          status: projectData.status || ''
         });
       } catch (error) {
         console.error('Error loading project:', error);
@@ -414,39 +412,6 @@ const ProjectDetail = () => {
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                               placeholder="Nombre de la empresa"
                             />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-600 mb-1">Tipo de Proyecto:</label>
-                            <select
-                              value={editableProject.project_type || ''}
-                              onChange={(e) => {
-                                setEditableProject(prev => ({ ...prev, project_type: e.target.value }));
-                                updateProjectField('project_type', e.target.value);
-                              }}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                            >
-                              <option value="">Seleccionar tipo</option>
-                              <option value="residential">Residencial</option>
-                              <option value="commercial">Comercial</option>
-                              <option value="industrial">Industrial</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-600 mb-1">Estado:</label>
-                            <select
-                              value={editableProject.status || ''}
-                              onChange={(e) => {
-                                setEditableProject(prev => ({ ...prev, status: e.target.value }));
-                                updateProjectField('status', e.target.value);
-                              }}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                            >
-                              <option value="">Seleccionar estado</option>
-                              <option value="draft">Borrador</option>
-                              <option value="active">Activo</option>
-                              <option value="completed">Completado</option>
-                              <option value="archived">Archivado</option>
-                            </select>
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-600 mb-1">Ubicación:</label>
