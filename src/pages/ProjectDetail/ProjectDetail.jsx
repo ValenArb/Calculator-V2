@@ -363,10 +363,19 @@ const ProjectDetail = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       {/* Información General */}
                       <div className="bg-white border border-gray-200 rounded-lg p-6">
-                        <h3 className="text-md font-medium text-gray-900 mb-4 flex items-center gap-2">
-                          <Building2 className="w-4 h-4" />
-                          Información General
-                        </h3>
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-md font-medium text-gray-900 flex items-center gap-2">
+                            <Building2 className="w-4 h-4" />
+                            Información General
+                          </h3>
+                          <button
+                            onClick={() => setShowEditModal(true)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                          >
+                            <Edit className="w-4 h-4" />
+                            Editar
+                          </button>
+                        </div>
                         <div className="space-y-3">
                           <div>
                             <span className="text-sm font-medium text-gray-600">Nombre del Proyecto:</span>
