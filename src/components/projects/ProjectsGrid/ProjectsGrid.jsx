@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Plus, FileText, Shuffle } from 'lucide-react';
-import RecentProjectsGrid from '../RecentProjectsCard';
+import RecentProjectsCard from '../RecentProjectsCard';
 import CreateProjectModal from '../CreateProjectModal';
 import projectsService from '../../../services/firebase/projects';
 import toast from 'react-hot-toast';
@@ -150,7 +150,7 @@ const ProjectsGrid = () => {
           <FileText className="w-5 h-5" />
           Proyectos Recientes
         </h2>
-        <RecentProjectsGrid userId={user?.uid} key={refreshTrigger} />
+        <RecentProjectsCard userId={user?.uid} key={refreshTrigger} />
       </div>
 
 

@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import EditProjectModal from '../EditProjectModal';
 import ViewProjectModal from '../ViewProjectModal';
 
-const RecentProjectsGrid = ({ userId }) => {
+const RecentProjectsCard = ({ userId }) => {
   const [recentProjects, setRecentProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -396,4 +396,4 @@ const RecentProjectsGrid = ({ userId }) => {
   );
 };
 
-export default RecentProjectsGrid;
+export default RecentProjectsCard;
