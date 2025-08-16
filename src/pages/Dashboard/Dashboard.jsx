@@ -1,18 +1,32 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { useLocation } from 'react-router-dom';
 import { Calculator, FolderOpen, User, Copy, LogOut, Mail, Hash, Edit3, X, Upload, Menu, ChevronLeft, AlertTriangle, BookOpen } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ProjectsGrid from '../../components/projects/ProjectsGrid';
 import CalculatorApp from '../../components/calculator/CalculatorApp';
 import ErrorCodesApp from '../../components/error-codes/ErrorCodesApp';
+import DocumentTypeSidebar from '../../components/layout/DocumentTypeSidebar';
 import { Modal } from '../../components/ui';
 import { authService } from '../../services/firebase/auth';
 import { setUser } from '../../store/slices/authSlice';
 
 const Dashboard = () => {
+  const location = useLocation();
   const [activeSection, setActiveSection] = useState('projects');
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [selectedDocumentType, setSelectedDocumentType] = useState(null);
+  const [showDocumentSidebar, setShowDocumentSidebar] = useState(false);
+
+  // Manejar navegación desde proyectos con sección específica
+  useEffect(() => {
+    if (location.state?.activeSection) {
+      setActiveSection(location.state.activeSection);
+      // Limpiar el estado para evitar que persista en navegaciones futuras
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
   const [editForm, setEditForm] = useState({
     displayName: '',
     photoURL: ''
@@ -166,6 +180,11 @@ const Dashboard = () => {
     } finally {
       setIsUpdating(false);
     }
+  };
+
+  const handleDocumentTypeSelect = (documentType) => {
+    setSelectedDocumentType(documentType);
+    console.log('Selected document type:', documentType);
   };
 
   const renderContent = () => {
@@ -354,11 +373,20 @@ const Dashboard = () => {
       </div>
 
       {/* Contenido principal */}
-      <div className={`${sidebarCollapsed ? 'ml-16' : 'ml-64'} transition-all duration-300 flex-1`}>
+      <div className={`${sidebarCollapsed ? 'ml-16' : 'ml-64'} ${showDocumentSidebar ? 'mr-72' : 'mr-0'} transition-all duration-300 flex-1`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {renderContent()}
         </div>
       </div>
+
+      {/* Document Type Sidebar */}
+      {showDocumentSidebar && (
+        <DocumentTypeSidebar
+          onDocumentTypeSelect={handleDocumentTypeSelect}
+          selectedType={selectedDocumentType}
+          defaultCollapsed={false}
+        />
+      )}
 
       {/* Profile Edit Modal */}
       <Modal 

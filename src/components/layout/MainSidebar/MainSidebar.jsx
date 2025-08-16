@@ -55,8 +55,24 @@ const MainSidebar = ({ defaultCollapsed = false, activeSection = 'projects' }) =
   };
 
   const handleMenuClick = (item) => {
-    if (item.path) {
-      navigate(item.path);
+    // Si estamos en un proyecto, navegar al dashboard con la sección correspondiente
+    if (location.pathname.startsWith('/project/')) {
+      if (item.id === 'calculator') {
+        navigate('/dashboard', { state: { activeSection: 'calculator' } });
+      } else if (item.id === 'error-codes') {
+        navigate('/dashboard', { state: { activeSection: 'error-codes' } });
+      } else if (item.id === 'projects') {
+        navigate('/dashboard', { state: { activeSection: 'projects' } });
+      } else {
+        navigate('/dashboard');
+      }
+    } else {
+      // Comportamiento normal cuando no estamos en un proyecto
+      if (item.id === 'calculator') {
+        navigate('/calculator');
+      } else if (item.path) {
+        navigate(item.path);
+      }
     }
   };
 

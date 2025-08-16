@@ -1,8 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { Calculator as CalculatorIcon, LogIn, User } from 'lucide-react';
 import CalculatorApp from '../../components/calculator/CalculatorApp';
 
 const Calculator = () => {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useSelector((state) => state.auth);
+
+  // Redirigir usuarios autenticados al dashboard con sección de calculadora
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard', { state: { activeSection: 'calculator' } });
+    }
+  }, [isAuthenticated, navigate]);
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}

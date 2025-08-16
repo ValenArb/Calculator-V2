@@ -28,9 +28,13 @@
       "Bash(npm install:*)",
       "Bash(npm run:*)",
       "Bash(curl:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(code .)"
     ],
     "deny": [],
-    "defaultMode": "acceptEdits"
+    "defaultMode": "acceptEdits",
+    "additionalDirectories": [
+      "C:\\Users\\valen\\Desktop"
+    ]
   }
 }
