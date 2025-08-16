@@ -118,6 +118,8 @@ const ProjectDetail = () => {
           location: projectData.location || '',
           work_number: projectData.work_number || '',
         });
+        // Cargar tableros del proyecto
+        setTableros(projectData.tableros || []);
       } catch (error) {
         console.error('Error loading project:', error);
         toast.error('Error al cargar el proyecto');
@@ -206,7 +208,7 @@ const ProjectDetail = () => {
   };
 
   // Funciones para gestión de tableros
-  const addTablero = () => {
+  const addTablero = async () => {
     if (!newTablero.nombre.trim()) {
       toast.error('El nombre del tablero es requerido');
       return;
@@ -219,18 +221,40 @@ const ProjectDetail = () => {
       createdAt: new Date().toISOString()
     };
     
-    setTableros(prev => [...prev, tablero]);
-    setNewTablero({ nombre: '', descripcion: '' });
-    setShowAddTablero(false);
-    toast.success('Tablero agregado exitosamente');
+    try {
+      const updatedTableros = [...tableros, tablero];
+      // Actualizar en Firestore
+      await projectsService.updateProject(projectId, { tableros: updatedTableros }, user.uid);
+      
+      // Actualizar estado local
+      setTableros(updatedTableros);
+      setProject(prev => ({ ...prev, tableros: updatedTableros }));
+      setNewTablero({ nombre: '', descripcion: '' });
+      setShowAddTablero(false);
+      toast.success('Tablero agregado exitosamente');
+    } catch (error) {
+      console.error('Error adding tablero:', error);
+      toast.error('Error al agregar tablero');
+    }
   };
 
-  const removeTablero = (tableroId) => {
-    setTableros(prev => prev.filter(t => t.id !== tableroId));
-    if (selectedTablero?.id === tableroId) {
-      setSelectedTablero(null);
+  const removeTablero = async (tableroId) => {
+    try {
+      const updatedTableros = tableros.filter(t => t.id !== tableroId);
+      // Actualizar en Firestore
+      await projectsService.updateProject(projectId, { tableros: updatedTableros }, user.uid);
+      
+      // Actualizar estado local
+      setTableros(updatedTableros);
+      setProject(prev => ({ ...prev, tableros: updatedTableros }));
+      if (selectedTablero?.id === tableroId) {
+        setSelectedTablero(null);
+      }
+      toast.success('Tablero eliminado');
+    } catch (error) {
+      console.error('Error removing tablero:', error);
+      toast.error('Error al eliminar tablero');
     }
-    toast.success('Tablero eliminado');
   };
 
   // Función para actualizar campo del proyecto
