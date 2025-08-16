@@ -90,14 +90,10 @@ const ProjectDetail = () => {
       '3.5.6': { estado: '', observacion: '' }
     },
     aislacion: {
-      marca: '',
-      modelo: '',
-      escala: '',
-      tiempo: '',
-      resistencia1: '',
-      resistencia2: '',
-      corriente1: '',
-      corriente2: ''
+      '4.1': { estado: '', observacion: '' },
+      '4.2': { estado: '', observacion: '' },
+      '4.3': { estado: '', observacion: '' },
+      '4.4': { estado: '', observacion: '' }
     },
     controlFinal: {
       '5.1': { estado: '', observacion: '' },
@@ -983,111 +979,73 @@ const ProjectDetail = () => {
 
                     {/* Sección 4: AISLACIÓN */}
                     <div className="bg-white border border-gray-800 rounded-lg overflow-hidden mt-4">
-                      <div className="bg-green-600 text-white p-3">
-                        <h4 className="font-bold">4. AISLACIÓN:</h4>
-                      </div>
-                      <div className="p-4">
-                        <div className="grid grid-cols-4 gap-4 mb-4">
-                          <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">MARCA:</label>
-                            <input
-                              type="text"
-                              value={protocolData.aislacion.marca}
-                              onChange={(e) => setProtocolData(prev => ({ ...prev, aislacion: { ...prev.aislacion, marca: e.target.value } }))}
-                              className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
-                              placeholder="SONEL"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">MODELO:</label>
-                            <input
-                              type="text"
-                              value={protocolData.aislacion.modelo}
-                              onChange={(e) => setProtocolData(prev => ({ ...prev, aislacion: { ...prev.aislacion, modelo: e.target.value } }))}
-                              className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
-                              placeholder="MIC-5000"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">ESCALA:</label>
-                            <input
-                              type="text"
-                              value={protocolData.aislacion.escala}
-                              onChange={(e) => setProtocolData(prev => ({ ...prev, aislacion: { ...prev.aislacion, escala: e.target.value } }))}
-                              className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
-                              placeholder="2,5 Kv"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">TIEMPO:</label>
-                            <input
-                              type="text"
-                              value={protocolData.aislacion.tiempo}
-                              onChange={(e) => setProtocolData(prev => ({ ...prev, aislacion: { ...prev.aislacion, tiempo: e.target.value } }))}
-                              className="w-full px-2 py-1 text-xs border border-gray-300 rounded"
-                              placeholder="60 s"
-                            />
-                          </div>
-                        </div>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-xs border border-gray-800">
-                            <thead>
-                              <tr className="bg-orange-400 text-white">
-                                <th className="border border-gray-800 px-2 py-1 font-bold">RESISTENCIA 2</th>
-                                <th className="border border-gray-800 px-2 py-1 font-bold">RESISTENCIA 1</th>
-                                <th className="border border-gray-800 px-2 py-1 font-bold">CORRIENTE 2</th>
-                                <th className="border border-gray-800 px-2 py-1 font-bold">CORRIENTE 1</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              <tr className="bg-gray-100">
-                                <td className="border border-gray-800 px-2 py-1 font-bold">N-RST</td>
-                                <td className="border border-gray-800 px-2 py-1 font-bold">R-NST</td>
-                                <td className="border border-gray-800 px-2 py-1 font-bold">S-NRT</td>
-                                <td className="border border-gray-800 px-2 py-1 font-bold">T-NSR</td>
-                              </tr>
-                              <tr>
-                                <td className="border border-gray-800 px-2 py-1">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="bg-green-600 text-white">
+                            <th className="border border-gray-800 px-2 py-1 text-left font-bold text-xs w-16">4.</th>
+                            <th className="border border-gray-800 px-2 py-1 text-left font-bold w-64">AISLACIÓN</th>
+                            <th className="border border-gray-800 px-2 py-1 text-center font-bold w-12">SI</th>
+                            <th className="border border-gray-800 px-2 py-1 text-center font-bold w-12">NO</th>
+                            <th className="border border-gray-800 px-2 py-1 text-center font-bold w-12">N/A</th>
+                            <th className="border border-gray-800 px-2 py-1 text-center font-bold bg-orange-500 w-80">OBS.</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {[
+                            { id: '4.1', desc: 'Medición de aislación entre fases' },
+                            { id: '4.2', desc: 'Medición de aislación fase-tierra' },
+                            { id: '4.3', desc: 'Medición de aislación neutro-tierra' },
+                            { id: '4.4', desc: 'Verificación de rigidez dieléctrica' }
+                          ].map((item) => (
+                            <tr key={item.id}>
+                              <td className="border border-gray-800 px-2 py-1 font-medium text-xs">{item.id}</td>
+                              <td className="border border-gray-800 px-2 py-1 text-xs">{item.desc}</td>
+                              <td className="border border-gray-800 px-1 py-1 text-center">
+                                <label className="flex justify-center items-center h-full w-full cursor-pointer py-2">
                                   <input
-                                    type="text"
-                                    value={protocolData.aislacion.resistencia2}
-                                    onChange={(e) => setProtocolData(prev => ({ ...prev, aislacion: { ...prev.aislacion, resistencia2: e.target.value } }))}
-                                    className="w-full px-1 py-1 text-center border-0 bg-transparent focus:outline-none"
-                                    placeholder="N/A"
+                                    type="radio"
+                                    name={`aislacion-${item.id}`}
+                                    checked={protocolData.aislacion[item.id]?.estado === 'SI'}
+                                    onChange={() => updateProtocolItem('aislacion', item.id, 'estado', 'SI')}
+                                    className="w-4 h-4 cursor-pointer"
                                   />
-                                </td>
-                                <td className="border border-gray-800 px-2 py-1">
+                                </label>
+                              </td>
+                              <td className="border border-gray-800 px-1 py-1 text-center">
+                                <label className="flex justify-center items-center h-full w-full cursor-pointer py-2">
                                   <input
-                                    type="text"
-                                    value={protocolData.aislacion.resistencia1}
-                                    onChange={(e) => setProtocolData(prev => ({ ...prev, aislacion: { ...prev.aislacion, resistencia1: e.target.value } }))}
-                                    className="w-full px-1 py-1 text-center border-0 bg-transparent focus:outline-none"
-                                    placeholder="N/A"
+                                    type="radio"
+                                    name={`aislacion-${item.id}`}
+                                    checked={protocolData.aislacion[item.id]?.estado === 'NO'}
+                                    onChange={() => updateProtocolItem('aislacion', item.id, 'estado', 'NO')}
+                                    className="w-4 h-4 cursor-pointer"
                                   />
-                                </td>
-                                <td className="border border-gray-800 px-2 py-1">
+                                </label>
+                              </td>
+                              <td className="border border-gray-800 px-1 py-1 text-center">
+                                <label className="flex justify-center items-center h-full w-full cursor-pointer py-2">
                                   <input
-                                    type="text"
-                                    value={protocolData.aislacion.corriente2}
-                                    onChange={(e) => setProtocolData(prev => ({ ...prev, aislacion: { ...prev.aislacion, corriente2: e.target.value } }))}
-                                    className="w-full px-1 py-1 text-center border-0 bg-transparent focus:outline-none"
-                                    placeholder="N/A"
+                                    type="radio"
+                                    name={`aislacion-${item.id}`}
+                                    checked={protocolData.aislacion[item.id]?.estado === 'NA'}
+                                    onChange={() => updateProtocolItem('aislacion', item.id, 'estado', 'NA')}
+                                    className="w-4 h-4 cursor-pointer"
                                   />
-                                </td>
-                                <td className="border border-gray-800 px-2 py-1">
-                                  <input
-                                    type="text"
-                                    value={protocolData.aislacion.corriente1}
-                                    onChange={(e) => setProtocolData(prev => ({ ...prev, aislacion: { ...prev.aislacion, corriente1: e.target.value } }))}
-                                    className="w-full px-1 py-1 text-center border-0 bg-transparent focus:outline-none"
-                                    placeholder="N/A"
-                                  />
-                                </td>
-                              </tr>
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
+                                </label>
+                              </td>
+                              <td className="border border-gray-800 px-2 py-2 bg-orange-50">
+                                <textarea
+                                  value={protocolData.aislacion[item.id]?.observacion || ''}
+                                  onChange={(e) => updateProtocolItem('aislacion', item.id, 'observacion', e.target.value)}
+                                  className="w-full px-2 py-1 text-xs border-0 bg-transparent focus:outline-none resize-none"
+                                  placeholder="-"
+                                  rows="2"
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
 
                     {/* Sección 5: CONTROL FINAL */}
@@ -1095,12 +1053,12 @@ const ProjectDetail = () => {
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="bg-green-600 text-white">
-                            <th className="border border-gray-800 px-2 py-1 text-left font-bold text-xs">5.</th>
-                            <th className="border border-gray-800 px-2 py-1 text-left font-bold">CONTROL FINAL</th>
+                            <th className="border border-gray-800 px-2 py-1 text-left font-bold text-xs w-16">5.</th>
+                            <th className="border border-gray-800 px-2 py-1 text-left font-bold w-64">CONTROL FINAL</th>
                             <th className="border border-gray-800 px-2 py-1 text-center font-bold w-12">SI</th>
                             <th className="border border-gray-800 px-2 py-1 text-center font-bold w-12">NO</th>
                             <th className="border border-gray-800 px-2 py-1 text-center font-bold w-12">N/A</th>
-                            <th className="border border-gray-800 px-2 py-1 text-center font-bold bg-orange-500 w-32">OBS.</th>
+                            <th className="border border-gray-800 px-2 py-1 text-center font-bold bg-orange-500 w-80">OBS.</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1114,31 +1072,37 @@ const ProjectDetail = () => {
                               <td className="border border-gray-800 px-2 py-1 font-medium text-xs">{item.id}</td>
                               <td className="border border-gray-800 px-2 py-1 text-xs">{item.desc}</td>
                               <td className="border border-gray-800 px-1 py-1 text-center">
-                                <input
-                                  type="radio"
-                                  name={`controlFinal-${item.id}`}
-                                  checked={protocolData.controlFinal[item.id]?.estado === 'SI'}
-                                  onChange={() => updateProtocolItem('controlFinal', item.id, 'estado', 'SI')}
-                                  className="scale-75"
-                                />
+                                <label className="flex justify-center items-center h-full w-full cursor-pointer py-2">
+                                  <input
+                                    type="radio"
+                                    name={`controlFinal-${item.id}`}
+                                    checked={protocolData.controlFinal[item.id]?.estado === 'SI'}
+                                    onChange={() => updateProtocolItem('controlFinal', item.id, 'estado', 'SI')}
+                                    className="w-4 h-4 cursor-pointer"
+                                  />
+                                </label>
                               </td>
                               <td className="border border-gray-800 px-1 py-1 text-center">
-                                <input
-                                  type="radio"
-                                  name={`controlFinal-${item.id}`}
-                                  checked={protocolData.controlFinal[item.id]?.estado === 'NO'}
-                                  onChange={() => updateProtocolItem('controlFinal', item.id, 'estado', 'NO')}
-                                  className="scale-75"
-                                />
+                                <label className="flex justify-center items-center h-full w-full cursor-pointer py-2">
+                                  <input
+                                    type="radio"
+                                    name={`controlFinal-${item.id}`}
+                                    checked={protocolData.controlFinal[item.id]?.estado === 'NO'}
+                                    onChange={() => updateProtocolItem('controlFinal', item.id, 'estado', 'NO')}
+                                    className="w-4 h-4 cursor-pointer"
+                                  />
+                                </label>
                               </td>
                               <td className="border border-gray-800 px-1 py-1 text-center">
-                                <input
-                                  type="radio"
-                                  name={`controlFinal-${item.id}`}
-                                  checked={protocolData.controlFinal[item.id]?.estado === 'NA'}
-                                  onChange={() => updateProtocolItem('controlFinal', item.id, 'estado', 'NA')}
-                                  className="scale-75"
-                                />
+                                <label className="flex justify-center items-center h-full w-full cursor-pointer py-2">
+                                  <input
+                                    type="radio"
+                                    name={`controlFinal-${item.id}`}
+                                    checked={protocolData.controlFinal[item.id]?.estado === 'NA'}
+                                    onChange={() => updateProtocolItem('controlFinal', item.id, 'estado', 'NA')}
+                                    className="w-4 h-4 cursor-pointer"
+                                  />
+                                </label>
                               </td>
                               <td className="border border-gray-800 px-2 py-2 bg-orange-50">
                                 <textarea
