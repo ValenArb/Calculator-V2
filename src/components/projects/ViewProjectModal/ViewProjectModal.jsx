@@ -157,15 +157,6 @@ const ViewProjectModal = ({ isOpen, onClose, userId, projectId, onProjectDeleted
             </div>
           )}
 
-          {/* Description */}
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Descripción
-            </label>
-            <div className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-900">
-              {project.description || 'Sin descripción'}
-            </div>
-          </div>
 
           {/* Project Statistics */}
           <div>

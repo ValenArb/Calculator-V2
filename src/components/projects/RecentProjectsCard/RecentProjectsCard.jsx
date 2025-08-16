@@ -161,8 +161,7 @@ const RecentProjectsCard = ({ userId, refreshTrigger }) => {
       filtered = filtered.filter(project =>
         project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (project.client_name && project.client_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (project.company && project.company.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (project.description && project.description.toLowerCase().includes(searchTerm.toLowerCase()))
+        (project.company && project.company.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
 
@@ -271,7 +270,7 @@ const RecentProjectsCard = ({ userId, refreshTrigger }) => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Buscar proyectos por nombre, empresa, cliente o descripción..."
+            placeholder="Buscar proyectos por nombre, empresa o cliente..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"

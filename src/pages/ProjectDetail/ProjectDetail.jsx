@@ -120,18 +120,19 @@ const ProjectDetail = () => {
       
       {/* Main Content */}
       <div className="ml-16 transition-all duration-300">
-        {/* Header */}
+        {/* Header with back button outside main content */}
         <div className="bg-white shadow-sm border-b">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5" />
-                Volver a Proyectos
-              </button>
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors mb-4"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              Volver a Proyectos
+            </button>
+            
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
               
               <div className="flex items-center gap-3">
                 {project.client_logo_url && (
@@ -162,17 +163,6 @@ const ProjectDetail = () => {
               Información del Proyecto
             </h2>
 
-            {/* Description */}
-            {project.description && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Descripción
-                </label>
-                <p className="text-gray-900 bg-gray-50 p-3 rounded-lg text-sm">
-                  {project.description}
-                </p>
-              </div>
-            )}
 
             {/* Client Info */}
             <div>
