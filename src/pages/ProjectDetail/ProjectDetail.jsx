@@ -126,7 +126,12 @@ const ProjectDetail = () => {
           work_number: projectData.work_number || '',
         });
         // Cargar tableros del proyecto
-        setTableros(projectData.tableros || []);
+        const tablerosData = projectData.tableros || [];
+        setTableros(tablerosData);
+        // Seleccionar el primer tablero por defecto
+        if (tablerosData.length > 0) {
+          setSelectedTablero(tablerosData[0]);
+        }
       } catch (error) {
         console.error('Error loading project:', error);
         toast.error('Error al cargar el proyecto');
@@ -236,6 +241,12 @@ const ProjectDetail = () => {
       // Actualizar estado local
       setTableros(updatedTableros);
       setProject(prev => ({ ...prev, tableros: updatedTableros }));
+      
+      // Si es el primer tablero, seleccionarlo automáticamente
+      if (tableros.length === 0) {
+        setSelectedTablero(tablero);
+      }
+      
       setNewTablero({ nombre: '', descripcion: '' });
       setShowAddTablero(false);
       toast.success('Tablero agregado exitosamente');
@@ -255,7 +266,8 @@ const ProjectDetail = () => {
       setTableros(updatedTableros);
       setProject(prev => ({ ...prev, tableros: updatedTableros }));
       if (selectedTablero?.id === tableroId) {
-        setSelectedTablero(null);
+        // Si eliminamos el tablero seleccionado, seleccionar el primero disponible
+        setSelectedTablero(updatedTableros.length > 0 ? updatedTableros[0] : null);
       }
       toast.success('Tablero eliminado');
     } catch (error) {
