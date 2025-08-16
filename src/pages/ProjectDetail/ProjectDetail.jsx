@@ -29,6 +29,9 @@ const ProjectDetail = () => {
   const [newTablero, setNewTablero] = useState({ nombre: '', descripcion: '' });
   const [selectedTablero, setSelectedTablero] = useState(null);
   
+  // Estado para edición inline de información del proyecto
+  const [editableProject, setEditableProject] = useState({});
+  
   // Estado para el protocolo de ensayos
   const [protocolData, setProtocolData] = useState({
     fecha: '',
@@ -105,6 +108,18 @@ const ProjectDetail = () => {
       try {
         const projectData = await projectsService.getProject(projectId, user.uid);
         setProject(projectData);
+        // Inicializar datos editables
+        setEditableProject({
+          name: projectData.name || '',
+          company: projectData.company || '',
+          client_name: projectData.client_name || '',
+          client_email: projectData.client_email || '',
+          client_phone: projectData.client_phone || '',
+          location: projectData.location || '',
+          work_number: projectData.work_number || '',
+          project_type: projectData.project_type || '',
+          status: projectData.status || ''
+        });
       } catch (error) {
         console.error('Error loading project:', error);
         toast.error('Error al cargar el proyecto');
@@ -218,6 +233,25 @@ const ProjectDetail = () => {
       setSelectedTablero(null);
     }
     toast.success('Tablero eliminado');
+  };
+
+  // Función para actualizar campo del proyecto
+  const updateProjectField = async (field, value) => {
+    try {
+      const updatedData = { [field]: value };
+      await projectsService.updateProject(projectId, updatedData, user.uid);
+      
+      // Actualizar estado local
+      setProject(prev => ({ ...prev, [field]: value }));
+      setEditableProject(prev => ({ ...prev, [field]: value }));
+      
+      toast.success('Campo actualizado');
+    } catch (error) {
+      console.error('Error updating field:', error);
+      toast.error('Error al actualizar el campo');
+      // Revertir cambio local en caso de error
+      setEditableProject(prev => ({ ...prev, [field]: project[field] || '' }));
+    }
   };
 
   // Funciones para manejar el protocolo de ensayos
@@ -351,63 +385,90 @@ const ProjectDetail = () => {
                 {selectedDocumentType.id === 'informacion-proyecto' ? (
                   // Vista específica para Información del Proyecto
                   <div className="space-y-6">
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                      <p className="text-green-800 text-sm font-medium mb-2">
-                        Información del Proyecto: {project.name}
-                      </p>
-                      <p className="text-green-700 text-sm">
-                        Datos básicos y detalles completos del proyecto
-                      </p>
-                    </div>
-
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       {/* Información General */}
                       <div className="bg-white border border-gray-200 rounded-lg p-6">
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-md font-medium text-gray-900 flex items-center gap-2">
-                            <Building2 className="w-4 h-4" />
-                            Información General
-                          </h3>
-                          <button
-                            onClick={() => setShowEditModal(true)}
-                            className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                          >
-                            <Edit className="w-4 h-4" />
-                            Editar
-                          </button>
-                        </div>
+                        <h3 className="text-md font-medium text-gray-900 mb-4 flex items-center gap-2">
+                          <Building2 className="w-4 h-4" />
+                          Información General
+                        </h3>
                         <div className="space-y-3">
                           <div>
-                            <span className="text-sm font-medium text-gray-600">Nombre del Proyecto:</span>
-                            <p className="text-gray-900">{project.name}</p>
+                            <label className="block text-sm font-medium text-gray-600 mb-1">Nombre del Proyecto:</label>
+                            <input
+                              type="text"
+                              value={editableProject.name || ''}
+                              onChange={(e) => setEditableProject(prev => ({ ...prev, name: e.target.value }))}
+                              onBlur={(e) => updateProjectField('name', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                              placeholder="Nombre del proyecto"
+                            />
                           </div>
-                          {project.company && (
-                            <div>
-                              <span className="text-sm font-medium text-gray-600">Empresa:</span>
-                              <p className="text-gray-900">{project.company}</p>
-                            </div>
-                          )}
-                          {project.project_type && (
-                            <div>
-                              <span className="text-sm font-medium text-gray-600">Tipo de Proyecto:</span>
-                              <p className="text-gray-900 capitalize">{project.project_type}</p>
-                            </div>
-                          )}
-                          {project.status && (
-                            <div>
-                              <span className="text-sm font-medium text-gray-600">Estado:</span>
-                              <p className="text-gray-900 capitalize">{project.status}</p>
-                            </div>
-                          )}
-                          {project.location && (
-                            <div>
-                              <span className="text-sm font-medium text-gray-600">Ubicación:</span>
-                              <p className="text-gray-900">{project.location}</p>
-                            </div>
-                          )}
                           <div>
-                            <span className="text-sm font-medium text-gray-600">Número de Obra:</span>
-                            <p className="text-gray-900">{project.work_number || 'No especificado'}</p>
+                            <label className="block text-sm font-medium text-gray-600 mb-1">Empresa:</label>
+                            <input
+                              type="text"
+                              value={editableProject.company || ''}
+                              onChange={(e) => setEditableProject(prev => ({ ...prev, company: e.target.value }))}
+                              onBlur={(e) => updateProjectField('company', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                              placeholder="Nombre de la empresa"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-600 mb-1">Tipo de Proyecto:</label>
+                            <select
+                              value={editableProject.project_type || ''}
+                              onChange={(e) => {
+                                setEditableProject(prev => ({ ...prev, project_type: e.target.value }));
+                                updateProjectField('project_type', e.target.value);
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                            >
+                              <option value="">Seleccionar tipo</option>
+                              <option value="residential">Residencial</option>
+                              <option value="commercial">Comercial</option>
+                              <option value="industrial">Industrial</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-600 mb-1">Estado:</label>
+                            <select
+                              value={editableProject.status || ''}
+                              onChange={(e) => {
+                                setEditableProject(prev => ({ ...prev, status: e.target.value }));
+                                updateProjectField('status', e.target.value);
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                            >
+                              <option value="">Seleccionar estado</option>
+                              <option value="draft">Borrador</option>
+                              <option value="active">Activo</option>
+                              <option value="completed">Completado</option>
+                              <option value="archived">Archivado</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-600 mb-1">Ubicación:</label>
+                            <input
+                              type="text"
+                              value={editableProject.location || ''}
+                              onChange={(e) => setEditableProject(prev => ({ ...prev, location: e.target.value }))}
+                              onBlur={(e) => updateProjectField('location', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                              placeholder="Ciudad, Provincia"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-600 mb-1">Número de Obra:</label>
+                            <input
+                              type="text"
+                              value={editableProject.work_number || ''}
+                              onChange={(e) => setEditableProject(prev => ({ ...prev, work_number: e.target.value }))}
+                              onBlur={(e) => updateProjectField('work_number', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                              placeholder="Ej: OB-2024-001"
+                            />
                           </div>
                         </div>
                       </div>
@@ -514,32 +575,41 @@ const ProjectDetail = () => {
                           Información del Cliente
                         </h3>
                         <div className="space-y-3">
-                          {project.client_name ? (
-                            <div className="flex items-center gap-2">
-                              <User className="w-4 h-4 text-gray-400" />
-                              <span className="text-gray-900">{project.client_name}</span>
-                            </div>
-                          ) : (
-                            <p className="text-gray-500 text-sm">Nombre no especificado</p>
-                          )}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-600 mb-1">Nombre del Cliente:</label>
+                            <input
+                              type="text"
+                              value={editableProject.client_name || ''}
+                              onChange={(e) => setEditableProject(prev => ({ ...prev, client_name: e.target.value }))}
+                              onBlur={(e) => updateProjectField('client_name', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                              placeholder="Nombre del cliente"
+                            />
+                          </div>
                           
-                          {project.client_email ? (
-                            <div className="flex items-center gap-2">
-                              <Mail className="w-4 h-4 text-gray-400" />
-                              <span className="text-gray-900">{project.client_email}</span>
-                            </div>
-                          ) : (
-                            <p className="text-gray-500 text-sm">Email no especificado</p>
-                          )}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-600 mb-1">Email del Cliente:</label>
+                            <input
+                              type="email"
+                              value={editableProject.client_email || ''}
+                              onChange={(e) => setEditableProject(prev => ({ ...prev, client_email: e.target.value }))}
+                              onBlur={(e) => updateProjectField('client_email', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                              placeholder="email@ejemplo.com"
+                            />
+                          </div>
                           
-                          {project.client_phone ? (
-                            <div className="flex items-center gap-2">
-                              <Phone className="w-4 h-4 text-gray-400" />
-                              <span className="text-gray-900">{project.client_phone}</span>
-                            </div>
-                          ) : (
-                            <p className="text-gray-500 text-sm">Teléfono no especificado</p>
-                          )}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-600 mb-1">Teléfono del Cliente:</label>
+                            <input
+                              type="tel"
+                              value={editableProject.client_phone || ''}
+                              onChange={(e) => setEditableProject(prev => ({ ...prev, client_phone: e.target.value }))}
+                              onBlur={(e) => updateProjectField('client_phone', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                              placeholder="+54 11 1234-5678"
+                            />
+                          </div>
                         </div>
                       </div>
 
