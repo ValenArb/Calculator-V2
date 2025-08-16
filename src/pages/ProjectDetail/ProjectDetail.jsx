@@ -39,8 +39,11 @@ const ProjectDetail = () => {
   const [inviteData, setInviteData] = useState({ email: '', message: '' });
   const [isInviting, setIsInviting] = useState(false);
   
-  // Estado para el protocolo de ensayos
-  const [protocolData, setProtocolData] = useState({
+  // Estado para los protocolos de ensayos por tablero
+  const [protocolosPorTablero, setProtocolosPorTablero] = useState({});
+  
+  // Función para obtener protocolo por defecto
+  const getProtocoloDefecto = () => ({
     fecha: '',
     estado: 'PENDIENTE', // APROBADO, PENDIENTE, RECHAZADO
     cliente: '',
@@ -103,6 +106,11 @@ const ProjectDetail = () => {
     }
   });
 
+  // Protocolo actual basado en el tablero seleccionado
+  const protocolData = selectedTablero ? 
+    (protocolosPorTablero[selectedTablero.id] || getProtocoloDefecto()) : 
+    getProtocoloDefecto();
+
   useEffect(() => {
     const loadProject = async () => {
       if (!projectId || !user?.uid) return;
@@ -129,12 +137,16 @@ const ProjectDetail = () => {
           setSelectedTablero(tablerosData[0]);
         }
         
-        // Cargar datos del protocolo desde calculation_data
-        if (projectData.calculation_data && projectData.calculation_data.protocolData) {
-          setProtocolData(prev => ({
-            ...prev,
-            ...projectData.calculation_data.protocolData
-          }));
+        // Cargar protocolos por tablero desde calculation_data
+        if (projectData.calculation_data && projectData.calculation_data.protocolosPorTablero) {
+          setProtocolosPorTablero(projectData.calculation_data.protocolosPorTablero);
+        } else if (projectData.calculation_data && projectData.calculation_data.protocolData) {
+          // Migración: si existe el protocolo viejo, moverlo al primer tablero
+          if (tablerosData.length > 0) {
+            setProtocolosPorTablero({
+              [tablerosData[0].id]: projectData.calculation_data.protocolData
+            });
+          }
         }
       } catch (error) {
         console.error('Error loading project:', error);
@@ -147,6 +159,25 @@ const ProjectDetail = () => {
 
     loadProject();
   }, [projectId, user?.uid, navigate]);
+
+  // Efecto para asegurar que todos los tableros tengan protocolo
+  useEffect(() => {
+    if (tableros.length > 0) {
+      setProtocolosPorTablero(prev => {
+        const nuevosProtocolos = { ...prev };
+        let actualizado = false;
+        
+        tableros.forEach(tablero => {
+          if (!nuevosProtocolos[tablero.id]) {
+            nuevosProtocolos[tablero.id] = getProtocoloDefecto();
+            actualizado = true;
+          }
+        });
+        
+        return actualizado ? nuevosProtocolos : prev;
+      });
+    }
+  }, [tableros]);
 
   const formatDate = (timestamp) => {
     let date;
@@ -246,6 +277,12 @@ const ProjectDetail = () => {
       setTableros(updatedTableros);
       setProject(prev => ({ ...prev, tableros: updatedTableros }));
       
+      // Crear protocolo por defecto para el nuevo tablero
+      setProtocolosPorTablero(prev => ({
+        ...prev,
+        [tablero.id]: getProtocoloDefecto()
+      }));
+      
       // Si es el primer tablero, seleccionarlo automáticamente
       if (tableros.length === 0) {
         setSelectedTablero(tablero);
@@ -269,6 +306,14 @@ const ProjectDetail = () => {
       // Actualizar estado local
       setTableros(updatedTableros);
       setProject(prev => ({ ...prev, tableros: updatedTableros }));
+      
+      // Eliminar el protocolo del tablero eliminado
+      setProtocolosPorTablero(prev => {
+        const nuevosProtocolos = { ...prev };
+        delete nuevosProtocolos[tableroId];
+        return nuevosProtocolos;
+      });
+      
       if (selectedTablero?.id === tableroId) {
         // Si eliminamos el tablero seleccionado, seleccionar el primero disponible
         setSelectedTablero(updatedTableros.length > 0 ? updatedTableros[0] : null);
@@ -346,79 +391,98 @@ const ProjectDetail = () => {
     }
   };
 
-  // Función para guardar datos del protocolo en la base de datos
+  // Función para guardar datos del protocolo del tablero actual en la base de datos
   const saveProtocolData = async (newProtocolData) => {
+    if (!selectedTablero) return;
+    
     try {
+      const nuevosProtocolos = {
+        ...protocolosPorTablero,
+        [selectedTablero.id]: newProtocolData
+      };
+      
       const calculationData = {
         ...project?.calculation_data,
-        protocolData: newProtocolData
+        protocolosPorTablero: nuevosProtocolos
       };
       
       await projectsService.updateProject(projectId, { 
         calculation_data: calculationData 
       }, user.uid);
+      
+      // Actualizar estado local
+      setProtocolosPorTablero(nuevosProtocolos);
     } catch (error) {
       console.error('Error saving protocol data:', error);
       toast.error('Error al guardar los datos del protocolo');
     }
   };
 
-  // Función para actualizar campos generales del protocolo
+  // Función para actualizar campos generales del protocolo del tablero actual
   const updateProtocolField = (field, value) => {
-    setProtocolData(prev => {
-      const newData = { ...prev, [field]: value };
-      saveProtocolData(newData);
-      return newData;
-    });
+    if (!selectedTablero) return;
+    
+    const newData = { ...protocolData, [field]: value };
+    
+    setProtocolosPorTablero(prev => ({
+      ...prev,
+      [selectedTablero.id]: newData
+    }));
+    
+    saveProtocolData(newData);
   };
 
-  // Funciones para manejar el protocolo de ensayos
+  // Funciones para manejar el protocolo de ensayos del tablero actual
   const updateProtocolItem = (seccion, item, campo, valor) => {
-    setProtocolData(prev => {
-      // Actualizar el item específico
-      const newData = {
-        ...prev,
-        [seccion]: {
-          ...prev[seccion],
-          [item]: {
-            ...prev[seccion][item],
-            [campo]: valor
-          }
+    if (!selectedTablero) return;
+    
+    // Actualizar el item específico
+    const newData = {
+      ...protocolData,
+      [seccion]: {
+        ...protocolData[seccion],
+        [item]: {
+          ...protocolData[seccion][item],
+          [campo]: valor
         }
-      };
-      
-      // Calcular estado general con los nuevos datos
-      const allItems = {
-        ...newData.estructura,
-        ...newData.electromontaje,
-        ...newData.pruebas,
-        ...newData.aislacion,
-        ...newData.controlFinal
-      };
-      
-      const hasNo = Object.values(allItems).some(item => item.estado === 'NO');
-      const hasEmpty = Object.values(allItems).some(item => !item.estado || item.estado === '');
-      
-      let nuevoEstado;
-      if (hasNo) {
-        nuevoEstado = 'RECHAZADO';
-      } else if (hasEmpty) {
-        nuevoEstado = 'PENDIENTE';
-      } else {
-        nuevoEstado = 'APROBADO';
       }
-      
-      // Retornar los datos actualizados con el nuevo estado
-      const finalData = {
-        ...newData,
-        estado: nuevoEstado
-      };
-      
-      // Guardar en la base de datos
-      saveProtocolData(finalData);
-      
-      return finalData;
-    });
+    };
+    
+    // Calcular estado general con los nuevos datos
+    const allItems = {
+      ...newData.estructura,
+      ...newData.electromontaje,
+      ...newData.pruebas,
+      ...newData.aislacion,
+      ...newData.controlFinal
+    };
+    
+    const hasNo = Object.values(allItems).some(item => item.estado === 'NO');
+    const hasEmpty = Object.values(allItems).some(item => !item.estado || item.estado === '');
+    
+    let nuevoEstado;
+    if (hasNo) {
+      nuevoEstado = 'RECHAZADO';
+    } else if (hasEmpty) {
+      nuevoEstado = 'PENDIENTE';
+    } else {
+      nuevoEstado = 'APROBADO';
+    }
+    
+    // Datos finales con el nuevo estado
+    const finalData = {
+      ...newData,
+      estado: nuevoEstado
+    };
+    
+    // Actualizar estado local
+    setProtocolosPorTablero(prev => ({
+      ...prev,
+      [selectedTablero.id]: finalData
+    }));
+    
+    // Guardar en la base de datos
+    saveProtocolData(finalData);
   };
 
   const getEstadoColor = (estado) => {
