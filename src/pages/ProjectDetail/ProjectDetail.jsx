@@ -703,22 +703,18 @@ const ProjectDetail = () => {
                   <div className="space-y-6">
                     {/* Header del protocolo simple */}
                     <div className="bg-white border border-gray-800 rounded-lg overflow-hidden">
-                      <div className="bg-orange-500 text-white p-4 text-center">
-                        <h3 className="text-xl font-bold">PROTOCOLO DE ENSAYOS</h3>
-                      </div>
-                      <div className="bg-orange-400 text-white p-3">
-                        <div className="grid grid-cols-3 gap-4 text-sm font-medium">
-                          <div>CLIENTE: {project.company || 'N/A'}</div>
-                          <div>OBRA: {project.location || 'N/A'}</div>
-                          <div>
-                            TABLERO: 
+                      <div className="bg-orange-500 text-white p-4">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-xl font-bold">PROTOCOLO DE ENSAYOS</h3>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm font-medium">TABLERO:</span>
                             <select
                               value={selectedTablero?.id || ''}
                               onChange={(e) => {
                                 const tablero = tableros.find(t => t.id === e.target.value);
                                 setSelectedTablero(tablero || null);
                               }}
-                              className="ml-2 px-2 py-1 border border-gray-300 rounded text-xs bg-white"
+                              className="px-3 py-2 border border-gray-300 rounded text-sm bg-white text-gray-900 font-medium"
                             >
                               <option value="">Seleccionar tablero</option>
                               {tableros.map((tablero) => (
@@ -728,6 +724,12 @@ const ProjectDetail = () => {
                               ))}
                             </select>
                           </div>
+                        </div>
+                      </div>
+                      <div className="bg-orange-400 text-white p-3">
+                        <div className="grid grid-cols-2 gap-4 text-sm font-medium">
+                          <div>CLIENTE: {project.company || 'N/A'}</div>
+                          <div>OBRA: {project.location || 'N/A'}</div>
                         </div>
                       </div>
                       <div className="p-3">
