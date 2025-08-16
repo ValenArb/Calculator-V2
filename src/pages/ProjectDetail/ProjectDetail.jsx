@@ -450,6 +450,17 @@ const ProjectDetail = () => {
                 {selectedDocumentType.id === 'informacion-proyecto' ? (
                   // Vista específica para Información del Proyecto
                   <div className="space-y-6">
+                    {/* Botón de invitar usuario arriba de todo */}
+                    <div className="flex justify-end">
+                      <button
+                        onClick={() => setShowInviteModal(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                      >
+                        <UserPlus className="w-4 h-4" />
+                        Invitar Usuario
+                      </button>
+                    </div>
+
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       {/* Información General */}
                       <div className="bg-white border border-gray-200 rounded-lg p-6">
@@ -507,19 +518,10 @@ const ProjectDetail = () => {
 
                       {/* Gestión de Tableros */}
                       <div className="bg-white border border-gray-200 rounded-lg p-6 lg:col-span-2">
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-md font-medium text-gray-900 flex items-center gap-2">
-                            <FileText className="w-4 h-4" />
-                            Tableros del Proyecto
-                          </h3>
-                          <button
-                            onClick={() => setShowInviteModal(true)}
-                            className="flex items-center gap-2 px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                          >
-                            <UserPlus className="w-4 h-4" />
-                            Invitar Usuario
-                          </button>
-                        </div>
+                        <h3 className="text-md font-medium text-gray-900 mb-4 flex items-center gap-2">
+                          <FileText className="w-4 h-4" />
+                          Tableros del Proyecto
+                        </h3>
                         
                         <div className="space-y-4">
                           {/* Lista de tableros */}
