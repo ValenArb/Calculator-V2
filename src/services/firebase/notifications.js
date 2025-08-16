@@ -27,7 +27,9 @@ class NotificationsService {
     MANUFACTURER_ADDED: 'manufacturer_added',
     LINE_ADDED: 'line_added',
     SUBLINE_ADDED: 'subline_added',
-    SYSTEM_UPDATE: 'system_update'
+    SYSTEM_UPDATE: 'system_update',
+    PROJECT_INVITATION: 'project_invitation',
+    INVITATION_RESPONSE: 'invitation_response'
   };
 
   // Notification priorities
@@ -44,9 +46,11 @@ class NotificationsService {
     title,
     message,
     recipientEmail = null, // null means all admins
+    recipientUid = null, // for project invitations
     priority = NotificationsService.PRIORITIES.MEDIUM,
     actionBy,
-    metadata = {}
+    metadata = {},
+    status = null // for invitations: pending, accepted, rejected
   }) {
     try {
       const notificationsRef = collection(db, this.notificationsCollection);
@@ -56,9 +60,11 @@ class NotificationsService {
         title,
         message,
         recipientEmail: recipientEmail ? recipientEmail.toLowerCase() : null,
+        recipientUid,
         priority,
         actionBy,
         metadata,
+        status,
         isRead: false,
         createdAt: serverTimestamp(),
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
@@ -318,6 +324,78 @@ class NotificationsService {
       actionBy: 'system',
       metadata: {
         action: 'system_update'
+      }
+    });
+  }
+
+  // Project invitation notifications
+  async createProjectInvitation({
+    recipientEmail,
+    senderUid,
+    senderName,
+    senderEmail,
+    projectId,
+    projectName,
+    message
+  }) {
+    return await this.createNotification({
+      type: NotificationsService.TYPES.PROJECT_INVITATION,
+      title: `Invitación al proyecto: ${projectName}`,
+      message: message || `${senderName} te ha invitado a colaborar en el proyecto "${projectName}"`,
+      recipientEmail: recipientEmail.toLowerCase(),
+      priority: NotificationsService.PRIORITIES.HIGH,
+      actionBy: senderUid,
+      status: 'pending',
+      metadata: {
+        senderUid,
+        senderName,
+        senderEmail,
+        projectId,
+        projectName,
+        action: 'project_invite'
+      }
+    });
+  }
+
+  async respondToProjectInvitation(notificationId, response, respondingUid) {
+    try {
+      const notificationRef = doc(db, this.notificationsCollection, notificationId);
+      await updateDoc(notificationRef, {
+        status: response, // 'accepted' or 'rejected'
+        isRead: true,
+        respondedAt: serverTimestamp(),
+        respondingUid
+      });
+      return true;
+    } catch (error) {
+      console.error('Error responding to invitation:', error);
+      throw error;
+    }
+  }
+
+  async createInvitationResponse({
+    recipientUid,
+    senderName,
+    projectId,
+    projectName,
+    response
+  }) {
+    const responseMessage = response === 'accepted' 
+      ? `${senderName} ha aceptado tu invitación al proyecto "${projectName}"`
+      : `${senderName} ha rechazado tu invitación al proyecto "${projectName}"`;
+
+    return await this.createNotification({
+      type: NotificationsService.TYPES.INVITATION_RESPONSE,
+      title: `Respuesta a invitación: ${projectName}`,
+      message: responseMessage,
+      recipientUid,
+      priority: NotificationsService.PRIORITIES.MEDIUM,
+      actionBy: 'system',
+      metadata: {
+        projectId,
+        projectName,
+        response,
+        action: 'invitation_response'
       }
     });
   }

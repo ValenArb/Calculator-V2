@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { ArrowLeft, Building2, User, Mail, Phone, MapPin, Calendar, Calculator, FileText, Edit, Trash2, CheckSquare, X, AlertTriangle, Plus } from 'lucide-react';
+import { ArrowLeft, Building2, User, Mail, Phone, MapPin, Calendar, Calculator, FileText, Edit, Trash2, CheckSquare, X, AlertTriangle, Plus, UserPlus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import projectsService from '../../services/firebase/projects';
+import notificationsService from '../../services/firebase/notifications';
 import EditProjectModal from '../../components/projects/EditProjectModal';
 import MainSidebar from '../../components/layout/MainSidebar';
 import DocumentTypeSidebar from '../../components/layout/DocumentTypeSidebar';
-import { Loading } from '../../components/ui';
+import { Loading, Modal } from '../../components/ui';
 
 const ProjectDetail = () => {
   const { projectId } = useParams();
@@ -31,6 +32,11 @@ const ProjectDetail = () => {
   
   // Estado para edición inline de información del proyecto
   const [editableProject, setEditableProject] = useState({});
+  
+  // Estado para modal de invitación
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteData, setInviteData] = useState({ email: '', message: '' });
+  const [isInviting, setIsInviting] = useState(false);
   
   // Estado para el protocolo de ensayos
   const [protocolData, setProtocolData] = useState({
@@ -276,6 +282,43 @@ const ProjectDetail = () => {
     }
   };
 
+  // Función para enviar invitación
+  const sendInvitation = async () => {
+    if (!inviteData.email.trim()) {
+      toast.error('El email es requerido');
+      return;
+    }
+
+    // Validar formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(inviteData.email)) {
+      toast.error('Por favor ingresa un email válido');
+      return;
+    }
+
+    setIsInviting(true);
+    try {
+      await notificationsService.createProjectInvitation({
+        recipientEmail: inviteData.email,
+        senderUid: user.uid,
+        senderName: user.displayName || user.email,
+        senderEmail: user.email,
+        projectId: projectId,
+        projectName: project.name,
+        message: inviteData.message
+      });
+
+      toast.success('Invitación enviada exitosamente');
+      setShowInviteModal(false);
+      setInviteData({ email: '', message: '' });
+    } catch (error) {
+      console.error('Error sending invitation:', error);
+      toast.error('Error al enviar la invitación');
+    } finally {
+      setIsInviting(false);
+    }
+  };
+
   // Funciones para manejar el protocolo de ensayos
   const updateProtocolItem = (seccion, item, campo, valor) => {
     setProtocolData(prev => ({
@@ -464,10 +507,19 @@ const ProjectDetail = () => {
 
                       {/* Gestión de Tableros */}
                       <div className="bg-white border border-gray-200 rounded-lg p-6 lg:col-span-2">
-                        <h3 className="text-md font-medium text-gray-900 mb-4 flex items-center gap-2">
-                          <FileText className="w-4 h-4" />
-                          Tableros del Proyecto
-                        </h3>
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-md font-medium text-gray-900 flex items-center gap-2">
+                            <FileText className="w-4 h-4" />
+                            Tableros del Proyecto
+                          </h3>
+                          <button
+                            onClick={() => setShowInviteModal(true)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                          >
+                            <UserPlus className="w-4 h-4" />
+                            Invitar Usuario
+                          </button>
+                        </div>
                         
                         <div className="space-y-4">
                           {/* Lista de tableros */}
@@ -1217,6 +1269,71 @@ const ProjectDetail = () => {
           onProjectUpdated={handleProjectUpdated}
         />
       )}
+
+      {/* Invite User Modal */}
+      <Modal
+        isOpen={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        title="Invitar Usuario al Proyecto"
+        size="md"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Email del Usuario
+            </label>
+            <input
+              type="email"
+              value={inviteData.email}
+              onChange={(e) => setInviteData(prev => ({ ...prev, email: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="usuario@ejemplo.com"
+              disabled={isInviting}
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Mensaje (opcional)
+            </label>
+            <textarea
+              value={inviteData.message}
+              onChange={(e) => setInviteData(prev => ({ ...prev, message: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              rows="3"
+              placeholder="Mensaje personalizado para el usuario invitado..."
+              disabled={isInviting}
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <button
+              onClick={() => setShowInviteModal(false)}
+              disabled={isInviting}
+              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={sendInvitation}
+              disabled={isInviting}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              {isInviting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Enviando...
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-4 h-4" />
+                  Enviar Invitación
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

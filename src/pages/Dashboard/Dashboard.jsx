@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useLocation } from 'react-router-dom';
-import { Calculator, FolderOpen, User, Copy, LogOut, Mail, Hash, Edit3, X, Upload, Menu, ChevronLeft, AlertTriangle, BookOpen } from 'lucide-react';
+import { Calculator, FolderOpen, User, Copy, LogOut, Mail, Hash, Edit3, X, Upload, Menu, ChevronLeft, AlertTriangle, BookOpen, Bell } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ProjectsGrid from '../../components/projects/ProjectsGrid';
 import CalculatorApp from '../../components/calculator/CalculatorApp';
@@ -9,6 +9,7 @@ import ErrorCodesApp from '../../components/error-codes/ErrorCodesApp';
 import DocumentTypeSidebar from '../../components/layout/DocumentTypeSidebar';
 import { Modal } from '../../components/ui';
 import { authService } from '../../services/firebase/auth';
+import notificationsService from '../../services/firebase/notifications';
 import { setUser } from '../../store/slices/authSlice';
 
 const Dashboard = () => {
@@ -18,6 +19,11 @@ const Dashboard = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [selectedDocumentType, setSelectedDocumentType] = useState(null);
   const [showDocumentSidebar, setShowDocumentSidebar] = useState(false);
+  
+  // Estado para notificaciones
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Manejar navegación desde proyectos con sección específica
   useEffect(() => {
@@ -27,6 +33,22 @@ const Dashboard = () => {
       window.history.replaceState({}, document.title);
     }
   }, [location.state]);
+
+  // Escuchar notificaciones en tiempo real
+  useEffect(() => {
+    if (!user?.email) return;
+
+    const unsubscribe = notificationsService.onNotificationsChange(
+      user.email,
+      (notificationsData) => {
+        setNotifications(notificationsData);
+        const unread = notificationsData.filter(n => !n.isRead).length;
+        setUnreadCount(unread);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [user?.email]);
   const [editForm, setEditForm] = useState({
     displayName: '',
     photoURL: ''
@@ -187,6 +209,67 @@ const Dashboard = () => {
     console.log('Selected document type:', documentType);
   };
 
+  // Manejar notificaciones
+  const handleNotificationClick = async (notification) => {
+    // Marcar como leída
+    if (!notification.isRead) {
+      await notificationsService.markAsRead(notification.id);
+    }
+
+    // Si es una invitación de proyecto, no hacer nada más aquí
+    // La funcionalidad de aceptar/rechazar se manejará en el componente de notificaciones
+  };
+
+  const handleAcceptInvitation = async (notification) => {
+    try {
+      // Responder a la invitación
+      await notificationsService.respondToProjectInvitation(
+        notification.id,
+        'accepted',
+        user.uid
+      );
+
+      // Crear notificación de respuesta para el remitente
+      await notificationsService.createInvitationResponse({
+        recipientUid: notification.metadata.senderUid,
+        senderName: user.displayName || user.email,
+        projectId: notification.metadata.projectId,
+        projectName: notification.metadata.projectName,
+        response: 'accepted'
+      });
+
+      toast.success('Invitación aceptada');
+    } catch (error) {
+      console.error('Error accepting invitation:', error);
+      toast.error('Error al aceptar la invitación');
+    }
+  };
+
+  const handleRejectInvitation = async (notification) => {
+    try {
+      // Responder a la invitación
+      await notificationsService.respondToProjectInvitation(
+        notification.id,
+        'rejected',
+        user.uid
+      );
+
+      // Crear notificación de respuesta para el remitente
+      await notificationsService.createInvitationResponse({
+        recipientUid: notification.metadata.senderUid,
+        senderName: user.displayName || user.email,
+        projectId: notification.metadata.projectId,
+        projectName: notification.metadata.projectName,
+        response: 'rejected'
+      });
+
+      toast.success('Invitación rechazada');
+    } catch (error) {
+      console.error('Error rejecting invitation:', error);
+      toast.error('Error al rechazar la invitación');
+    }
+  };
+
   const renderContent = () => {
     console.log('Current activeSection:', activeSection);
     switch (activeSection) {
@@ -214,6 +297,94 @@ const Dashboard = () => {
           >
             {sidebarCollapsed ? <Menu className="w-5 h-5 text-gray-600" /> : <ChevronLeft className="w-5 h-5 text-gray-600" />}
           </button>
+        </div>
+
+        {/* Notifications Bell */}
+        <div className="p-2 border-b border-gray-200 flex-shrink-0">
+          <div className="relative">
+            <button
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="w-full flex items-center justify-center p-2 hover:bg-gray-100 rounded-lg transition-colors relative"
+              title="Notificaciones"
+            >
+              <Bell className="w-5 h-5 text-gray-600" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </button>
+
+            {/* Dropdown de notificaciones */}
+            {showNotifications && (
+              <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
+                <div className="p-3 border-b border-gray-200">
+                  <h3 className="font-medium text-gray-900">Notificaciones</h3>
+                  {unreadCount > 0 && (
+                    <p className="text-sm text-gray-500">{unreadCount} sin leer</p>
+                  )}
+                </div>
+                
+                {notifications.length === 0 ? (
+                  <div className="p-4 text-center text-gray-500">
+                    <Bell className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                    <p className="text-sm">No tienes notificaciones</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    {notifications.slice(0, 10).map((notification) => (
+                      <div
+                        key={notification.id}
+                        className={`p-3 hover:bg-gray-50 cursor-pointer ${!notification.isRead ? 'bg-blue-50' : ''}`}
+                        onClick={() => handleNotificationClick(notification)}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-sm font-medium text-gray-900 truncate">
+                              {notification.title}
+                            </h4>
+                            <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                              {notification.message}
+                            </p>
+                            <p className="text-xs text-gray-400 mt-1">
+                              {notification.createdAt?.toLocaleDateString('es-ES')}
+                            </p>
+                          </div>
+                          {!notification.isRead && (
+                            <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 ml-2 mt-1"></div>
+                          )}
+                        </div>
+                        
+                        {/* Botones para invitaciones de proyecto */}
+                        {notification.type === 'project_invitation' && notification.status === 'pending' && (
+                          <div className="flex gap-2 mt-3">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAcceptInvitation(notification);
+                              }}
+                              className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
+                            >
+                              Aceptar
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRejectInvitation(notification);
+                              }}
+                              className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
+                            >
+                              Rechazar
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* User Information Section - Fixed at top */}
