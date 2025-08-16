@@ -434,6 +434,13 @@ const ProjectDetail = () => {
                 </div>
               </div>
 
+              <button
+                onClick={() => setShowInviteModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <UserPlus className="w-4 h-4" />
+                Invitar Usuario
+              </button>
             </div>
           </div>
         </div>
@@ -442,21 +449,10 @@ const ProjectDetail = () => {
         <div className="p-8">
           {selectedDocumentType ? (
               <div className="bg-white rounded-lg shadow-sm border p-6 h-full">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <FileText className="w-5 h-5" />
-                    {selectedDocumentType.name} - {project.name}
-                  </h2>
-                  {selectedDocumentType.id === 'informacion-proyecto' && (
-                    <button
-                      onClick={() => setShowInviteModal(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                    >
-                      <UserPlus className="w-4 h-4" />
-                      Invitar Usuario
-                    </button>
-                  )}
-                </div>
+                <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+                  <FileText className="w-5 h-5" />
+                  {selectedDocumentType.name} - {project.name}
+                </h2>
 
                 {selectedDocumentType.id === 'informacion-proyecto' ? (
                   // Vista específica para Información del Proyecto
