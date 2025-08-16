@@ -405,42 +405,34 @@ const ProjectDetail = () => {
     }
   };
 
-  // Función para guardar datos del protocolo con debouncing
-  const saveProtocolDataToDatabase = useCallback(async () => {
-    if (!selectedTablero || isUpdatingRef.current) return;
-    
-    isUpdatingRef.current = true;
-    
-    try {
-      const calculationData = {
-        ...project?.calculation_data,
-        protocolosPorTablero: protocolosPorTablero
-      };
-      
-      await projectsService.updateProject(projectId, { 
-        calculation_data: calculationData 
-      }, user.uid);
-      
-      // Limpiar actualizaciones pendientes
-      pendingUpdatesRef.current = {};
-    } catch (error) {
-      console.error('Error saving protocol data:', error);
-      toast.error('Error al guardar los datos del protocolo');
-    } finally {
-      isUpdatingRef.current = false;
-    }
-  }, [selectedTablero, protocolosPorTablero, project?.calculation_data, projectId, user.uid]);
-
-  // Función con debouncing para evitar múltiples llamadas simultáneas
+  // Función con debouncing para guardar en base de datos
   const debouncedSave = useCallback(() => {
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
     
-    saveTimeoutRef.current = setTimeout(() => {
-      saveProtocolDataToDatabase();
-    }, 500); // Esperar 500ms antes de guardar
-  }, [saveProtocolDataToDatabase]);
+    saveTimeoutRef.current = setTimeout(async () => {
+      if (!selectedTablero || isUpdatingRef.current) return;
+      
+      isUpdatingRef.current = true;
+      
+      try {
+        const calculationData = {
+          ...project?.calculation_data,
+          protocolosPorTablero: protocolosPorTablero
+        };
+        
+        await projectsService.updateProject(projectId, { 
+          calculation_data: calculationData 
+        }, user.uid);
+      } catch (error) {
+        console.error('Error saving protocol data:', error);
+        toast.error('Error al guardar los datos del protocolo');
+      } finally {
+        isUpdatingRef.current = false;
+      }
+    }, 200); // Reducido a 200ms para mejor respuesta
+  }, [selectedTablero, protocolosPorTablero, project?.calculation_data, projectId, user.uid]);
 
   // Función para actualizar campos generales del protocolo del tablero actual
   const updateProtocolField = (field, value) => {
@@ -460,7 +452,7 @@ const ProjectDetail = () => {
 
   // Funciones para manejar el protocolo de ensayos del tablero actual
   const updateProtocolItem = (seccion, item, campo, valor) => {
-    if (!selectedTablero || isUpdatingRef.current) return;
+    if (!selectedTablero) return;
     
     // Actualizar el item específico
     const newData = {
