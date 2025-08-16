@@ -134,8 +134,14 @@ const ClientLogoUploader = ({
           
           {isUploading ? (
             <div className="flex flex-col items-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
-              <p className="text-sm text-gray-600">Subiendo logo...</p>
+              <div className="relative">
+                <div className="animate-spin rounded-full h-10 w-10 border-4 border-blue-200 border-t-blue-600 mb-3"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <Upload className="w-4 h-4 text-blue-600" />
+                </div>
+              </div>
+              <p className="text-sm font-medium text-blue-600">Subiendo logo...</p>
+              <p className="text-xs text-gray-500 mt-1">Por favor espera</p>
             </div>
           ) : (
             <div className="flex flex-col items-center">
