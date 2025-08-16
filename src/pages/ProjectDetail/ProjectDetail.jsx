@@ -776,38 +776,47 @@ const ProjectDetail = () => {
                             <tr key={item.id}>
                               <td className="border border-gray-800 px-2 py-1 font-medium text-xs">{item.id}</td>
                               <td className="border border-gray-800 px-2 py-1 text-xs">{item.desc}</td>
-                              <td className="border border-gray-800 px-1 py-1 text-center">
-                                <label className="flex justify-center items-center h-full w-full cursor-pointer py-2">
+                              <td 
+                                className="border border-gray-800 px-1 py-1 text-center cursor-pointer hover:bg-gray-100"
+                                onClick={() => updateProtocolItem('estructura', item.id, 'estado', 'SI')}
+                              >
+                                <div className="flex justify-center items-center h-full w-full py-2">
                                   <input
                                     type="radio"
                                     name={`estructura-${item.id}`}
                                     checked={protocolData.estructura[item.id]?.estado === 'SI'}
                                     onChange={() => updateProtocolItem('estructura', item.id, 'estado', 'SI')}
-                                    className="w-4 h-4 cursor-pointer"
+                                    className="w-4 h-4 pointer-events-none"
                                   />
-                                </label>
+                                </div>
                               </td>
-                              <td className="border border-gray-800 px-1 py-1 text-center">
-                                <label className="flex justify-center items-center h-full w-full cursor-pointer py-2">
+                              <td 
+                                className="border border-gray-800 px-1 py-1 text-center cursor-pointer hover:bg-gray-100"
+                                onClick={() => updateProtocolItem('estructura', item.id, 'estado', 'NO')}
+                              >
+                                <div className="flex justify-center items-center h-full w-full py-2">
                                   <input
                                     type="radio"
                                     name={`estructura-${item.id}`}
                                     checked={protocolData.estructura[item.id]?.estado === 'NO'}
                                     onChange={() => updateProtocolItem('estructura', item.id, 'estado', 'NO')}
-                                    className="w-4 h-4 cursor-pointer"
+                                    className="w-4 h-4 pointer-events-none"
                                   />
-                                </label>
+                                </div>
                               </td>
-                              <td className="border border-gray-800 px-1 py-1 text-center">
-                                <label className="flex justify-center items-center h-full w-full cursor-pointer py-2">
+                              <td 
+                                className="border border-gray-800 px-1 py-1 text-center cursor-pointer hover:bg-gray-100"
+                                onClick={() => updateProtocolItem('estructura', item.id, 'estado', 'NA')}
+                              >
+                                <div className="flex justify-center items-center h-full w-full py-2">
                                   <input
                                     type="radio"
                                     name={`estructura-${item.id}`}
                                     checked={protocolData.estructura[item.id]?.estado === 'NA'}
                                     onChange={() => updateProtocolItem('estructura', item.id, 'estado', 'NA')}
-                                    className="w-4 h-4 cursor-pointer"
+                                    className="w-4 h-4 pointer-events-none"
                                   />
-                                </label>
+                                </div>
                               </td>
                               <td className="border border-gray-800 px-2 py-2 bg-orange-50">
                                 <textarea
@@ -851,38 +860,47 @@ const ProjectDetail = () => {
                             <tr key={item.id}>
                               <td className="border border-gray-800 px-2 py-1 font-medium text-xs">{item.id}</td>
                               <td className="border border-gray-800 px-2 py-1 text-xs">{item.desc}</td>
-                              <td className="border border-gray-800 px-1 py-1 text-center">
-                                <label className="flex justify-center items-center h-full w-full cursor-pointer py-2">
+                              <td 
+                                className="border border-gray-800 px-1 py-1 text-center cursor-pointer hover:bg-gray-100"
+                                onClick={() => updateProtocolItem('electromontaje', item.id, 'estado', 'SI')}
+                              >
+                                <div className="flex justify-center items-center h-full w-full py-2">
                                   <input
                                     type="radio"
                                     name={`electromontaje-${item.id}`}
                                     checked={protocolData.electromontaje[item.id]?.estado === 'SI'}
                                     onChange={() => updateProtocolItem('electromontaje', item.id, 'estado', 'SI')}
-                                    className="w-4 h-4 cursor-pointer"
+                                    className="w-4 h-4 pointer-events-none"
                                   />
-                                </label>
+                                </div>
                               </td>
-                              <td className="border border-gray-800 px-1 py-1 text-center">
-                                <label className="flex justify-center items-center h-full w-full cursor-pointer py-2">
+                              <td 
+                                className="border border-gray-800 px-1 py-1 text-center cursor-pointer hover:bg-gray-100"
+                                onClick={() => updateProtocolItem('electromontaje', item.id, 'estado', 'NO')}
+                              >
+                                <div className="flex justify-center items-center h-full w-full py-2">
                                   <input
                                     type="radio"
                                     name={`electromontaje-${item.id}`}
                                     checked={protocolData.electromontaje[item.id]?.estado === 'NO'}
                                     onChange={() => updateProtocolItem('electromontaje', item.id, 'estado', 'NO')}
-                                    className="w-4 h-4 cursor-pointer"
+                                    className="w-4 h-4 pointer-events-none"
                                   />
-                                </label>
+                                </div>
                               </td>
-                              <td className="border border-gray-800 px-1 py-1 text-center">
-                                <label className="flex justify-center items-center h-full w-full cursor-pointer py-2">
+                              <td 
+                                className="border border-gray-800 px-1 py-1 text-center cursor-pointer hover:bg-gray-100"
+                                onClick={() => updateProtocolItem('electromontaje', item.id, 'estado', 'NA')}
+                              >
+                                <div className="flex justify-center items-center h-full w-full py-2">
                                   <input
                                     type="radio"
                                     name={`electromontaje-${item.id}`}
                                     checked={protocolData.electromontaje[item.id]?.estado === 'NA'}
                                     onChange={() => updateProtocolItem('electromontaje', item.id, 'estado', 'NA')}
-                                    className="w-4 h-4 cursor-pointer"
+                                    className="w-4 h-4 pointer-events-none"
                                   />
-                                </label>
+                                </div>
                               </td>
                               <td className="border border-gray-800 px-1 py-1 bg-orange-50">
                                 <input
@@ -929,38 +947,47 @@ const ProjectDetail = () => {
                             <tr key={item.id}>
                               <td className="border border-gray-800 px-2 py-1 font-medium text-xs">{item.id}</td>
                               <td className="border border-gray-800 px-2 py-1 text-xs">{item.desc}</td>
-                              <td className="border border-gray-800 px-1 py-1 text-center">
-                                <label className="flex justify-center items-center h-full w-full cursor-pointer py-2">
+                              <td 
+                                className="border border-gray-800 px-1 py-1 text-center cursor-pointer hover:bg-gray-100"
+                                onClick={() => updateProtocolItem('pruebas', item.id, 'estado', 'SI')}
+                              >
+                                <div className="flex justify-center items-center h-full w-full py-2">
                                   <input
                                     type="radio"
                                     name={`pruebas-${item.id}`}
                                     checked={protocolData.pruebas[item.id]?.estado === 'SI'}
                                     onChange={() => updateProtocolItem('pruebas', item.id, 'estado', 'SI')}
-                                    className="w-4 h-4 cursor-pointer"
+                                    className="w-4 h-4 pointer-events-none"
                                   />
-                                </label>
+                                </div>
                               </td>
-                              <td className="border border-gray-800 px-1 py-1 text-center">
-                                <label className="flex justify-center items-center h-full w-full cursor-pointer py-2">
+                              <td 
+                                className="border border-gray-800 px-1 py-1 text-center cursor-pointer hover:bg-gray-100"
+                                onClick={() => updateProtocolItem('pruebas', item.id, 'estado', 'NO')}
+                              >
+                                <div className="flex justify-center items-center h-full w-full py-2">
                                   <input
                                     type="radio"
                                     name={`pruebas-${item.id}`}
                                     checked={protocolData.pruebas[item.id]?.estado === 'NO'}
                                     onChange={() => updateProtocolItem('pruebas', item.id, 'estado', 'NO')}
-                                    className="w-4 h-4 cursor-pointer"
+                                    className="w-4 h-4 pointer-events-none"
                                   />
-                                </label>
+                                </div>
                               </td>
-                              <td className="border border-gray-800 px-1 py-1 text-center">
-                                <label className="flex justify-center items-center h-full w-full cursor-pointer py-2">
+                              <td 
+                                className="border border-gray-800 px-1 py-1 text-center cursor-pointer hover:bg-gray-100"
+                                onClick={() => updateProtocolItem('pruebas', item.id, 'estado', 'NA')}
+                              >
+                                <div className="flex justify-center items-center h-full w-full py-2">
                                   <input
                                     type="radio"
                                     name={`pruebas-${item.id}`}
                                     checked={protocolData.pruebas[item.id]?.estado === 'NA'}
                                     onChange={() => updateProtocolItem('pruebas', item.id, 'estado', 'NA')}
-                                    className="w-4 h-4 cursor-pointer"
+                                    className="w-4 h-4 pointer-events-none"
                                   />
-                                </label>
+                                </div>
                               </td>
                               <td className="border border-gray-800 px-2 py-2 bg-orange-50">
                                 <textarea
@@ -1000,38 +1027,47 @@ const ProjectDetail = () => {
                             <tr key={item.id}>
                               <td className="border border-gray-800 px-2 py-1 font-medium text-xs">{item.id}</td>
                               <td className="border border-gray-800 px-2 py-1 text-xs">{item.desc}</td>
-                              <td className="border border-gray-800 px-1 py-1 text-center">
-                                <label className="flex justify-center items-center h-full w-full cursor-pointer py-2">
+                              <td 
+                                className="border border-gray-800 px-1 py-1 text-center cursor-pointer hover:bg-gray-100"
+                                onClick={() => updateProtocolItem('aislacion', item.id, 'estado', 'SI')}
+                              >
+                                <div className="flex justify-center items-center h-full w-full py-2">
                                   <input
                                     type="radio"
                                     name={`aislacion-${item.id}`}
                                     checked={protocolData.aislacion[item.id]?.estado === 'SI'}
                                     onChange={() => updateProtocolItem('aislacion', item.id, 'estado', 'SI')}
-                                    className="w-4 h-4 cursor-pointer"
+                                    className="w-4 h-4 pointer-events-none"
                                   />
-                                </label>
+                                </div>
                               </td>
-                              <td className="border border-gray-800 px-1 py-1 text-center">
-                                <label className="flex justify-center items-center h-full w-full cursor-pointer py-2">
+                              <td 
+                                className="border border-gray-800 px-1 py-1 text-center cursor-pointer hover:bg-gray-100"
+                                onClick={() => updateProtocolItem('aislacion', item.id, 'estado', 'NO')}
+                              >
+                                <div className="flex justify-center items-center h-full w-full py-2">
                                   <input
                                     type="radio"
                                     name={`aislacion-${item.id}`}
                                     checked={protocolData.aislacion[item.id]?.estado === 'NO'}
                                     onChange={() => updateProtocolItem('aislacion', item.id, 'estado', 'NO')}
-                                    className="w-4 h-4 cursor-pointer"
+                                    className="w-4 h-4 pointer-events-none"
                                   />
-                                </label>
+                                </div>
                               </td>
-                              <td className="border border-gray-800 px-1 py-1 text-center">
-                                <label className="flex justify-center items-center h-full w-full cursor-pointer py-2">
+                              <td 
+                                className="border border-gray-800 px-1 py-1 text-center cursor-pointer hover:bg-gray-100"
+                                onClick={() => updateProtocolItem('aislacion', item.id, 'estado', 'NA')}
+                              >
+                                <div className="flex justify-center items-center h-full w-full py-2">
                                   <input
                                     type="radio"
                                     name={`aislacion-${item.id}`}
                                     checked={protocolData.aislacion[item.id]?.estado === 'NA'}
                                     onChange={() => updateProtocolItem('aislacion', item.id, 'estado', 'NA')}
-                                    className="w-4 h-4 cursor-pointer"
+                                    className="w-4 h-4 pointer-events-none"
                                   />
-                                </label>
+                                </div>
                               </td>
                               <td className="border border-gray-800 px-2 py-2 bg-orange-50">
                                 <textarea
@@ -1071,38 +1107,47 @@ const ProjectDetail = () => {
                             <tr key={item.id}>
                               <td className="border border-gray-800 px-2 py-1 font-medium text-xs">{item.id}</td>
                               <td className="border border-gray-800 px-2 py-1 text-xs">{item.desc}</td>
-                              <td className="border border-gray-800 px-1 py-1 text-center">
-                                <label className="flex justify-center items-center h-full w-full cursor-pointer py-2">
+                              <td 
+                                className="border border-gray-800 px-1 py-1 text-center cursor-pointer hover:bg-gray-100"
+                                onClick={() => updateProtocolItem('controlFinal', item.id, 'estado', 'SI')}
+                              >
+                                <div className="flex justify-center items-center h-full w-full py-2">
                                   <input
                                     type="radio"
                                     name={`controlFinal-${item.id}`}
                                     checked={protocolData.controlFinal[item.id]?.estado === 'SI'}
                                     onChange={() => updateProtocolItem('controlFinal', item.id, 'estado', 'SI')}
-                                    className="w-4 h-4 cursor-pointer"
+                                    className="w-4 h-4 pointer-events-none"
                                   />
-                                </label>
+                                </div>
                               </td>
-                              <td className="border border-gray-800 px-1 py-1 text-center">
-                                <label className="flex justify-center items-center h-full w-full cursor-pointer py-2">
+                              <td 
+                                className="border border-gray-800 px-1 py-1 text-center cursor-pointer hover:bg-gray-100"
+                                onClick={() => updateProtocolItem('controlFinal', item.id, 'estado', 'NO')}
+                              >
+                                <div className="flex justify-center items-center h-full w-full py-2">
                                   <input
                                     type="radio"
                                     name={`controlFinal-${item.id}`}
                                     checked={protocolData.controlFinal[item.id]?.estado === 'NO'}
                                     onChange={() => updateProtocolItem('controlFinal', item.id, 'estado', 'NO')}
-                                    className="w-4 h-4 cursor-pointer"
+                                    className="w-4 h-4 pointer-events-none"
                                   />
-                                </label>
+                                </div>
                               </td>
-                              <td className="border border-gray-800 px-1 py-1 text-center">
-                                <label className="flex justify-center items-center h-full w-full cursor-pointer py-2">
+                              <td 
+                                className="border border-gray-800 px-1 py-1 text-center cursor-pointer hover:bg-gray-100"
+                                onClick={() => updateProtocolItem('controlFinal', item.id, 'estado', 'NA')}
+                              >
+                                <div className="flex justify-center items-center h-full w-full py-2">
                                   <input
                                     type="radio"
                                     name={`controlFinal-${item.id}`}
                                     checked={protocolData.controlFinal[item.id]?.estado === 'NA'}
                                     onChange={() => updateProtocolItem('controlFinal', item.id, 'estado', 'NA')}
-                                    className="w-4 h-4 cursor-pointer"
+                                    className="w-4 h-4 pointer-events-none"
                                   />
-                                </label>
+                                </div>
                               </td>
                               <td className="border border-gray-800 px-2 py-2 bg-orange-50">
                                 <textarea
