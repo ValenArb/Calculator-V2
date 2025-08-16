@@ -148,139 +148,121 @@ const ProjectDetail = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowEditModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <Edit className="w-4 h-4" />
-                Editar
-              </button>
-              <button
-                onClick={handleDeleteProject}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              >
-                <Trash2 className="w-4 h-4" />
-                Eliminar
-              </button>
-            </div>
           </div>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Project Info Panel */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm border p-6 space-y-6">
-              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                Información del Proyecto
-              </h2>
+      {/* Content - Full width with permanent sidebar for project info */}
+      <div className="flex h-full">
+        {/* Project Info Sidebar - Permanent */}
+        <div className="w-80 bg-white shadow-sm border-r border-gray-200 overflow-y-auto">
+          <div className="p-6 space-y-6">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Información del Proyecto
+            </h2>
 
-              {/* Description */}
-              {project.description && (
+            {/* Description */}
+            {project.description && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Descripción
+                </label>
+                <p className="text-gray-900 bg-gray-50 p-3 rounded-lg text-sm">
+                  {project.description}
+                </p>
+              </div>
+            )}
+
+            {/* Client Info */}
+            <div>
+              <h3 className="text-md font-medium text-gray-900 mb-4 flex items-center gap-2">
+                <User className="w-4 h-4" />
+                Información del Cliente
+              </h3>
+              
+              <div className="space-y-3">
+                {project.client_name && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <User className="w-4 h-4 text-gray-400" />
+                    <span className="text-gray-900">{project.client_name}</span>
+                  </div>
+                )}
+                
+                {project.client_email && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Mail className="w-4 h-4 text-gray-400" />
+                    <span className="text-gray-900">{project.client_email}</span>
+                  </div>
+                )}
+                
+                {project.client_phone && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Phone className="w-4 h-4 text-gray-400" />
+                    <span className="text-gray-900">{project.client_phone}</span>
+                  </div>
+                )}
+                
+                {project.location && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPin className="w-4 h-4 text-gray-400" />
+                    <span className="text-gray-900">{project.location}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Project Dates */}
+            <div>
+              <h3 className="text-md font-medium text-gray-900 mb-4 flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                Fechas del Proyecto
+              </h3>
+              
+              <div className="space-y-2 text-sm">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Descripción
-                  </label>
-                  <p className="text-gray-900 bg-gray-50 p-3 rounded-lg">
-                    {project.description}
-                  </p>
+                  <span className="text-gray-600">Creado: </span>
+                  <span className="text-gray-900">{formatDate(project.created_at)}</span>
                 </div>
-              )}
-
-              {/* Client Info */}
-              <div>
-                <h3 className="text-md font-medium text-gray-900 mb-4 flex items-center gap-2">
-                  <User className="w-4 h-4" />
-                  Información del Cliente
-                </h3>
-                
-                <div className="space-y-3">
-                  {project.client_name && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <User className="w-4 h-4 text-gray-400" />
-                      <span className="text-gray-900">{project.client_name}</span>
-                    </div>
-                  )}
-                  
-                  {project.client_email && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Mail className="w-4 h-4 text-gray-400" />
-                      <span className="text-gray-900">{project.client_email}</span>
-                    </div>
-                  )}
-                  
-                  {project.client_phone && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <Phone className="w-4 h-4 text-gray-400" />
-                      <span className="text-gray-900">{project.client_phone}</span>
-                    </div>
-                  )}
-                  
-                  {project.location && (
-                    <div className="flex items-center gap-2 text-sm">
-                      <MapPin className="w-4 h-4 text-gray-400" />
-                      <span className="text-gray-900">{project.location}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Project Dates */}
-              <div>
-                <h3 className="text-md font-medium text-gray-900 mb-4 flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  Fechas del Proyecto
-                </h3>
-                
-                <div className="space-y-2 text-sm">
-                  <div>
-                    <span className="text-gray-600">Creado: </span>
-                    <span className="text-gray-900">{formatDate(project.created_at)}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Modificado: </span>
-                    <span className="text-gray-900">{formatDate(project.updated_at)}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Calculations Count */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex items-center gap-2 text-blue-800">
-                  <Calculator className="w-5 h-5" />
-                  <span className="font-medium">
-                    {project.calculation_count || 0} cálculos realizados
-                  </span>
+                <div>
+                  <span className="text-gray-600">Modificado: </span>
+                  <span className="text-gray-900">{formatDate(project.updated_at)}</span>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Calculations Panel */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+            {/* Calculations Count */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 text-blue-800">
                 <Calculator className="w-5 h-5" />
-                Cálculos del Proyecto
-              </h2>
-
-              {/* TODO: Aquí irá la sección de cálculos */}
-              <div className="text-center py-12 text-gray-500">
-                <Calculator className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-600 mb-2">
-                  Sección de Cálculos
-                </h3>
-                <p className="text-gray-500">
-                  Aquí podrás realizar y gestionar todos los cálculos eléctricos del proyecto.
-                </p>
-                <p className="text-sm text-gray-400 mt-2">
-                  Esta funcionalidad será implementada próximamente.
-                </p>
+                <span className="font-medium text-sm">
+                  {project.calculation_count || 0} cálculos realizados
+                </span>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Content Area - Calculations */}
+        <div className="flex-1 p-8">
+          <div className="bg-white rounded-lg shadow-sm border p-6 h-full">
+            <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+              <Calculator className="w-5 h-5" />
+              Cálculos del Proyecto
+            </h2>
+
+            {/* TODO: Aquí irá la sección de cálculos */}
+            <div className="text-center py-12 text-gray-500">
+              <Calculator className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-600 mb-2">
+                Sección de Cálculos
+              </h3>
+              <p className="text-gray-500">
+                Aquí podrás realizar y gestionar todos los cálculos eléctricos del proyecto.
+              </p>
+              <p className="text-sm text-gray-400 mt-2">
+                Esta funcionalidad será implementada próximamente.
+              </p>
             </div>
           </div>
         </div>

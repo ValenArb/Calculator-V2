@@ -325,7 +325,7 @@ const RecentProjectsCard = ({ userId, refreshTrigger }) => {
       </div>
 
       {/* Projects Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filteredAndSortedProjects.length === 0 ? (
           <div className="col-span-full bg-white rounded-lg border border-gray-200 shadow-sm p-8 text-center">
             <Search className="w-12 h-12 text-gray-300 mx-auto mb-3" />
@@ -338,10 +338,10 @@ const RecentProjectsCard = ({ userId, refreshTrigger }) => {
           currentProjects.map((project) => (
             <div
               key={project.id}
-              className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group flex flex-col h-full"
+              className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group flex flex-col h-full min-h-[200px]"
               onClick={() => navigate(`/project/${project.id}`)}
             >
-              {/* Primera fila: Logo cliente | Empresa */}
+              {/* Primera fila: Logo cliente | Nombre del proyecto */}
               <div className="flex items-start gap-3 mb-3">
                 <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition-colors border border-gray-200 flex-shrink-0">
                   {project.client_logo_url ? (
@@ -355,17 +355,13 @@ const RecentProjectsCard = ({ userId, refreshTrigger }) => {
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-gray-900 group-hover:text-blue-900 text-sm leading-tight line-clamp-2">
-                    {project.company || 'Sin empresa'}
+                  <h4 className="font-semibold text-gray-900 group-hover:text-blue-900 text-sm leading-tight line-clamp-2 mb-1">
+                    {project.name}
                   </h4>
+                  <p className="text-xs text-gray-600 line-clamp-1">
+                    {project.company || 'Sin empresa'}
+                  </p>
                 </div>
-              </div>
-              
-              {/* Segunda fila: Descripción */}
-              <div className="mb-3 flex-1">
-                <p className="text-sm text-gray-600 line-clamp-2 leading-normal">
-                  {project.description || project.name}
-                </p>
               </div>
               
               {/* Tercera fila: Cálculos realizados */}
@@ -387,13 +383,14 @@ const RecentProjectsCard = ({ userId, refreshTrigger }) => {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleViewProject(project.id);
+                    setSelectedProjectId(project.id);
+                    setShowViewModal(true);
                   }}
                   className="flex-1 p-1.5 text-xs text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors flex items-center justify-center gap-1"
-                  title="Abrir proyecto"
+                  title="Ver proyecto"
                 >
                   <Eye className="w-3 h-3" />
-                  Abrir
+                  Ver
                 </button>
                 <button
                   onClick={(e) => {
