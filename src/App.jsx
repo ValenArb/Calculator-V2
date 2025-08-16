@@ -7,6 +7,7 @@ import useAuth from './features/auth/hooks/useAuth';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Calculator from './pages/Calculator';
+import ProjectDetail from './pages/ProjectDetail';
 import { Loading } from './components/ui';
 import './styles/globals.css';
 
@@ -94,6 +95,14 @@ const AppContent = () => {
           element={
             <ProtectedRoute isAuthenticated={isAuthenticated} loading={loading}>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/project/:projectId"
+          element={
+            <ProtectedRoute isAuthenticated={isAuthenticated} loading={loading}>
+              <ProjectDetail />
             </ProtectedRoute>
           }
         />

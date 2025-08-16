@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Clock, Image as ImageIcon, Eye, Edit, Search, SortAsc, Filter, Loader, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import projectsService from '../../../services/firebase/projects';
 import toast from 'react-hot-toast';
@@ -6,6 +7,7 @@ import EditProjectModal from '../EditProjectModal';
 import ViewProjectModal from '../ViewProjectModal';
 
 const RecentProjectsCard = ({ userId, refreshTrigger }) => {
+  const navigate = useNavigate();
   const [recentProjects, setRecentProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -89,8 +91,7 @@ const RecentProjectsCard = ({ userId, refreshTrigger }) => {
   };
 
   const handleViewProject = (projectId) => {
-    setSelectedProjectId(projectId);
-    setShowViewModal(true);
+    navigate(`/project/${projectId}`);
   };
 
   const handleEditProject = (projectId) => {
@@ -334,93 +335,91 @@ const RecentProjectsCard = ({ userId, refreshTrigger }) => {
             </p>
           </div>
         ) : (
-          currentProjects.map((project) => {
-        return (
-          <div
-            key={project.id}
-            className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group"
-            onClick={() => handleViewProject(project.id)}
-          >
-            {/* Primera fila: Logo cliente | Empresa */}
-            <div className="flex items-start gap-3 mb-3">
-              <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition-colors border border-gray-200 flex-shrink-0">
-                {project.client_logo_url ? (
-                  <img
-                    src={project.client_logo_url}
-                    alt={`Logo de ${project.client_name}`}
-                    className="w-10 h-10 object-contain rounded"
-                  />
-                ) : (
-                  <ImageIcon className="w-6 h-6 text-gray-600 group-hover:text-blue-600" />
-                )}
+          currentProjects.map((project) => (
+            <div
+              key={project.id}
+              className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group flex flex-col h-full"
+              onClick={() => navigate(`/project/${project.id}`)}
+            >
+              {/* Primera fila: Logo cliente | Empresa */}
+              <div className="flex items-start gap-3 mb-3">
+                <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-blue-100 transition-colors border border-gray-200 flex-shrink-0">
+                  {project.client_logo_url ? (
+                    <img
+                      src={project.client_logo_url}
+                      alt={`Logo de ${project.client_name}`}
+                      className="w-10 h-10 object-contain rounded"
+                    />
+                  ) : (
+                    <ImageIcon className="w-6 h-6 text-gray-600 group-hover:text-blue-600" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold text-gray-900 group-hover:text-blue-900 text-sm leading-tight line-clamp-2">
+                    {project.company || 'Sin empresa'}
+                  </h4>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="font-semibold text-gray-900 group-hover:text-blue-900 line-clamp-2 text-sm leading-relaxed">
-                  {project.company || 'Sin empresa'}
-                </h4>
+              
+              {/* Segunda fila: Descripción */}
+              <div className="mb-3 flex-1">
+                <p className="text-sm text-gray-600 line-clamp-2 leading-normal">
+                  {project.description || project.name}
+                </p>
+              </div>
+              
+              {/* Tercera fila: Cálculos realizados */}
+              <div className="mb-2">
+                <span className="text-xs font-medium text-gray-600 bg-gray-50 px-2 py-1 rounded">
+                  {project.calculation_count || 0} cálculos realizados
+                </span>
+              </div>
+
+              {/* Cuarta fila: Fecha modificación */}
+              <div className="mb-3">
+                <span className="text-xs text-gray-500">
+                  Modificado: {formatDate(project.updated_at)}
+                </span>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity pt-2 border-t border-gray-100 mt-auto">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleViewProject(project.id);
+                  }}
+                  className="flex-1 p-1.5 text-xs text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors flex items-center justify-center gap-1"
+                  title="Abrir proyecto"
+                >
+                  <Eye className="w-3 h-3" />
+                  Abrir
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEditProject(project.id);
+                  }}
+                  className="flex-1 p-1.5 text-xs text-gray-600 hover:text-green-600 hover:bg-green-50 rounded transition-colors flex items-center justify-center gap-1"
+                  title="Editar proyecto"
+                >
+                  <Edit className="w-3 h-3" />
+                  Editar
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteProject(project.id, project.name);
+                  }}
+                  className="flex-1 p-1.5 text-xs text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors flex items-center justify-center gap-1"
+                  title="Eliminar proyecto"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  Eliminar
+                </button>
               </div>
             </div>
-            
-            {/* Segunda fila: Descripción */}
-            <div className="mb-2">
-              <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
-                {project.description || project.name}
-              </p>
-            </div>
-            
-            {/* Tercera fila: Cálculos realizados */}
-            <div className="mb-2">
-              <span className="text-xs font-medium text-gray-600">
-                {project.calculation_count || 0} cálculos realizados
-              </span>
-            </div>
-
-            {/* Cuarta fila: Fecha modificación */}
-            <div className="mb-3">
-              <span className="text-xs text-gray-500">
-                Modificado: {formatDate(project.updated_at)}
-              </span>
-            </div>
-
-            {/* Action buttons */}
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleViewProject(project.id);
-                }}
-                className="flex-1 p-1.5 text-xs text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors flex items-center justify-center gap-1"
-                title="Ver proyecto"
-              >
-                <Eye className="w-3 h-3" />
-                Ver
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleEditProject(project.id);
-                }}
-                className="flex-1 p-1.5 text-xs text-gray-600 hover:text-green-600 hover:bg-green-50 rounded transition-colors flex items-center justify-center gap-1"
-                title="Editar proyecto"
-              >
-                <Edit className="w-3 h-3" />
-                Editar
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteProject(project.id, project.name);
-                }}
-                className="flex-1 p-1.5 text-xs text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors flex items-center justify-center gap-1"
-                title="Eliminar proyecto"
-              >
-                <Trash2 className="w-3 h-3" />
-                Eliminar
-              </button>
-            </div>
-          </div>
-        );
-        })
+          ))
         )}
       </div>
 
