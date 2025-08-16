@@ -704,26 +704,24 @@ const ProjectDetail = () => {
                     {/* Header del protocolo simple */}
                     <div className="bg-white border border-gray-800 rounded-lg overflow-hidden">
                       <div className="bg-orange-500 text-white p-4">
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-center justify-center space-x-4">
                           <h3 className="text-xl font-bold">PROTOCOLO DE ENSAYOS</h3>
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm font-medium">TABLERO:</span>
-                            <select
-                              value={selectedTablero?.id || ''}
-                              onChange={(e) => {
-                                const tablero = tableros.find(t => t.id === e.target.value);
-                                setSelectedTablero(tablero || null);
-                              }}
-                              className="px-3 py-2 border border-gray-300 rounded text-sm bg-white text-gray-900 font-medium"
-                            >
-                              <option value="">Seleccionar tablero</option>
-                              {tableros.map((tablero) => (
-                                <option key={tablero.id} value={tablero.id}>
-                                  {tablero.nombre}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
+                          <span className="text-lg font-bold">-</span>
+                          <select
+                            value={selectedTablero?.id || ''}
+                            onChange={(e) => {
+                              const tablero = tableros.find(t => t.id === e.target.value);
+                              setSelectedTablero(tablero || null);
+                            }}
+                            className="px-3 py-2 border border-gray-300 rounded text-lg bg-white text-gray-900 font-bold"
+                          >
+                            <option value="">Seleccionar Tablero</option>
+                            {tableros.map((tablero) => (
+                              <option key={tablero.id} value={tablero.id}>
+                                {tablero.nombre}
+                              </option>
+                            ))}
+                          </select>
                         </div>
                       </div>
                       <div className="bg-orange-400 text-white p-3">
