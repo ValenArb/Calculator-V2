@@ -701,27 +701,24 @@ const ProjectDetail = () => {
                 ) : selectedDocumentType.id === 'protocolo-ensayos' ? (
                   // Vista específica para Protocolo de Ensayos
                   <div className="space-y-6">
-                    {/* Selector de Tablero - Fuera de la tabla */}
-                    <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg p-4">
-                      <h2 className="text-lg font-semibold text-gray-900">Protocolo de Ensayos</h2>
-                      <div className="flex items-center space-x-3">
-                        <label className="text-sm font-medium text-gray-700">Seleccionar Tablero:</label>
-                        <select
-                          value={selectedTablero?.id || ''}
-                          onChange={(e) => {
-                            const tablero = tableros.find(t => t.id === e.target.value);
-                            setSelectedTablero(tablero || null);
-                          }}
-                          className="px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value="">Seleccionar Tablero</option>
-                          {tableros.map((tablero) => (
-                            <option key={tablero.id} value={tablero.id}>
-                              {tablero.nombre}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                    {/* Selector de Tablero */}
+                    <div className="flex items-center justify-end space-x-3 mb-4">
+                      <label className="text-sm font-medium text-gray-700">Seleccionar Tablero:</label>
+                      <select
+                        value={selectedTablero?.id || ''}
+                        onChange={(e) => {
+                          const tablero = tableros.find(t => t.id === e.target.value);
+                          setSelectedTablero(tablero || null);
+                        }}
+                        className="px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Seleccionar Tablero</option>
+                        {tableros.map((tablero) => (
+                          <option key={tablero.id} value={tablero.id}>
+                            {tablero.nombre}
+                          </option>
+                        ))}
+                      </select>
                     </div>
 
                     {/* Header del protocolo simple */}
