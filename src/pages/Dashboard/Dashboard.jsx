@@ -34,6 +34,16 @@ const Dashboard = () => {
     }
   }, [location.state]);
 
+  const [editForm, setEditForm] = useState({
+    displayName: '',
+    photoURL: ''
+  });
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [photoFile, setPhotoFile] = useState(null);
+  
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
+
   // Escuchar notificaciones en tiempo real
   useEffect(() => {
     if (!user?.email) return;
@@ -49,15 +59,6 @@ const Dashboard = () => {
 
     return () => unsubscribe();
   }, [user?.email]);
-  const [editForm, setEditForm] = useState({
-    displayName: '',
-    photoURL: ''
-  });
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [photoFile, setPhotoFile] = useState(null);
-  
-  const dispatch = useDispatch();
-  const { user } = useSelector((state) => state.auth);
 
   const menuItems = [
     {
