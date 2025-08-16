@@ -460,10 +460,32 @@ const ProjectDetail = () => {
         <div className="p-8">
           {selectedDocumentType ? (
               <div className="bg-white rounded-lg shadow-sm border p-6 h-full">
-                <h2 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
-                  <FileText className="w-5 h-5" />
-                  {selectedDocumentType.name} - {project.name}
-                </h2>
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    {selectedDocumentType.name} - {project.name}
+                  </h2>
+                  {selectedDocumentType.id === 'protocolo-ensayos' && (
+                    <div className="flex items-center space-x-3">
+                      <label className="text-sm font-medium text-gray-700">Tablero:</label>
+                      <select
+                        value={selectedTablero?.id || ''}
+                        onChange={(e) => {
+                          const tablero = tableros.find(t => t.id === e.target.value);
+                          setSelectedTablero(tablero || null);
+                        }}
+                        className="px-3 py-2 border border-gray-300 rounded text-sm bg-white text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">Seleccionar Tablero</option>
+                        {tableros.map((tablero) => (
+                          <option key={tablero.id} value={tablero.id}>
+                            {tablero.nombre}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
 
                 {selectedDocumentType.id === 'informacion-proyecto' ? (
                   // Vista específica para Información del Proyecto
@@ -701,26 +723,6 @@ const ProjectDetail = () => {
                 ) : selectedDocumentType.id === 'protocolo-ensayos' ? (
                   // Vista específica para Protocolo de Ensayos
                   <div className="space-y-6">
-                    {/* Selector de Tablero */}
-                    <div className="flex items-center justify-end space-x-3 mb-4">
-                      <label className="text-sm font-medium text-gray-700">Seleccionar Tablero:</label>
-                      <select
-                        value={selectedTablero?.id || ''}
-                        onChange={(e) => {
-                          const tablero = tableros.find(t => t.id === e.target.value);
-                          setSelectedTablero(tablero || null);
-                        }}
-                        className="px-4 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="">Seleccionar Tablero</option>
-                        {tableros.map((tablero) => (
-                          <option key={tablero.id} value={tablero.id}>
-                            {tablero.nombre}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
                     {/* Header del protocolo simple */}
                     <div className="bg-white border border-gray-800 rounded-lg overflow-hidden">
                       <div className="bg-orange-500 text-white p-4 text-center">
