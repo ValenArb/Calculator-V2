@@ -128,6 +128,14 @@ const ProjectDetail = () => {
         if (tablerosData.length > 0) {
           setSelectedTablero(tablerosData[0]);
         }
+        
+        // Cargar datos del protocolo desde calculation_data
+        if (projectData.calculation_data && projectData.calculation_data.protocolData) {
+          setProtocolData(prev => ({
+            ...prev,
+            ...projectData.calculation_data.protocolData
+          }));
+        }
       } catch (error) {
         console.error('Error loading project:', error);
         toast.error('Error al cargar el proyecto');
@@ -338,42 +346,79 @@ const ProjectDetail = () => {
     }
   };
 
-  // Funciones para manejar el protocolo de ensayos
-  const updateProtocolItem = (seccion, item, campo, valor) => {
-    setProtocolData(prev => ({
-      ...prev,
-      [seccion]: {
-        ...prev[seccion],
-        [item]: {
-          ...prev[seccion][item],
-          [campo]: valor
-        }
-      }
-    }));
-    calcularEstadoGeneral();
+  // Función para guardar datos del protocolo en la base de datos
+  const saveProtocolData = async (newProtocolData) => {
+    try {
+      const calculationData = {
+        ...project?.calculation_data,
+        protocolData: newProtocolData
+      };
+      
+      await projectsService.updateProject(projectId, { 
+        calculation_data: calculationData 
+      }, user.uid);
+    } catch (error) {
+      console.error('Error saving protocol data:', error);
+      toast.error('Error al guardar los datos del protocolo');
+    }
   };
 
-  const calcularEstadoGeneral = () => {
-    const allItems = {
-      ...protocolData.estructura,
-      ...protocolData.electromontaje,
-      ...protocolData.pruebas,
-      ...protocolData.controlFinal
-    };
-    
-    const hasNo = Object.values(allItems).some(item => item.estado === 'NO');
-    const hasEmpty = Object.values(allItems).some(item => item.estado === '');
-    
-    let nuevoEstado;
-    if (hasNo) {
-      nuevoEstado = 'RECHAZADO';
-    } else if (hasEmpty) {
-      nuevoEstado = 'PENDIENTE';
-    } else {
-      nuevoEstado = 'APROBADO';
-    }
-    
-    setProtocolData(prev => ({ ...prev, estado: nuevoEstado }));
+  // Función para actualizar campos generales del protocolo
+  const updateProtocolField = (field, value) => {
+    setProtocolData(prev => {
+      const newData = { ...prev, [field]: value };
+      saveProtocolData(newData);
+      return newData;
+    });
+  };
+
+  // Funciones para manejar el protocolo de ensayos
+  const updateProtocolItem = (seccion, item, campo, valor) => {
+    setProtocolData(prev => {
+      // Actualizar el item específico
+      const newData = {
+        ...prev,
+        [seccion]: {
+          ...prev[seccion],
+          [item]: {
+            ...prev[seccion][item],
+            [campo]: valor
+          }
+        }
+      };
+      
+      // Calcular estado general con los nuevos datos
+      const allItems = {
+        ...newData.estructura,
+        ...newData.electromontaje,
+        ...newData.pruebas,
+        ...newData.aislacion,
+        ...newData.controlFinal
+      };
+      
+      const hasNo = Object.values(allItems).some(item => item.estado === 'NO');
+      const hasEmpty = Object.values(allItems).some(item => !item.estado || item.estado === '');
+      
+      let nuevoEstado;
+      if (hasNo) {
+        nuevoEstado = 'RECHAZADO';
+      } else if (hasEmpty) {
+        nuevoEstado = 'PENDIENTE';
+      } else {
+        nuevoEstado = 'APROBADO';
+      }
+      
+      // Retornar los datos actualizados con el nuevo estado
+      const finalData = {
+        ...newData,
+        estado: nuevoEstado
+      };
+      
+      // Guardar en la base de datos
+      saveProtocolData(finalData);
+      
+      return finalData;
+    });
   };
 
   const getEstadoColor = (estado) => {
@@ -1186,6 +1231,7 @@ const ProjectDetail = () => {
                               type="text"
                               value={protocolData.realizo_nombre}
                               onChange={(e) => setProtocolData(prev => ({ ...prev, realizo_nombre: e.target.value }))}
+                              onBlur={(e) => updateProtocolField('realizo_nombre', e.target.value)}
                               className="w-full px-2 py-1 text-xs border border-gray-300 rounded text-center"
                               placeholder="Nombre"
                             />
@@ -1196,6 +1242,7 @@ const ProjectDetail = () => {
                               type="text"
                               value={protocolData.realizo_cargo}
                               onChange={(e) => setProtocolData(prev => ({ ...prev, realizo_cargo: e.target.value }))}
+                              onBlur={(e) => updateProtocolField('realizo_cargo', e.target.value)}
                               className="w-full px-2 py-1 text-xs border border-gray-300 rounded text-center"
                               placeholder="Cargo"
                             />
@@ -1210,6 +1257,7 @@ const ProjectDetail = () => {
                               type="text"
                               value={protocolData.controlo_nombre}
                               onChange={(e) => setProtocolData(prev => ({ ...prev, controlo_nombre: e.target.value }))}
+                              onBlur={(e) => updateProtocolField('controlo_nombre', e.target.value)}
                               className="w-full px-2 py-1 text-xs border border-gray-300 rounded text-center"
                               placeholder="Nombre"
                             />
@@ -1220,6 +1268,7 @@ const ProjectDetail = () => {
                               type="text"
                               value={protocolData.controlo_cargo}
                               onChange={(e) => setProtocolData(prev => ({ ...prev, controlo_cargo: e.target.value }))}
+                              onBlur={(e) => updateProtocolField('controlo_cargo', e.target.value)}
                               className="w-full px-2 py-1 text-xs border border-gray-300 rounded text-center"
                               placeholder="Cargo"
                             />
@@ -1234,6 +1283,7 @@ const ProjectDetail = () => {
                               type="text"
                               value={protocolData.aprobo_nombre}
                               onChange={(e) => setProtocolData(prev => ({ ...prev, aprobo_nombre: e.target.value }))}
+                              onBlur={(e) => updateProtocolField('aprobo_nombre', e.target.value)}
                               className="w-full px-2 py-1 text-xs border border-gray-300 rounded text-center"
                               placeholder="Nombre"
                             />
@@ -1244,6 +1294,7 @@ const ProjectDetail = () => {
                               type="text"
                               value={protocolData.aprobo_cargo}
                               onChange={(e) => setProtocolData(prev => ({ ...prev, aprobo_cargo: e.target.value }))}
+                              onBlur={(e) => updateProtocolField('aprobo_cargo', e.target.value)}
                               className="w-full px-2 py-1 text-xs border border-gray-300 rounded text-center"
                               placeholder="Cargo"
                             />
