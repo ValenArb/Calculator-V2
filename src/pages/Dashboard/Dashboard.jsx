@@ -10,6 +10,7 @@ import DocumentTypeSidebar from '../../components/layout/DocumentTypeSidebar';
 import { Modal } from '../../components/ui';
 import { authService } from '../../services/firebase/auth';
 import notificationsService from '../../services/firebase/notifications';
+import projectsService from '../../services/firebase/projects';
 import { setUser } from '../../store/slices/authSlice';
 
 const Dashboard = () => {
@@ -19,6 +20,7 @@ const Dashboard = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [selectedDocumentType, setSelectedDocumentType] = useState(null);
   const [showDocumentSidebar, setShowDocumentSidebar] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   
   // Estado para notificaciones
   const [notifications, setNotifications] = useState([]);
@@ -231,6 +233,13 @@ const Dashboard = () => {
         user.uid
       );
 
+      // Agregar al usuario como colaborador del proyecto
+      await projectsService.addCollaborator(
+        notification.metadata.projectId,
+        user.uid,
+        notification.metadata.senderUid
+      );
+
       // Crear notificación de respuesta para el remitente
       await notificationsService.createInvitationResponse({
         recipientUid: notification.metadata.senderUid,
@@ -240,7 +249,12 @@ const Dashboard = () => {
         response: 'accepted'
       });
 
-      toast.success('Invitación aceptada');
+      toast.success('Invitación aceptada. Ahora tienes acceso al proyecto.');
+      
+      // Refresh projects list to show the new project
+      if (activeSection === 'projects') {
+        setRefreshTrigger(prev => prev + 1);
+      }
     } catch (error) {
       console.error('Error accepting invitation:', error);
       toast.error('Error al aceptar la invitación');
@@ -280,9 +294,9 @@ const Dashboard = () => {
       case 'error-codes':
         return <ErrorCodesApp />;
       case 'projects':
-        return <ProjectsGrid />;
+        return <ProjectsGrid refreshTrigger={refreshTrigger} />;
       default:
-        return <ProjectsGrid />;
+        return <ProjectsGrid refreshTrigger={refreshTrigger} />;
     }
   };
 

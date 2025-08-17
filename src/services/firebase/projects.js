@@ -53,9 +53,12 @@ class ProjectsService {
       
       const projectData = projectDoc.data();
       
-      // Verify ownership
-      if (projectData.owner_id !== userId) {
-        throw new Error('Unauthorized: Not your project');
+      // Verify ownership or collaboration
+      const isOwner = projectData.owner_id === userId;
+      const isCollaborator = projectData.collaborators && projectData.collaborators.includes(userId);
+      
+      if (!isOwner && !isCollaborator) {
+        throw new Error('Unauthorized: Not your project or you are not a collaborator');
       }
       
       return { id: projectDoc.id, ...projectData };
@@ -67,30 +70,58 @@ class ProjectsService {
 
   async getProjects(userId, limitCount = null) {
     try {
-      // Simple query without orderBy to avoid composite index requirement
-      let q = query(
+      // Get projects owned by the user
+      let ownedQuery = query(
         collection(db, PROJECTS_COLLECTION),
         where('owner_id', '==', userId)
       );
       
       if (limitCount) {
-        q = query(q, limitQuery(limitCount));
+        ownedQuery = query(ownedQuery, limitQuery(limitCount));
       }
       
-      const snapshot = await getDocs(q);
-      const projects = snapshot.docs.map(doc => ({
+      const ownedSnapshot = await getDocs(ownedQuery);
+      const ownedProjects = ownedSnapshot.docs.map(doc => ({
         id: doc.id,
-        ...doc.data()
+        ...doc.data(),
+        userRole: 'owner'
       }));
+
+      // Get projects where user is a collaborator
+      let collaboratedQuery = query(
+        collection(db, PROJECTS_COLLECTION),
+        where('collaborators', 'array-contains', userId)
+      );
+      
+      if (limitCount) {
+        collaboratedQuery = query(collaboratedQuery, limitQuery(limitCount));
+      }
+      
+      const collaboratedSnapshot = await getDocs(collaboratedQuery);
+      const collaboratedProjects = collaboratedSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        userRole: 'collaborator'
+      }));
+
+      // Combine and deduplicate projects
+      const allProjects = [...ownedProjects];
+      
+      // Add collaborated projects that aren't already in owned projects
+      collaboratedProjects.forEach(collaboratedProject => {
+        if (!allProjects.find(p => p.id === collaboratedProject.id)) {
+          allProjects.push(collaboratedProject);
+        }
+      });
       
       // Sort client-side by updated_at descending
-      projects.sort((a, b) => {
+      allProjects.sort((a, b) => {
         const dateA = a.updated_at?.toDate ? a.updated_at.toDate() : new Date(a.updated_at || 0);
         const dateB = b.updated_at?.toDate ? b.updated_at.toDate() : new Date(b.updated_at || 0);
         return dateB - dateA;
       });
       
-      return projects;
+      return allProjects;
     } catch (error) {
       console.error('Error fetching projects:', error);
       throw error;
@@ -220,6 +251,81 @@ class ProjectsService {
     }
   }
 
+  // Collaborator management
+  async addCollaborator(projectId, collaboratorUserId, ownerUserId) {
+    try {
+      const docRef = doc(db, PROJECTS_COLLECTION, projectId);
+      
+      // First verify ownership
+      const currentDoc = await getDoc(docRef);
+      if (!currentDoc.exists()) {
+        throw new Error('Project not found');
+      }
+      
+      const projectData = currentDoc.data();
+      if (projectData.owner_id !== ownerUserId) {
+        throw new Error('Unauthorized: Only project owner can add collaborators');
+      }
+      
+      // Get current collaborators array or initialize empty array
+      const currentCollaborators = projectData.collaborators || [];
+      
+      // Check if user is already a collaborator
+      if (currentCollaborators.includes(collaboratorUserId)) {
+        throw new Error('User is already a collaborator on this project');
+      }
+      
+      // Add the new collaborator
+      const updatedCollaborators = [...currentCollaborators, collaboratorUserId];
+      
+      // Update the document
+      await updateDoc(docRef, {
+        collaborators: updatedCollaborators,
+        updated_at: serverTimestamp()
+      });
+      
+      console.log(`Added collaborator ${collaboratorUserId} to project ${projectId}`);
+      return { success: true };
+    } catch (error) {
+      console.error('Error adding collaborator:', error);
+      throw error;
+    }
+  }
+
+  async removeCollaborator(projectId, collaboratorUserId, ownerUserId) {
+    try {
+      const docRef = doc(db, PROJECTS_COLLECTION, projectId);
+      
+      // First verify ownership
+      const currentDoc = await getDoc(docRef);
+      if (!currentDoc.exists()) {
+        throw new Error('Project not found');
+      }
+      
+      const projectData = currentDoc.data();
+      if (projectData.owner_id !== ownerUserId) {
+        throw new Error('Unauthorized: Only project owner can remove collaborators');
+      }
+      
+      // Get current collaborators array
+      const currentCollaborators = projectData.collaborators || [];
+      
+      // Remove the collaborator
+      const updatedCollaborators = currentCollaborators.filter(uid => uid !== collaboratorUserId);
+      
+      // Update the document
+      await updateDoc(docRef, {
+        collaborators: updatedCollaborators,
+        updated_at: serverTimestamp()
+      });
+      
+      console.log(`Removed collaborator ${collaboratorUserId} from project ${projectId}`);
+      return { success: true };
+    } catch (error) {
+      console.error('Error removing collaborator:', error);
+      throw error;
+    }
+  }
 
   // Statistics and analytics
   async getProjectStats(userId) {
@@ -256,5 +362,7 @@ export const {
   deleteProject,
   uploadClientLogo,
   deleteClientLogo,
+  addCollaborator,
+  removeCollaborator,
   getProjectStats
 } = projectsService;

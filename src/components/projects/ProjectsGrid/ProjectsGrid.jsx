@@ -6,10 +6,13 @@ import CreateProjectModal from '../CreateProjectModal';
 import projectsService from '../../../services/firebase/projects';
 import toast from 'react-hot-toast';
 
-const ProjectsGrid = () => {
+const ProjectsGrid = ({ refreshTrigger: externalRefreshTrigger = 0 }) => {
   const { user } = useSelector((state) => state.auth);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  
+  // Combined refresh trigger that responds to both internal and external changes
+  const combinedRefreshTrigger = refreshTrigger + externalRefreshTrigger;
 
   const handleCreateProject = () => {
     setShowCreateModal(true);
@@ -150,7 +153,7 @@ const ProjectsGrid = () => {
           <FileText className="w-5 h-5" />
           Proyectos Recientes
         </h2>
-        <RecentProjectsCard userId={user?.uid} refreshTrigger={refreshTrigger} />
+        <RecentProjectsCard userId={user?.uid} refreshTrigger={combinedRefreshTrigger} />
       </div>
 
 
