@@ -207,13 +207,11 @@ router.put('/:id', async (req, res) => {
         updateFields.push('calculation_data = ?');
         values.push(JSON.stringify(calculationData));
         
-        // Update calculation count based on data
+        // Update calculation count based on FAT protocols only
         let count = 0;
-        if (calculationData.dpms) count += calculationData.dpms.length;
-        if (calculationData.thermal) count += calculationData.thermal.length;
-        if (calculationData.voltageDrops) count += calculationData.voltageDrops.length;
-        if (calculationData.shortCircuit) count += calculationData.shortCircuit.length;
-        if (calculationData.loadsByPanel) count += calculationData.loadsByPanel.length;
+        if (calculationData.protocolosPorTablero) {
+          count = Object.keys(calculationData.protocolosPorTablero).length;
+        }
         
         updateFields.push('calculation_count = ?');
         values.push(count);

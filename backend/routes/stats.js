@@ -22,7 +22,7 @@ router.get('/dashboard', async (req, res) => {
     ] = await Promise.all([
       // Total projects count
       query(`
-        SELECT COUNT(*) as total FROM projects WHERE owner_id = $1
+        SELECT COUNT(*) as total FROM projects WHERE owner_id = ?
       `, [userId]),
       
       // Projects by status
@@ -31,7 +31,7 @@ router.get('/dashboard', async (req, res) => {
           status,
           COUNT(*) as count
         FROM projects 
-        WHERE owner_id = $1 
+        WHERE owner_id = ? 
         GROUP BY status
         ORDER BY count DESC
       `, [userId]),
@@ -42,7 +42,7 @@ router.get('/dashboard', async (req, res) => {
           project_type,
           COUNT(*) as count
         FROM projects 
-        WHERE owner_id = $1 
+        WHERE owner_id = ? 
         GROUP BY project_type
         ORDER BY count DESC
       `, [userId]),
@@ -54,19 +54,19 @@ router.get('/dashboard', async (req, res) => {
           COUNT(DISTINCT project_id) as active_projects
         FROM project_activities pa
         JOIN projects p ON pa.project_id = p.id
-        WHERE p.owner_id = $1 
-        AND pa.created_at >= NOW() - INTERVAL '30 days'
+        WHERE p.owner_id = ? 
+        AND pa.created_at >= datetime('now', '-30 days')
       `, [userId]),
       
       // Monthly project creation stats (last 6 months)
       query(`
         SELECT 
-          DATE_TRUNC('month', created_at) as month,
+          strftime('%Y-%m-01', created_at) as month,
           COUNT(*) as projects_created
         FROM projects 
-        WHERE owner_id = $1 
-        AND created_at >= NOW() - INTERVAL '6 months'
-        GROUP BY DATE_TRUNC('month', created_at)
+        WHERE owner_id = ? 
+        AND created_at >= datetime('now', '-6 months')
+        GROUP BY strftime('%Y-%m-01', created_at)
         ORDER BY month ASC
       `, [userId])
     ]);
@@ -126,7 +126,7 @@ router.get('/system', async (req, res) => {
       query(`SELECT COUNT(DISTINCT owner_id) as total FROM projects`),
       query(`SELECT COUNT(*) as total FROM projects`),
       query(`SELECT COUNT(*) as total FROM project_templates WHERE is_system_template = true`),
-      query(`SELECT pg_size_pretty(pg_database_size(current_database())) as size`)
+query(`SELECT '0 MB' as size`)
     ]);
 
     res.json({
@@ -157,18 +157,11 @@ router.get('/recent-projects', async (req, res) => {
         project_type,
         status,
         updated_at,
-        CASE 
-          WHEN calculation_data IS NOT NULL THEN jsonb_array_length(
-            COALESCE(calculation_data->'dpms', '[]'::jsonb) + 
-            COALESCE(calculation_data->'thermal', '[]'::jsonb) + 
-            COALESCE(calculation_data->'voltageDrops', '[]'::jsonb)
-          )
-          ELSE 0 
-        END as calculation_count
+        calculation_count
       FROM projects 
-      WHERE owner_id = $1 
+      WHERE owner_id = ? 
       ORDER BY updated_at DESC 
-      LIMIT $2
+      LIMIT ?
     `, [userId, parseInt(limit)]);
 
     res.json(result.rows);

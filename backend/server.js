@@ -7,6 +7,7 @@ import { testConnection } from './config/database.js';
 
 // Import routes
 import projectRoutes from './routes/projects.js';
+import calculationRoutes from './routes/calculations.js';
 import templateRoutes from './routes/templates.js';
 import statsRoutes from './routes/stats.js';
 
@@ -52,6 +53,7 @@ app.get('/health', async (req, res) => {
 
 // API routes
 app.use('/api/projects', projectRoutes);
+app.use('/api/calculations', calculationRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/stats', statsRoutes);
 

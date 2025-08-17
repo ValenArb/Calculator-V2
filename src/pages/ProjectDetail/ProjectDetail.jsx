@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux';
 import { ArrowLeft, Building2, User, Mail, Phone, MapPin, Calendar, Calculator, FileText, Edit, Trash2, CheckSquare, X, AlertTriangle, Plus, UserPlus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import projectsService from '../../services/firebase/projects';
+import calculationService from '../../services/calculations';
 import notificationsService from '../../services/firebase/notifications';
 import usersService from '../../services/firebase/users';
 import EditProjectModal from '../../components/projects/EditProjectModal';
@@ -122,8 +123,10 @@ const ProjectDetail = () => {
       
       setIsLoading(true);
       try {
+        // Load project metadata from Firestore
         const projectData = await projectsService.getProject(projectId, user.uid);
         setProject(projectData);
+        
         // Inicializar datos editables
         setEditableProject({
           name: projectData.name || '',
@@ -134,6 +137,7 @@ const ProjectDetail = () => {
           location: projectData.location || '',
           work_number: projectData.work_number || '',
         });
+        
         // Cargar tableros del proyecto
         const tablerosData = projectData.tableros || [];
         setTableros(tablerosData);
@@ -142,16 +146,13 @@ const ProjectDetail = () => {
           setSelectedTablero(tablerosData[0]);
         }
         
-        // Cargar protocolos por tablero desde calculation_data
-        if (projectData.calculation_data && projectData.calculation_data.protocolosPorTablero) {
-          setProtocolosPorTablero(projectData.calculation_data.protocolosPorTablero);
-        } else if (projectData.calculation_data && projectData.calculation_data.protocolData) {
-          // Migración: si existe el protocolo viejo, moverlo al primer tablero
-          if (tablerosData.length > 0) {
-            setProtocolosPorTablero({
-              [tablerosData[0].id]: projectData.calculation_data.protocolData
-            });
-          }
+        // Load calculation data (FAT protocols) from SQLite3
+        try {
+          const calculationData = await calculationService.getCalculations(projectId, user.uid);
+          setProtocolosPorTablero(calculationData.protocolosPorTablero || {});
+        } catch (calcError) {
+          console.warn('No calculation data found, starting with empty protocols:', calcError);
+          setProtocolosPorTablero({});
         }
       } catch (error) {
         console.error('Error loading project:', error);
@@ -405,7 +406,7 @@ const ProjectDetail = () => {
     }
   };
 
-  // Función con debouncing para guardar en base de datos
+  // Función con debouncing para guardar FAT protocols en SQLite3
   const debouncedSave = useCallback(() => {
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
@@ -417,14 +418,10 @@ const ProjectDetail = () => {
       isUpdatingRef.current = true;
       
       try {
-        const calculationData = {
-          ...project?.calculation_data,
+        // Save only FAT protocols to SQLite3
+        await calculationService.saveCalculations(projectId, user.uid, {
           protocolosPorTablero: protocolosPorTablero
-        };
-        
-        await projectsService.updateProject(projectId, { 
-          calculation_data: calculationData 
-        }, user.uid);
+        });
       } catch (error) {
         console.error('Error saving protocol data:', error);
         toast.error('Error al guardar los datos del protocolo');
@@ -432,7 +429,7 @@ const ProjectDetail = () => {
         isUpdatingRef.current = false;
       }
     }, 200); // Reducido a 200ms para mejor respuesta
-  }, [selectedTablero, protocolosPorTablero, project?.calculation_data, projectId, user.uid]);
+  }, [selectedTablero, protocolosPorTablero, projectId, user.uid]);
 
   // Función para actualizar campos generales del protocolo del tablero actual
   const updateProtocolField = (field, value) => {
