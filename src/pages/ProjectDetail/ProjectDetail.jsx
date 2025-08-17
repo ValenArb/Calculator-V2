@@ -10,7 +10,7 @@ import usersService from '../../services/firebase/users';
 import EditProjectModal from '../../components/projects/EditProjectModal';
 import MainSidebar from '../../components/layout/MainSidebar';
 import DocumentTypeSidebar from '../../components/layout/DocumentTypeSidebar';
-import { Loading, Modal } from '../../components/ui';
+import { Loading, Modal, DigitalSignature } from '../../components/ui';
 import pdfExportService from '../../utils/pdfExport';
 
 const ProjectDetail = () => {
@@ -123,6 +123,13 @@ const ProjectDetail = () => {
       '5.2': { estado: '', observacion: '' },
       '5.3': { estado: '', observacion: '' },
       '5.4': { estado: '', observacion: '' }
+    },
+    firmasDigitales: {
+      // Digital signatures for protocol validation
+      tecnico_ensayos: null,
+      supervisor_electrico: null,
+      cliente_representante: null,
+      inspector_certificacion: null
     }
   });
 
@@ -573,6 +580,25 @@ const ProjectDetail = () => {
     }));
     
     // Guardar en la base de datos con debouncing
+    debouncedSave();
+  };
+
+  // Handle digital signature changes
+  const handleSignatureChange = (signatures) => {
+    if (!selectedTablero) return;
+    
+    const newData = { 
+      ...protocolData, 
+      firmasDigitales: signatures 
+    };
+    
+    // Update local state
+    setProtocolosPorTablero(prev => ({
+      ...prev,
+      [selectedTablero.id]: newData
+    }));
+    
+    // Save to database with debouncing
     debouncedSave();
   };
 
@@ -1596,88 +1622,15 @@ const ProjectDetail = () => {
                       </div>
                     </div>
 
-                    {/* Firmas */}
-                    <div className="bg-white border border-gray-800 rounded-lg p-4 mt-4">
-                      <div className="grid grid-cols-3 gap-6">
-                        <div className="text-center">
-                          <div className="mb-2">
-                            <label className="block text-xs font-medium text-gray-700 mb-1">REALIZÓ:</label>
-                            <input
-                              type="text"
-                              value={protocolData.realizo_nombre}
-                              onChange={(e) => setProtocolData(prev => ({ ...prev, realizo_nombre: e.target.value }))}
-                              onBlur={(e) => updateProtocolField('realizo_nombre', e.target.value)}
-                              className="w-full px-2 py-1 text-xs border border-gray-300 rounded text-center"
-                              placeholder="Nombre"
-                            />
-                          </div>
-                          <div className="mb-2">
-                            <label className="block text-xs font-medium text-gray-700 mb-1">CARGO:</label>
-                            <input
-                              type="text"
-                              value={protocolData.realizo_cargo}
-                              onChange={(e) => setProtocolData(prev => ({ ...prev, realizo_cargo: e.target.value }))}
-                              onBlur={(e) => updateProtocolField('realizo_cargo', e.target.value)}
-                              className="w-full px-2 py-1 text-xs border border-gray-300 rounded text-center"
-                              placeholder="Cargo"
-                            />
-                          </div>
-                          <div className="border-b border-gray-400 mb-1 h-8"></div>
-                          <p className="text-xs">FIRMA: ................................</p>
-                        </div>
-                        <div className="text-center">
-                          <div className="mb-2">
-                            <label className="block text-xs font-medium text-gray-700 mb-1">CONTROLÓ:</label>
-                            <input
-                              type="text"
-                              value={protocolData.controlo_nombre}
-                              onChange={(e) => setProtocolData(prev => ({ ...prev, controlo_nombre: e.target.value }))}
-                              onBlur={(e) => updateProtocolField('controlo_nombre', e.target.value)}
-                              className="w-full px-2 py-1 text-xs border border-gray-300 rounded text-center"
-                              placeholder="Nombre"
-                            />
-                          </div>
-                          <div className="mb-2">
-                            <label className="block text-xs font-medium text-gray-700 mb-1">CARGO:</label>
-                            <input
-                              type="text"
-                              value={protocolData.controlo_cargo}
-                              onChange={(e) => setProtocolData(prev => ({ ...prev, controlo_cargo: e.target.value }))}
-                              onBlur={(e) => updateProtocolField('controlo_cargo', e.target.value)}
-                              className="w-full px-2 py-1 text-xs border border-gray-300 rounded text-center"
-                              placeholder="Cargo"
-                            />
-                          </div>
-                          <div className="border-b border-gray-400 mb-1 h-8"></div>
-                          <p className="text-xs">FIRMA: ................................</p>
-                        </div>
-                        <div className="text-center">
-                          <div className="mb-2">
-                            <label className="block text-xs font-medium text-gray-700 mb-1">APROBÓ:</label>
-                            <input
-                              type="text"
-                              value={protocolData.aprobo_nombre}
-                              onChange={(e) => setProtocolData(prev => ({ ...prev, aprobo_nombre: e.target.value }))}
-                              onBlur={(e) => updateProtocolField('aprobo_nombre', e.target.value)}
-                              className="w-full px-2 py-1 text-xs border border-gray-300 rounded text-center"
-                              placeholder="Nombre"
-                            />
-                          </div>
-                          <div className="mb-2">
-                            <label className="block text-xs font-medium text-gray-700 mb-1">CARGO:</label>
-                            <input
-                              type="text"
-                              value={protocolData.aprobo_cargo}
-                              onChange={(e) => setProtocolData(prev => ({ ...prev, aprobo_cargo: e.target.value }))}
-                              onBlur={(e) => updateProtocolField('aprobo_cargo', e.target.value)}
-                              className="w-full px-2 py-1 text-xs border border-gray-300 rounded text-center"
-                              placeholder="Cargo"
-                            />
-                          </div>
-                          <div className="border-b border-gray-400 mb-1 h-8"></div>
-                          <p className="text-xs">FIRMA: ................................</p>
-                        </div>
-                      </div>
+                    {/* Digital Signatures Section */}
+                    <div className="mt-6">
+                      <DigitalSignature
+                        signatures={protocolData.firmasDigitales || {}}
+                        onSignatureChange={handleSignatureChange}
+                        projectId={projectId}
+                        disabled={false}
+                        showRequiredFields={true}
+                      />
                     </div>
                   </div>
                 ) : (

@@ -210,6 +210,11 @@ class PDFExportService {
     yPosition = this.addTestingSection(pdf, 'PRUEBAS FUNCIONALES', protocol.pruebas, yPosition, config);
     yPosition = this.addTestingSection(pdf, 'MEDICIÓN DE AISLAMIENTO', protocol.aislamiento, yPosition, config);
     yPosition = this.addTestingSection(pdf, 'CONTROL FINAL', protocol.controlFinal, yPosition, config);
+    
+    // Add digital signatures section
+    if (protocol.firmasDigitales) {
+      yPosition = this.addDigitalSignatures(pdf, protocol.firmasDigitales, yPosition, config);
+    }
 
     return yPosition;
   }
@@ -261,6 +266,66 @@ class PDFExportService {
         }
       });
     }
+
+    return yPosition + 10;
+  }
+
+  /**
+   * Add digital signatures section to PDF
+   */
+  addDigitalSignatures(pdf, signatures, yPosition, config) {
+    // Check if we need a new page
+    if (yPosition > 220) {
+      pdf.addPage();
+      yPosition = config.margin.top;
+    }
+
+    pdf.setFontSize(12);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('FIRMAS DIGITALES', config.margin.left, yPosition);
+    
+    yPosition += 10;
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(10);
+
+    const signatureTypes = [
+      { id: 'tecnico_ensayos', label: 'Técnico de Ensayos' },
+      { id: 'supervisor_electrico', label: 'Supervisor Eléctrico' },
+      { id: 'cliente_representante', label: 'Representante del Cliente' },
+      { id: 'inspector_certificacion', label: 'Inspector de Certificación' }
+    ];
+
+    signatureTypes.forEach((signatureType) => {
+      const signature = signatures[signatureType.id];
+      
+      if (signature && signature.data) {
+        // Check if we need a new page
+        if (yPosition > 240) {
+          pdf.addPage();
+          yPosition = config.margin.top;
+        }
+
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(`${signatureType.label}:`, config.margin.left, yPosition);
+        yPosition += 8;
+        
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8);
+        
+        // Add signature metadata
+        pdf.text(`Tipo: ${signature.type === 'drawn' ? 'Dibujada' : 'Cargada'}`, config.margin.left + 5, yPosition);
+        pdf.text(`Fecha: ${this.formatDate(signature.timestamp)}`, config.margin.left + 80, yPosition);
+        yPosition += 5;
+
+        // Add signature image (simplified - just show that it exists)
+        pdf.rect(config.margin.left + 5, yPosition, 50, 15);
+        pdf.text('FIRMA DIGITAL', config.margin.left + 15, yPosition + 8);
+        yPosition += 20;
+      } else {
+        pdf.text(`${signatureType.label}: Sin firmar`, config.margin.left, yPosition);
+        yPosition += 8;
+      }
+    });
 
     return yPosition + 10;
   }
