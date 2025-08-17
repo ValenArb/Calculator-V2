@@ -1,0 +1,211 @@
+/* Print styles for electrical protocol PDFs */
+@media print {
+  /* Hide navigation and non-essential elements */
+  .sidebar,
+  .main-sidebar,
+  .document-sidebar,
+  nav,
+  .print-hide {
+    display: none !important;
+  }
+
+  /* Reset margins for full page usage */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    background: white;
+    font-size: 12pt;
+    line-height: 1.4;
+  }
+
+  /* Protocol content styling */
+  #protocol-content {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 10mm !important;
+    background: white !important;
+  }
+
+  /* Tables for electrical measurements */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin-bottom: 10pt !important;
+    font-size: 10pt !important;
+  }
+
+  th, td {
+    border: 1px solid #000 !important;
+    padding: 4pt !important;
+    text-align: left !important;
+  }
+
+  th {
+    background-color: #f0f0f0 !important;
+    font-weight: bold !important;
+  }
+
+  /* Protocol headers */
+  .bg-orange-500,
+  .bg-green-600,
+  .bg-blue-600,
+  .bg-gray-600 {
+    background-color: #333 !important;
+    color: white !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  .bg-orange-400 {
+    background-color: #666 !important;
+    color: white !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  /* Section styling */
+  .space-y-6 > * + * {
+    margin-top: 15pt !important;
+  }
+
+  /* Hide export buttons in print */
+  button[title*="Exportar"],
+  button[title*="PDF"],
+  .print-hide-button {
+    display: none !important;
+  }
+
+  /* Page breaks */
+  .page-break-before {
+    page-break-before: always !important;
+  }
+
+  .page-break-after {
+    page-break-after: always !important;
+  }
+
+  .page-break-inside-avoid {
+    page-break-inside: avoid !important;
+  }
+
+  /* Ensure text is readable */
+  .text-white {
+    color: white !important;
+  }
+
+  .text-gray-900 {
+    color: #000 !important;
+  }
+
+  .text-gray-600 {
+    color: #333 !important;
+  }
+
+  /* Input fields for print */
+  input, select, textarea {
+    border: 1px solid #000 !important;
+    background: white !important;
+    color: #000 !important;
+    padding: 2pt !important;
+  }
+
+  /* Status indicators */
+  .border-red-500 {
+    border-color: #dc2626 !important;
+  }
+
+  .border-green-500 {
+    border-color: #16a34a !important;
+  }
+
+  .border-yellow-500 {
+    border-color: #ca8a04 !important;
+  }
+
+  .border-gray-300 {
+    border-color: #d1d5db !important;
+  }
+
+  /* Grid layout adjustments */
+  .grid-cols-3 {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr 1fr !important;
+    gap: 10pt !important;
+  }
+
+  /* Font sizes for print */
+  .text-xl {
+    font-size: 16pt !important;
+  }
+
+  .text-lg {
+    font-size: 14pt !important;
+  }
+
+  .text-base {
+    font-size: 12pt !important;
+  }
+
+  .text-sm {
+    font-size: 10pt !important;
+  }
+
+  .text-xs {
+    font-size: 8pt !important;
+  }
+
+  /* Protocol specific styling */
+  .protocol-section {
+    page-break-inside: avoid !important;
+    margin-bottom: 15pt !important;
+  }
+
+  .measurement-table {
+    width: 100% !important;
+    font-size: 9pt !important;
+  }
+
+  .measurement-table th {
+    background-color: #e5e7eb !important;
+    font-weight: bold !important;
+  }
+
+  /* Header and footer for each page */
+  @page {
+    size: A4;
+    margin: 15mm;
+    
+    @top-center {
+      content: "PROTOCOLO DE ENSAYOS ELÉCTRICOS";
+      font-size: 10pt;
+      font-weight: bold;
+    }
+    
+    @bottom-center {
+      content: "Página " counter(page) " de " counter(pages);
+      font-size: 8pt;
+    }
+    
+    @bottom-right {
+      content: "Generado: " date();
+      font-size: 8pt;
+    }
+  }
+
+  /* Avoid breaking inside these elements */
+  .isolation-measurement,
+  .functional-test,
+  .structure-check {
+    page-break-inside: avoid !important;
+  }
+}
+
+/* Print button visibility */
+@media screen {
+  .print-only {
+    display: none;
+  }
+}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { ArrowLeft, Building2, User, Mail, Phone, MapPin, Calendar, Calculator, FileText, Edit, Trash2, CheckSquare, X, AlertTriangle, Plus, UserPlus } from 'lucide-react';
+import { ArrowLeft, Building2, User, Mail, Phone, MapPin, Calendar, Calculator, FileText, Edit, Trash2, CheckSquare, X, AlertTriangle, Plus, UserPlus, Download, FileDown, Printer } from 'lucide-react';
 import toast from 'react-hot-toast';
 import projectsService from '../../services/firebase/projects';
 import calculationService from '../../services/calculations';
@@ -11,6 +11,7 @@ import EditProjectModal from '../../components/projects/EditProjectModal';
 import MainSidebar from '../../components/layout/MainSidebar';
 import DocumentTypeSidebar from '../../components/layout/DocumentTypeSidebar';
 import { Loading, Modal } from '../../components/ui';
+import pdfExportService from '../../utils/pdfExport';
 
 const ProjectDetail = () => {
   const { projectId } = useParams();
@@ -93,11 +94,29 @@ const ProjectDetail = () => {
       '3.5.5': { estado: '', observacion: '' },
       '3.5.6': { estado: '', observacion: '' }
     },
-    aislacion: {
-      '4.1': { estado: '', observacion: '' },
-      '4.2': { estado: '', observacion: '' },
-      '4.3': { estado: '', observacion: '' },
-      '4.4': { estado: '', observacion: '' }
+    aislamiento: {
+      // Mediciones entre conductores y tierra
+      'L1-PE': { tension_ensayo: '500', valor_medido: '', observaciones: '' },
+      'L2-PE': { tension_ensayo: '500', valor_medido: '', observaciones: '' },
+      'L3-PE': { tension_ensayo: '500', valor_medido: '', observaciones: '' },
+      'N-PE': { tension_ensayo: '500', valor_medido: '', observaciones: '' },
+      // Mediciones entre conductores activos
+      'L1-L2': { tension_ensayo: '500', valor_medido: '', observaciones: '' },
+      'L1-L3': { tension_ensayo: '500', valor_medido: '', observaciones: '' },
+      'L1-N': { tension_ensayo: '500', valor_medido: '', observaciones: '' },
+      'L2-L3': { tension_ensayo: '500', valor_medido: '', observaciones: '' },
+      'L2-N': { tension_ensayo: '500', valor_medido: '', observaciones: '' },
+      'L3-N': { tension_ensayo: '500', valor_medido: '', observaciones: '' },
+      // Condiciones ambientales
+      temperatura: '',
+      humedad: '',
+      presion: '',
+      tiempo_carga: '60',
+      // Información del equipo
+      equipo_marca: '',
+      equipo_modelo: '',
+      equipo_serie: '',
+      fecha_calibracion: ''
     },
     controlFinal: {
       '5.1': { estado: '', observacion: '' },
@@ -359,6 +378,62 @@ const ProjectDetail = () => {
     }
   };
 
+  // PDF Export Functions
+  const handleExportPDF = async () => {
+    try {
+      toast.loading('Generando PDF...', { id: 'pdf-export' });
+      
+      // Prepare project data for export
+      const exportData = {
+        ...project,
+        calculation_data: {
+          fatProtocol: protocolosPorTablero[selectedTablero?.id] || {}
+        }
+      };
+      
+      await pdfExportService.exportProjectProtocol(exportData);
+      toast.success('PDF generado exitosamente', { id: 'pdf-export' });
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      toast.error('Error al generar PDF: ' + error.message, { id: 'pdf-export' });
+    }
+  };
+
+  const handlePrintView = () => {
+    // Open print dialog for the current page
+    window.print();
+  };
+
+  const handleExportProtocolElement = async () => {
+    try {
+      if (!selectedTablero) {
+        toast.error('Selecciona un tablero para exportar');
+        return;
+      }
+
+      toast.loading('Generando PDF del protocolo...', { id: 'protocol-pdf' });
+      
+      const protocolElement = document.getElementById('protocol-content');
+      if (!protocolElement) {
+        toast.error('No se encontró el contenido del protocolo', { id: 'protocol-pdf' });
+        return;
+      }
+
+      const exportData = {
+        ...project,
+        calculation_data: {
+          fatProtocol: protocolosPorTablero[selectedTablero.id] || {}
+        }
+      };
+
+      await pdfExportService.exportElementToPDF('protocol-content', exportData);
+      toast.success('PDF del protocolo generado exitosamente', { id: 'protocol-pdf' });
+    } catch (error) {
+      console.error('Error exporting protocol PDF:', error);
+      toast.error('Error al generar PDF del protocolo: ' + error.message, { id: 'protocol-pdf' });
+    }
+  };
+
   // Función para enviar invitación
   const sendInvitation = async () => {
     if (!inviteData.email.trim()) {
@@ -469,7 +544,7 @@ const ProjectDetail = () => {
       ...newData.estructura,
       ...newData.electromontaje,
       ...newData.pruebas,
-      ...newData.aislacion,
+      ...newData.aislamiento,
       ...newData.controlFinal
     };
     
@@ -578,13 +653,37 @@ const ProjectDetail = () => {
                 </div>
               </div>
 
-              <button
-                onClick={() => setShowInviteModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              >
-                <UserPlus className="w-4 h-4" />
-                Invitar Usuario
-              </button>
+              <div className="flex items-center gap-3">
+                {/* PDF Export buttons - only show for protocol documents */}
+                {selectedDocumentType?.id === 'protocolo-ensayos' && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleExportPDF}
+                      className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      title="Exportar protocolo completo a PDF"
+                    >
+                      <FileDown className="w-4 h-4" />
+                      Exportar PDF
+                    </button>
+                    <button
+                      onClick={handlePrintView}
+                      className="flex items-center gap-2 px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                      title="Vista de impresión"
+                    >
+                      <Printer className="w-4 h-4" />
+                      Imprimir
+                    </button>
+                  </div>
+                )}
+                
+                <button
+                  onClick={() => setShowInviteModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  Invitar Usuario
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -609,7 +708,6 @@ const ProjectDetail = () => {
                         }}
                         className="px-3 py-2 border border-gray-300 rounded text-sm bg-white text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
-                        <option value="">Seleccionar Tablero</option>
                         {tableros.map((tablero) => (
                           <option key={tablero.id} value={tablero.id}>
                             {tablero.nombre}
@@ -855,7 +953,7 @@ const ProjectDetail = () => {
                   </div>
                 ) : selectedDocumentType.id === 'protocolo-ensayos' ? (
                   // Vista específica para Protocolo de Ensayos
-                  <div className="space-y-6">
+                  <div id="protocol-content" className="space-y-6">
                     {/* Header del protocolo simple */}
                     <div className="bg-white border border-gray-800 rounded-lg overflow-hidden">
                       <div className="bg-orange-500 text-white p-4 text-center">
@@ -871,8 +969,18 @@ const ProjectDetail = () => {
                       <div className="p-3">
                         <div className="flex justify-between items-center">
                           <span className="text-sm font-medium">FECHA: {formatDateDDMMYYYY(project.updated_at)}</span>
-                          <div className={`px-4 py-2 rounded border text-center font-bold ${getEstadoColor(protocolData.estado)}`}>
-                            {protocolData.estado}
+                          <div className="flex items-center gap-3">
+                            <button
+                              onClick={handleExportProtocolElement}
+                              className="flex items-center gap-2 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
+                              title="Exportar este protocolo a PDF"
+                            >
+                              <Download className="w-4 h-4" />
+                              Exportar PDF
+                            </button>
+                            <div className={`px-4 py-2 rounded border text-center font-bold ${getEstadoColor(protocolData.estado)}`}>
+                              {protocolData.estado}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -1129,84 +1237,271 @@ const ProjectDetail = () => {
                       </table>
                     </div>
 
-                    {/* Sección 4: AISLACIÓN */}
+                    {/* Sección 4: MEDICIÓN DE AISLAMIENTO - NUEVA VERSIÓN MEJORADA */}
                     <div className="bg-white border border-gray-800 rounded-lg overflow-hidden mt-4">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="bg-green-600 text-white">
-                            <th className="border border-gray-800 px-2 py-1 text-left font-bold text-xs w-16">4.</th>
-                            <th className="border border-gray-800 px-2 py-1 text-left font-bold w-64">AISLACIÓN</th>
-                            <th className="border border-gray-800 px-2 py-1 text-center font-bold w-12">SI</th>
-                            <th className="border border-gray-800 px-2 py-1 text-center font-bold w-12">NO</th>
-                            <th className="border border-gray-800 px-2 py-1 text-center font-bold w-12">N/A</th>
-                            <th className="border border-gray-800 px-2 py-1 text-center font-bold bg-orange-500 w-80">OBS.</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {[
-                            { id: '4.1', desc: 'Medición de aislación entre fases' },
-                            { id: '4.2', desc: 'Medición de aislación fase-tierra' },
-                            { id: '4.3', desc: 'Medición de aislación neutro-tierra' },
-                            { id: '4.4', desc: 'Verificación de rigidez dieléctrica' }
-                          ].map((item) => (
-                            <tr key={item.id}>
-                              <td className="border border-gray-800 px-2 py-1 font-medium text-xs">{item.id}</td>
-                              <td className="border border-gray-800 px-2 py-1 text-xs">{item.desc}</td>
-                              <td 
-                                className="border border-gray-800 px-1 py-1 text-center cursor-pointer hover:bg-gray-100"
-                                onClick={() => updateProtocolItem('aislacion', item.id, 'estado', 'SI')}
-                              >
-                                <div className="flex justify-center items-center h-full w-full py-2">
-                                  <input
-                                    type="radio"
-                                    name={`aislacion-${item.id}`}
-                                    checked={protocolData.aislacion[item.id]?.estado === 'SI'}
-                                    onChange={() => updateProtocolItem('aislacion', item.id, 'estado', 'SI')}
-                                    className="w-4 h-4 pointer-events-none"
-                                  />
-                                </div>
-                              </td>
-                              <td 
-                                className="border border-gray-800 px-1 py-1 text-center cursor-pointer hover:bg-gray-100"
-                                onClick={() => updateProtocolItem('aislacion', item.id, 'estado', 'NO')}
-                              >
-                                <div className="flex justify-center items-center h-full w-full py-2">
-                                  <input
-                                    type="radio"
-                                    name={`aislacion-${item.id}`}
-                                    checked={protocolData.aislacion[item.id]?.estado === 'NO'}
-                                    onChange={() => updateProtocolItem('aislacion', item.id, 'estado', 'NO')}
-                                    className="w-4 h-4 pointer-events-none"
-                                  />
-                                </div>
-                              </td>
-                              <td 
-                                className="border border-gray-800 px-1 py-1 text-center cursor-pointer hover:bg-gray-100"
-                                onClick={() => updateProtocolItem('aislacion', item.id, 'estado', 'NA')}
-                              >
-                                <div className="flex justify-center items-center h-full w-full py-2">
-                                  <input
-                                    type="radio"
-                                    name={`aislacion-${item.id}`}
-                                    checked={protocolData.aislacion[item.id]?.estado === 'NA'}
-                                    onChange={() => updateProtocolItem('aislacion', item.id, 'estado', 'NA')}
-                                    className="w-4 h-4 pointer-events-none"
-                                  />
-                                </div>
-                              </td>
-                              <td className="border border-gray-800 px-2 py-2 bg-orange-50">
-                                <textarea
-                                  value={protocolData.aislacion[item.id]?.observacion || ''}
-                                  onChange={(e) => updateProtocolItem('aislacion', item.id, 'observacion', e.target.value)}
-                                  className="w-full px-2 py-1 text-xs border-0 bg-transparent focus:outline-none resize-none"
-                                  placeholder="-"
-                                  rows="2"
-                                />
-                              </td>
+                      {/* Encabezado principal */}
+                      <div className="bg-green-600 text-white p-3">
+                        <h3 className="font-bold text-lg">4. MEDICIÓN DE AISLAMIENTO</h3>
+                        <p className="text-sm mt-1">Mediciones de resistencia de aislamiento según IEC 60364-6</p>
+                      </div>
+
+                      {/* Tabla de mediciones principales */}
+                      <div className="p-4">
+                        <h4 className="font-semibold text-gray-800 mb-3">4.1 Mediciones entre conductores y tierra</h4>
+                        <table className="w-full text-sm border border-gray-300 mb-6">
+                          <thead>
+                            <tr className="bg-blue-100">
+                              <th className="border border-gray-300 px-3 py-2 text-left">Medición</th>
+                              <th className="border border-gray-300 px-3 py-2 text-center">Tensión ensayo (V)</th>
+                              <th className="border border-gray-300 px-3 py-2 text-center">Valor medido (MΩ)</th>
+                              <th className="border border-gray-300 px-3 py-2 text-center">Valor mínimo</th>
+                              <th className="border border-gray-300 px-3 py-2 text-center">Estado</th>
+                              <th className="border border-gray-300 px-3 py-2 text-center">Observaciones</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {[
+                              { id: 'L1-PE', desc: 'L1 - PE (Tierra)', min: '≥ 1.0' },
+                              { id: 'L2-PE', desc: 'L2 - PE (Tierra)', min: '≥ 1.0' },
+                              { id: 'L3-PE', desc: 'L3 - PE (Tierra)', min: '≥ 1.0' },
+                              { id: 'N-PE', desc: 'N - PE (Tierra)', min: '≥ 1.0' }
+                            ].map((item) => (
+                              <tr key={item.id} className="hover:bg-gray-50">
+                                <td className="border border-gray-300 px-3 py-2 font-medium">{item.desc}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">
+                                  <select
+                                    value={protocolData.aislamiento?.[item.id]?.tension || '500'}
+                                    onChange={(e) => updateProtocolItem('aislamiento', item.id, 'tension', e.target.value)}
+                                    className="w-full px-2 py-1 border border-gray-300 rounded text-center"
+                                  >
+                                    <option value="250">250</option>
+                                    <option value="500">500</option>
+                                    <option value="1000">1000</option>
+                                  </select>
+                                </td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    value={protocolData.aislamiento?.[item.id]?.valor || ''}
+                                    onChange={(e) => updateProtocolItem('aislamiento', item.id, 'valor', e.target.value)}
+                                    className="w-full px-2 py-1 border border-gray-300 rounded text-center"
+                                    placeholder="0.00"
+                                  />
+                                </td>
+                                <td className="border border-gray-300 px-3 py-2 text-center text-gray-600">{item.min} MΩ</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">
+                                  <div className="flex justify-center space-x-2">
+                                    <label className="flex items-center">
+                                      <input
+                                        type="radio"
+                                        name={`aislamiento-${item.id}`}
+                                        checked={protocolData.aislamiento?.[item.id]?.conforme === 'CONFORME'}
+                                        onChange={() => updateProtocolItem('aislamiento', item.id, 'conforme', 'CONFORME')}
+                                        className="w-3 h-3"
+                                      />
+                                      <span className="ml-1 text-xs text-green-600">✓</span>
+                                    </label>
+                                    <label className="flex items-center">
+                                      <input
+                                        type="radio"
+                                        name={`aislamiento-${item.id}`}
+                                        checked={protocolData.aislamiento?.[item.id]?.conforme === 'NO_CONFORME'}
+                                        onChange={() => updateProtocolItem('aislamiento', item.id, 'conforme', 'NO_CONFORME')}
+                                        className="w-3 h-3"
+                                      />
+                                      <span className="ml-1 text-xs text-red-600">✗</span>
+                                    </label>
+                                  </div>
+                                </td>
+                                <td className="border border-gray-300 px-3 py-2">
+                                  <input
+                                    type="text"
+                                    value={protocolData.aislamiento?.[item.id]?.observacion || ''}
+                                    onChange={(e) => updateProtocolItem('aislamiento', item.id, 'observacion', e.target.value)}
+                                    className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                                    placeholder="Observaciones..."
+                                  />
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+
+                        <h4 className="font-semibold text-gray-800 mb-3">4.2 Mediciones entre conductores activos</h4>
+                        <table className="w-full text-sm border border-gray-300 mb-6">
+                          <thead>
+                            <tr className="bg-blue-100">
+                              <th className="border border-gray-300 px-3 py-2 text-left">Medición</th>
+                              <th className="border border-gray-300 px-3 py-2 text-center">Tensión ensayo (V)</th>
+                              <th className="border border-gray-300 px-3 py-2 text-center">Valor medido (MΩ)</th>
+                              <th className="border border-gray-300 px-3 py-2 text-center">Valor mínimo</th>
+                              <th className="border border-gray-300 px-3 py-2 text-center">Estado</th>
+                              <th className="border border-gray-300 px-3 py-2 text-center">Observaciones</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {[
+                              { id: 'L1-L2', desc: 'L1 - L2', min: '≥ 1.0' },
+                              { id: 'L2-L3', desc: 'L2 - L3', min: '≥ 1.0' },
+                              { id: 'L3-L1', desc: 'L3 - L1', min: '≥ 1.0' },
+                              { id: 'L1-N', desc: 'L1 - N', min: '≥ 1.0' },
+                              { id: 'L2-N', desc: 'L2 - N', min: '≥ 1.0' },
+                              { id: 'L3-N', desc: 'L3 - N', min: '≥ 1.0' }
+                            ].map((item) => (
+                              <tr key={item.id} className="hover:bg-gray-50">
+                                <td className="border border-gray-300 px-3 py-2 font-medium">{item.desc}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">
+                                  <select
+                                    value={protocolData.aislamiento?.[item.id]?.tension || '500'}
+                                    onChange={(e) => updateProtocolItem('aislamiento', item.id, 'tension', e.target.value)}
+                                    className="w-full px-2 py-1 border border-gray-300 rounded text-center"
+                                  >
+                                    <option value="250">250</option>
+                                    <option value="500">500</option>
+                                    <option value="1000">1000</option>
+                                  </select>
+                                </td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    value={protocolData.aislamiento?.[item.id]?.valor || ''}
+                                    onChange={(e) => updateProtocolItem('aislamiento', item.id, 'valor', e.target.value)}
+                                    className="w-full px-2 py-1 border border-gray-300 rounded text-center"
+                                    placeholder="0.00"
+                                  />
+                                </td>
+                                <td className="border border-gray-300 px-3 py-2 text-center text-gray-600">{item.min} MΩ</td>
+                                <td className="border border-gray-300 px-3 py-2 text-center">
+                                  <div className="flex justify-center space-x-2">
+                                    <label className="flex items-center">
+                                      <input
+                                        type="radio"
+                                        name={`aislamiento-${item.id}`}
+                                        checked={protocolData.aislamiento?.[item.id]?.conforme === 'CONFORME'}
+                                        onChange={() => updateProtocolItem('aislamiento', item.id, 'conforme', 'CONFORME')}
+                                        className="w-3 h-3"
+                                      />
+                                      <span className="ml-1 text-xs text-green-600">✓</span>
+                                    </label>
+                                    <label className="flex items-center">
+                                      <input
+                                        type="radio"
+                                        name={`aislamiento-${item.id}`}
+                                        checked={protocolData.aislamiento?.[item.id]?.conforme === 'NO_CONFORME'}
+                                        onChange={() => updateProtocolItem('aislamiento', item.id, 'conforme', 'NO_CONFORME')}
+                                        className="w-3 h-3"
+                                      />
+                                      <span className="ml-1 text-xs text-red-600">✗</span>
+                                    </label>
+                                  </div>
+                                </td>
+                                <td className="border border-gray-300 px-3 py-2">
+                                  <input
+                                    type="text"
+                                    value={protocolData.aislamiento?.[item.id]?.observacion || ''}
+                                    onChange={(e) => updateProtocolItem('aislamiento', item.id, 'observacion', e.target.value)}
+                                    className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                                    placeholder="Observaciones..."
+                                  />
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+
+                        <h4 className="font-semibold text-gray-800 mb-3">4.3 Condiciones de ensayo y equipo utilizado</h4>
+                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-300">
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Temperatura (°C):</label>
+                              <input
+                                type="number"
+                                value={protocolData.aislamiento?.condiciones?.temperatura || ''}
+                                onChange={(e) => updateProtocolItem('aislamiento', 'condiciones', 'temperatura', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                placeholder="20"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Humedad relativa (%):</label>
+                              <input
+                                type="number"
+                                value={protocolData.aislamiento?.condiciones?.humedad || ''}
+                                onChange={(e) => updateProtocolItem('aislamiento', 'condiciones', 'humedad', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                placeholder="65"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Presión atmosférica (hPa):</label>
+                              <input
+                                type="number"
+                                value={protocolData.aislamiento?.condiciones?.presion || ''}
+                                onChange={(e) => updateProtocolItem('aislamiento', 'condiciones', 'presion', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                placeholder="1013"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Tiempo de carga (s):</label>
+                              <select
+                                value={protocolData.aislamiento?.condiciones?.tiempoCarga || '60'}
+                                onChange={(e) => updateProtocolItem('aislamiento', 'condiciones', 'tiempoCarga', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                              >
+                                <option value="15">15 s</option>
+                                <option value="60">60 s</option>
+                                <option value="120">120 s</option>
+                              </select>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Instrumento utilizado:</label>
+                              <input
+                                type="text"
+                                value={protocolData.aislamiento?.condiciones?.instrumento || ''}
+                                onChange={(e) => updateProtocolItem('aislamiento', 'condiciones', 'instrumento', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                                placeholder="Ej: Megger MIT515, Serie: 12345"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de calibración:</label>
+                              <input
+                                type="date"
+                                value={protocolData.aislamiento?.condiciones?.fechaCalibracion || ''}
+                                onChange={(e) => updateProtocolItem('aislamiento', 'condiciones', 'fechaCalibracion', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="mt-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Observaciones del ensayo:</label>
+                            <textarea
+                              value={protocolData.aislamiento?.condiciones?.observaciones || ''}
+                              onChange={(e) => updateProtocolItem('aislamiento', 'condiciones', 'observaciones', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                              rows="3"
+                              placeholder="Observaciones sobre las condiciones del ensayo, estado de la instalación, etc."
+                            />
+                          </div>
+                        </div>
+
+                        {/* Resumen de resultados */}
+                        <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                          <h4 className="font-semibold text-blue-800 mb-2">Resumen de resultados</h4>
+                          <div className="text-sm text-blue-700">
+                            <p>• Todas las mediciones deben cumplir con el valor mínimo de 1.0 MΩ según IEC 60364-6</p>
+                            <p>• Para instalaciones nuevas se recomienda un valor mínimo de 2.0 MΩ</p>
+                            <p>• Los ensayos se realizan con la instalación desenergizada y equipos desconectados</p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Sección 5: CONTROL FINAL */}

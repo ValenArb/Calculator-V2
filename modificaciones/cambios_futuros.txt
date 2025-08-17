@@ -1,0 +1,29 @@
+Implementar la funcionalidad para exportar el protocolo de ensayo a PDF, utilizando un formato profesional y personalizado (el formato se definirá más adelante).
+
+En las secciones de firma, agregar la opción para importar firmas y un checkbox para habilitar la firma digital. La "firma digital" será simplemente el nombre de la persona en letra cursiva formal, simulando una firma más formal. Todas las opciones de firma deben ser individuales por cada persona involucrada.
+
+Agregar una sección para la medición de aislación:
+ Incluir un checkbox que indique si aplica la medición de aislación. Si aplica, mostrar la tabla; si no, ocultarla.
+ Agregar una mini tabla al costado con los siguientes campos: "Marca", "Modelo", "Escala" y "Tiempo".
+ Incluir una tabla principal con el siguiente formato:
+  |         | RESISTENCIA 2 | RESISTENCIA 1 | CORRIENTE 2 | CORRIENTE 1 |
+  |---------|---------------|---------------|-------------|-------------|
+  | N-RST   | N/A           | N/A           | N/A         | N/A         |
+  | R-NST   | N/A           | N/A           | N/A         | N/A         |
+  | S-NRT   | N/A           | N/A           | N/A         | N/A         |
+    | T-NSR   | N/A           | N/A           | N/A         | N/A         |
+
+Eliminar la tabla 4 actual y reemplazarla por la nueva tabla de aislación detallada arriba.
+Gestión de usuarios y permisos en proyectos:
+
+Agregar una sección donde el owner y admin del proyecto pueda gestionar los usuarios agregados:
+- Asignar y cambiar el rol de cada usuario (usuario común, admin o visualizador).
+- El owner y admin pueden eliminar usuarios del proyecto.
+- El admin puede invitar a más personas y eliminar usuarios, excepto otros admins y el owner.
+- Los usuarios normales pueden invitar personas únicamente en modo lectura (visualizador), pero estas invitaciones tienen acceso limitado a 24 horas.
+- El visualizador solo puede ver, no puede hacer cambios.
+- En el modal de invitación de usuarios, permitir seleccionar el rol que tendrá el usuario invitado.
+
+En el dropdown de selector de tablero dentro de protocolo de ensayos, eliminar la opción de "Seleccionar tablero".
+
+Agregar indicador de usuarios activos: mostrar las fotos de perfil de los usuarios que tienen el proyecto abierto actualmente, ubicadas arriba de todo junto al título del proyecto.
