@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { Modal } from '../../ui';
 import { User, Mail, Phone, MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
-import projectsService from '../../../services/firebase/projects';
+import projectsApiService from '../../../services/api/projects';
 import ClientLogoUploader from '../ClientLogoUploader';
 
-const CreateProjectModal = ({ isOpen, onClose, userId, onProjectCreated }) => {
+const CreateProjectModal = ({ isOpen, onClose, userId, user, onProjectCreated }) => {
   const [formData, setFormData] = useState({
     name: '',
     company: '',
@@ -54,7 +54,7 @@ const CreateProjectModal = ({ isOpen, onClose, userId, onProjectCreated }) => {
         client_logo_url: formData.clientLogoUrl
       };
 
-      const createdProject = await projectsService.createProject(projectData);
+      const createdProject = await projectsApiService.createProject(projectData, user || { uid: userId });
       
       toast.success('Proyecto creado exitosamente');
       

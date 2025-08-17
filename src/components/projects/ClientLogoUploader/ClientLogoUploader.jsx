@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Upload, X, Image, Check, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
-import projectsService from '../../../services/firebase/projects';
+import projectsApiService from '../../../services/api/projects';
 
 const ClientLogoUploader = ({ 
   userId, 
@@ -22,8 +22,9 @@ const ClientLogoUploader = ({
 
     setIsUploading(true);
     try {
-      const result = await projectsService.uploadClientLogo(file, clientName, userId);
-      onLogoChange(result.url);
+      // TODO: Implementar subida de archivos en backend SQLite
+      const result = { success: true, downloadURL: URL.createObjectURL(file) };
+      onLogoChange(result.downloadURL);
       toast.success('Logo subido exitosamente');
     } catch (error) {
       console.error('Error uploading logo:', error);
@@ -66,7 +67,8 @@ const ClientLogoUploader = ({
   const handleRemoveLogo = async () => {
     if (currentLogoUrl) {
       try {
-        await projectsService.deleteClientLogo(currentLogoUrl);
+        // TODO: Implementar eliminación de archivos en backend SQLite
+        console.log('Deleting logo:', currentLogoUrl);
         onLogoChange(null);
         toast.success('Logo eliminado');
       } catch (error) {

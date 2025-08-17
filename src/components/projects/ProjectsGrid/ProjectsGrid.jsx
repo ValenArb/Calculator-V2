@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import { Plus, FileText, Shuffle } from 'lucide-react';
 import RecentProjectsCard from '../RecentProjectsCard';
 import CreateProjectModal from '../CreateProjectModal';
-import projectsService from '../../../services/firebase/projects';
+import projectsApiService from '../../../services/api/projects';
 import toast from 'react-hot-toast';
 
 const ProjectsGrid = () => {
@@ -102,7 +102,7 @@ const ProjectsGrid = () => {
     };
 
     try {
-      await projectsService.createProject(randomProject);
+      await projectsApiService.createProject(randomProject, user);
       toast.success(`Proyecto "${randomProject.name}" creado exitosamente`);
       handleProjectCreated();
     } catch (error) {
@@ -150,7 +150,7 @@ const ProjectsGrid = () => {
           <FileText className="w-5 h-5" />
           Proyectos Recientes
         </h2>
-        <RecentProjectsCard userId={user?.uid} refreshTrigger={refreshTrigger} />
+        <RecentProjectsCard userId={user?.uid} user={user} refreshTrigger={refreshTrigger} />
       </div>
 
 
@@ -161,6 +161,7 @@ const ProjectsGrid = () => {
           isOpen={showCreateModal}
           onClose={() => setShowCreateModal(false)}
           userId={user?.uid}
+          user={user}
           defaultType="residential"
           onProjectCreated={handleProjectCreated}
         />

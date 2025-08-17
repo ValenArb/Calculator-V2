@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Modal } from '../../ui';
 import { User, Mail, Phone, MapPin, Calendar, FileText, Hash, Image as ImageIcon, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import projectsService from '../../../services/firebase/projects';
+import projectsApiService from '../../../services/api/projects';
 
-const ViewProjectModal = ({ isOpen, onClose, userId, projectId, onProjectDeleted }) => {
+const ViewProjectModal = ({ isOpen, onClose, userId, user, projectId, onProjectDeleted }) => {
   const [project, setProject] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -15,7 +15,7 @@ const ViewProjectModal = ({ isOpen, onClose, userId, projectId, onProjectDeleted
       
       setIsLoading(true);
       try {
-        const projectData = await projectsService.getProject(projectId, userId);
+        const projectData = await projectsApiService.getProject(projectId, user || { uid: userId });
         setProject(projectData);
       } catch (error) {
         console.error('Error loading project:', error);
@@ -62,7 +62,7 @@ const ViewProjectModal = ({ isOpen, onClose, userId, projectId, onProjectDeleted
 
     try {
       setIsLoading(true);
-      await projectsService.deleteProject(projectId, userId);
+      await projectsApiService.deleteProject(projectId, user || { uid: userId });
       toast.success(`Proyecto "${project.name}" eliminado exitosamente`);
       
       // Close modal and notify parent

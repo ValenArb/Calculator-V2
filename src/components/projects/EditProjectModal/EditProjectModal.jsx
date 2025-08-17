@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Modal } from '../../ui';
 import { User, Mail, Phone, MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
-import projectsService from '../../../services/firebase/projects';
+import projectsApiService from '../../../services/api/projects';
 import ClientLogoUploader from '../ClientLogoUploader';
 
-const EditProjectModal = ({ isOpen, onClose, userId, projectId, onProjectUpdated }) => {
+const EditProjectModal = ({ isOpen, onClose, userId, user, projectId, onProjectUpdated }) => {
   const [formData, setFormData] = useState({
     name: '',
     company: '',
@@ -26,7 +26,7 @@ const EditProjectModal = ({ isOpen, onClose, userId, projectId, onProjectUpdated
       
       setIsLoading(true);
       try {
-        const project = await projectsService.getProject(projectId, userId);
+        const project = await projectsApiService.getProject(projectId, user || { uid: userId });
         setFormData({
           name: project.name || '',
           company: project.company || '',
@@ -86,7 +86,7 @@ const EditProjectModal = ({ isOpen, onClose, userId, projectId, onProjectUpdated
         client_logo_url: formData.clientLogoUrl
       };
 
-      const updatedProject = await projectsService.updateProject(projectId, projectData, userId);
+      const updatedProject = await projectsApiService.updateProject(projectId, projectData, user || { uid: userId });
       
       toast.success('Proyecto actualizado exitosamente');
       

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { ArrowLeft, Building2, User, Mail, Phone, MapPin, Calendar, Calculator, FileText, Edit, Trash2, CheckSquare, X, AlertTriangle, Plus, UserPlus } from 'lucide-react';
 import toast from 'react-hot-toast';
-import projectsService from '../../services/firebase/projects';
+import projectsApiService from '../../services/api/projects';
 import notificationsService from '../../services/firebase/notifications';
 import usersService from '../../services/firebase/users';
 import EditProjectModal from '../../components/projects/EditProjectModal';
@@ -122,7 +122,7 @@ const ProjectDetail = () => {
       
       setIsLoading(true);
       try {
-        const projectData = await projectsService.getProject(projectId, user.uid);
+        const projectData = await projectsApiService.getProject(projectId, user);
         setProject(projectData);
         // Inicializar datos editables
         setEditableProject({
@@ -233,7 +233,7 @@ const ProjectDetail = () => {
     // Reload project data
     const loadProject = async () => {
       try {
-        const projectData = await projectsService.getProject(projectId, user.uid);
+        const projectData = await projectsApiService.getProject(projectId, user);
         setProject(projectData);
         toast.success('Proyecto actualizado exitosamente');
       } catch (error) {
@@ -254,7 +254,7 @@ const ProjectDetail = () => {
     if (!confirmed) return;
 
     try {
-      await projectsService.deleteProject(projectId, user.uid);
+      await projectsApiService.deleteProject(projectId, user);
       toast.success(`Proyecto "${project.name}" eliminado exitosamente`);
       navigate('/dashboard');
     } catch (error) {
@@ -285,7 +285,7 @@ const ProjectDetail = () => {
     try {
       const updatedTableros = [...tableros, tablero];
       // Actualizar en Firestore
-      await projectsService.updateProject(projectId, { tableros: updatedTableros }, user.uid);
+      await projectsApiService.updateProject(projectId, { tableros: updatedTableros }, user);
       
       // Actualizar estado local
       setTableros(updatedTableros);
@@ -315,7 +315,7 @@ const ProjectDetail = () => {
     try {
       const updatedTableros = tableros.filter(t => t.id !== tableroId);
       // Actualizar en Firestore
-      await projectsService.updateProject(projectId, { tableros: updatedTableros }, user.uid);
+      await projectsApiService.updateProject(projectId, { tableros: updatedTableros }, user);
       
       // Actualizar estado local
       setTableros(updatedTableros);
@@ -343,7 +343,7 @@ const ProjectDetail = () => {
   const updateProjectField = async (field, value) => {
     try {
       const updatedData = { [field]: value };
-      await projectsService.updateProject(projectId, updatedData, user.uid);
+      await projectsApiService.updateProject(projectId, updatedData, user);
       
       // Actualizar estado local
       setProject(prev => ({ ...prev, [field]: value }));
@@ -422,9 +422,9 @@ const ProjectDetail = () => {
           protocolosPorTablero: protocolosPorTablero
         };
         
-        await projectsService.updateProject(projectId, { 
+        await projectsApiService.updateProject(projectId, { 
           calculation_data: calculationData 
-        }, user.uid);
+        }, user);
       } catch (error) {
         console.error('Error saving protocol data:', error);
         toast.error('Error al guardar los datos del protocolo');

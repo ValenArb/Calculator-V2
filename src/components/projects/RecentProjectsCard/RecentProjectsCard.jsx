@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Clock, Image as ImageIcon, Eye, Edit, Search, SortAsc, Filter, Loader, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
-import projectsService from '../../../services/firebase/projects';
+import projectsApiService from '../../../services/api/projects';
 import toast from 'react-hot-toast';
 import EditProjectModal from '../EditProjectModal';
 import ViewProjectModal from '../ViewProjectModal';
 
-const RecentProjectsCard = ({ userId, refreshTrigger }) => {
+const RecentProjectsCard = ({ userId, user, refreshTrigger }) => {
   const navigate = useNavigate();
   const [recentProjects, setRecentProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,7 +38,7 @@ const RecentProjectsCard = ({ userId, refreshTrigger }) => {
         console.log('RecentProjectsCard: Fetching projects from Firestore...');
         // Add minimum loading time so users can see the loading screen
         const [projects] = await Promise.all([
-          projectsService.getProjects(userId),
+          projectsApiService.getProjects(user || { uid: userId }),
           new Promise(resolve => setTimeout(resolve, 800)) // 800ms minimum for better UX
         ]);
         console.log('RecentProjectsCard: Projects fetched:', projects.length);
@@ -109,7 +109,7 @@ const RecentProjectsCard = ({ userId, refreshTrigger }) => {
 
     try {
       setIsLoading(true);
-      await projectsService.deleteProject(projectId, userId);
+      await projectsApiService.deleteProject(projectId, user || { uid: userId });
       toast.success(`Proyecto "${projectName}" eliminado exitosamente`);
       
       // Refresh projects list
@@ -128,7 +128,7 @@ const RecentProjectsCard = ({ userId, refreshTrigger }) => {
       
       setIsLoading(true);
       try {
-        const projects = await projectsService.getProjects(userId);
+        const projects = await projectsApiService.getProjects(user || { uid: userId });
         setRecentProjects(projects);
       } catch (error) {
         console.error('Error fetching recent projects:', error);
@@ -486,6 +486,7 @@ const RecentProjectsCard = ({ userId, refreshTrigger }) => {
             setSelectedProjectId(null);
           }}
           userId={userId}
+          user={user}
           projectId={selectedProjectId}
           onProjectUpdated={handleProjectUpdated}
         />
@@ -500,6 +501,7 @@ const RecentProjectsCard = ({ userId, refreshTrigger }) => {
             setSelectedProjectId(null);
           }}
           userId={userId}
+          user={user}
           projectId={selectedProjectId}
           onProjectDeleted={handleProjectUpdated}
         />

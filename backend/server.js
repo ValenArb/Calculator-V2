@@ -7,13 +7,14 @@ import { testConnection } from './config/database.js';
 
 // Import routes
 import projectRoutes from './routes/projects.js';
+import projectsApiRoutes from './routes/projects-api.js';
 import templateRoutes from './routes/templates.js';
 import statsRoutes from './routes/stats.js';
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002;
 
 // Security middleware
 app.use(helmet());
@@ -30,7 +31,7 @@ app.use('/api/', limiter);
 const corsOptions = {
   origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-User-ID'],
   credentials: true
 };
 app.use(cors(corsOptions));
@@ -52,6 +53,7 @@ app.get('/health', async (req, res) => {
 
 // API routes
 app.use('/api/projects', projectRoutes);
+app.use('/api/v2/projects', projectsApiRoutes); // Nueva API para frontend
 app.use('/api/templates', templateRoutes);
 app.use('/api/stats', statsRoutes);
 
