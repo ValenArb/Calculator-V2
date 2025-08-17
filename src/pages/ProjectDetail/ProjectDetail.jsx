@@ -388,17 +388,17 @@ const ProjectDetail = () => {
   // PDF Export Functions
   const handleExportPDF = async () => {
     try {
+      if (!selectedTablero) {
+        toast.error('Selecciona un tablero para exportar');
+        return;
+      }
+
       toast.loading('Generando PDF...', { id: 'pdf-export' });
       
-      // Prepare project data for export
-      const exportData = {
-        ...project,
-        calculation_data: {
-          fatProtocol: protocolosPorTablero[selectedTablero?.id] || {}
-        }
-      };
+      const protocolData = protocolosPorTablero[selectedTablero.id] || getProtocoloDefecto();
+      const tableroName = selectedTablero.nombre || 'TABLERO PRINCIPAL';
       
-      await pdfExportService.exportProjectProtocol(exportData);
+      await pdfExportService.exportProtocolPDF(project, protocolData, tableroName);
       toast.success('PDF generado exitosamente', { id: 'pdf-export' });
     } catch (error) {
       console.error('Error exporting PDF:', error);
@@ -420,20 +420,10 @@ const ProjectDetail = () => {
 
       toast.loading('Generando PDF del protocolo...', { id: 'protocol-pdf' });
       
-      const protocolElement = document.getElementById('protocol-content');
-      if (!protocolElement) {
-        toast.error('No se encontró el contenido del protocolo', { id: 'protocol-pdf' });
-        return;
-      }
+      const protocolData = protocolosPorTablero[selectedTablero.id] || getProtocoloDefecto();
+      const tableroName = selectedTablero.nombre || 'TABLERO PRINCIPAL';
 
-      const exportData = {
-        ...project,
-        calculation_data: {
-          fatProtocol: protocolosPorTablero[selectedTablero.id] || {}
-        }
-      };
-
-      await pdfExportService.exportElementToPDF('protocol-content', exportData);
+      await pdfExportService.exportProtocolPDF(project, protocolData, tableroName);
       toast.success('PDF del protocolo generado exitosamente', { id: 'protocol-pdf' });
     } catch (error) {
       console.error('Error exporting protocol PDF:', error);

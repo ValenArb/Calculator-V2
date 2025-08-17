@@ -1,9 +1,9 @@
+/* Import print styles for PDF export */
+@import './print.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Import print styles for PDF export */
-@import './print.css';
 
 @layer base {
   * {
