@@ -376,10 +376,11 @@ const ProjectDetail = () => {
     setIsInviting(true);
     try {
       // Buscar el usuario por email para obtener su UID
+      console.log('Inviting user with email:', inviteData.email);
       const recipientUser = await usersService.getUserByEmail(inviteData.email);
       
       if (!recipientUser) {
-        toast.error('Usuario no encontrado. El usuario debe estar registrado en la aplicación.');
+        toast.error(`Usuario con email "${inviteData.email}" no encontrado en la base de datos. Verifica que el usuario esté registrado y haya iniciado sesión al menos una vez.`);
         setIsInviting(false);
         return;
       }

@@ -48,6 +48,8 @@ export const usersService = {
   // Find user by email
   async getUserByEmail(email) {
     try {
+      console.log('Searching for user with email:', email.toLowerCase());
+      
       const usersRef = collection(db, USERS_COLLECTION);
       const q = query(
         usersRef,
@@ -57,14 +59,25 @@ export const usersService = {
       const querySnapshot = await getDocs(q);
       
       if (querySnapshot.empty) {
+        console.warn('User not found in Firestore users collection:', email.toLowerCase());
+        
+        // Attempt to get all users for debugging (limit to 10)
+        const allUsersQuery = query(usersRef);
+        const allUsersSnapshot = await getDocs(allUsersQuery);
+        const allEmails = allUsersSnapshot.docs.slice(0, 10).map(doc => doc.data().email);
+        console.log('Available emails in users collection (first 10):', allEmails);
+        
         return null;
       }
       
       const userDoc = querySnapshot.docs[0];
-      return {
+      const userData = {
         id: userDoc.id,
         ...userDoc.data()
       };
+      
+      console.log('User found in Firestore:', { id: userData.id, email: userData.email });
+      return userData;
     } catch (error) {
       console.error('Error getting user by email:', error);
       throw error;
