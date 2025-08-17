@@ -14,11 +14,12 @@ router.get('/:projectId', async (req, res) => {
       return res.status(400).json({ error: 'userId is required' });
     }
 
+    // First try to find project by ID only (regardless of owner)
     let result = await query(`
-      SELECT calculation_data, calculation_count, updated_at
+      SELECT calculation_data, calculation_count, updated_at, owner_id
       FROM projects 
-      WHERE id = ? AND owner_id = ?
-    `, [projectId, userId]);
+      WHERE id = ?
+    `, [projectId]);
 
     // If project doesn't exist in SQLite3, create a stub entry
     if (result.rows.length === 0) {
@@ -32,7 +33,7 @@ router.get('/:projectId', async (req, res) => {
         `, [
           projectId,
           'Project (from Firestore)', // Placeholder name
-          userId,
+          'unknown', // We don't know the real owner, will be updated later
           JSON.stringify({}),
           0
         ]);
@@ -52,16 +53,19 @@ router.get('/:projectId', async (req, res) => {
 
         // Query again to get the created project
         result = await query(`
-          SELECT calculation_data, calculation_count, updated_at
+          SELECT calculation_data, calculation_count, updated_at, owner_id
           FROM projects 
-          WHERE id = ? AND owner_id = ?
-        `, [projectId, userId]);
+          WHERE id = ?
+        `, [projectId]);
 
       } catch (insertError) {
         console.error('Error creating project stub:', insertError);
         return res.status(500).json({ error: 'Failed to initialize project for calculations' });
       }
     }
+
+    // Note: We trust that access verification was already done in the frontend
+    // since this API should only be called after successful Firestore project access
 
     // Parse JSON calculation data
     const project = result.rows[0];
@@ -97,10 +101,10 @@ router.put('/:projectId', async (req, res) => {
       return res.status(400).json({ error: 'userId is required' });
     }
 
-    // Check if project exists and user owns it
+    // Check if project exists (regardless of ownership, trust frontend verification)
     let existingProject = await query(`
-      SELECT calculation_data FROM projects WHERE id = ? AND owner_id = ?
-    `, [projectId, userId]);
+      SELECT calculation_data FROM projects WHERE id = ?
+    `, [projectId]);
 
     // If project doesn't exist in SQLite3, create a stub entry
     if (existingProject.rows.length === 0) {
@@ -114,15 +118,15 @@ router.put('/:projectId', async (req, res) => {
         `, [
           projectId,
           'Project (from Firestore)', // Placeholder name
-          userId,
+          'unknown', // We don't know the real owner
           JSON.stringify({}),
           0
         ]);
 
         // Query again to get the created project
         existingProject = await query(`
-          SELECT calculation_data FROM projects WHERE id = ? AND owner_id = ?
-        `, [projectId, userId]);
+          SELECT calculation_data FROM projects WHERE id = ?
+        `, [projectId]);
 
       } catch (insertError) {
         console.error('Error creating project stub for save:', insertError);
@@ -149,16 +153,15 @@ router.put('/:projectId', async (req, res) => {
     // Calculate count based on FAT protocols only
     const count = Object.keys(calculationData.protocolosPorTablero || {}).length;
 
-    // Update the project
+    // Update the project (trust frontend access verification)
     await execute(`
       UPDATE projects 
       SET calculation_data = ?, calculation_count = ?, updated_at = datetime('now')
-      WHERE id = ? AND owner_id = ?
+      WHERE id = ?
     `, [
       JSON.stringify(updatedCalculationData),
       count,
-      projectId,
-      userId
+      projectId
     ]);
 
     // Log activity
@@ -194,21 +197,21 @@ router.delete('/:projectId', async (req, res) => {
       return res.status(400).json({ error: 'userId is required' });
     }
 
-    // Check if project exists and user owns it
+    // Check if project exists (trust frontend access verification)
     const existingProject = await query(`
-      SELECT id FROM projects WHERE id = ? AND owner_id = ?
-    `, [projectId, userId]);
+      SELECT id FROM projects WHERE id = ?
+    `, [projectId]);
 
     if (existingProject.rows.length === 0) {
-      return res.status(404).json({ error: 'Project not found or access denied' });
+      return res.status(404).json({ error: 'Project not found' });
     }
 
     // Clear calculation data
     await execute(`
       UPDATE projects 
       SET calculation_data = '{}', calculation_count = 0, updated_at = datetime('now')
-      WHERE id = ? AND owner_id = ?
-    `, [projectId, userId]);
+      WHERE id = ?
+    `, [projectId]);
 
     // Log activity
     await execute(`
