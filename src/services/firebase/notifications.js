@@ -83,19 +83,18 @@ class NotificationsService {
     try {
       const notificationsRef = collection(db, this.notificationsCollection);
       
+      // Simplified query to avoid composite index requirement
       let q = query(
         notificationsRef,
-        where('recipientEmail', 'in', [userEmail.toLowerCase(), null]),
-        orderBy('createdAt', 'desc'),
+        where('recipientEmail', '==', userEmail.toLowerCase()),
         limit(limitCount)
       );
 
       if (unreadOnly) {
         q = query(
           notificationsRef,
-          where('recipientEmail', 'in', [userEmail.toLowerCase(), null]),
+          where('recipientEmail', '==', userEmail.toLowerCase()),
           where('isRead', '==', false),
-          orderBy('createdAt', 'desc'),
           limit(limitCount)
         );
       }
@@ -113,6 +112,13 @@ class NotificationsService {
             createdAt: data.createdAt?.toDate()
           });
         }
+      });
+
+      // Sort client-side by createdAt descending
+      notifications.sort((a, b) => {
+        const dateA = a.createdAt || new Date(0);
+        const dateB = b.createdAt || new Date(0);
+        return dateB - dateA;
       });
 
       return notifications;
@@ -142,7 +148,7 @@ class NotificationsService {
       const notificationsRef = collection(db, this.notificationsCollection);
       const q = query(
         notificationsRef,
-        where('recipientEmail', 'in', [userEmail.toLowerCase(), null]),
+        where('recipientEmail', '==', userEmail.toLowerCase()),
         where('isRead', '==', false)
       );
 
@@ -181,23 +187,13 @@ class NotificationsService {
   onNotificationsChange(userEmail, callback, userUid = null) {
     const notificationsRef = collection(db, this.notificationsCollection);
     
-    // For project invitations, we need to check both email and UID
-    let q;
-    if (userUid) {
-      q = query(
-        notificationsRef,
-        where('recipientEmail', 'in', [userEmail.toLowerCase(), null]),
-        orderBy('createdAt', 'desc'),
-        limit(50)
-      );
-    } else {
-      q = query(
-        notificationsRef,
-        where('recipientEmail', 'in', [userEmail.toLowerCase(), null]),
-        orderBy('createdAt', 'desc'),
-        limit(50)
-      );
-    }
+    // Simplified query to avoid composite index requirement
+    // We'll use only recipientEmail and sort client-side
+    const q = query(
+      notificationsRef,
+      where('recipientEmail', '==', userEmail.toLowerCase()),
+      limit(50)
+    );
 
     return onSnapshot(q, (snapshot) => {
       const notifications = [];
@@ -216,6 +212,14 @@ class NotificationsService {
           });
         }
       });
+      
+      // Sort client-side by createdAt descending
+      notifications.sort((a, b) => {
+        const dateA = a.createdAt || new Date(0);
+        const dateB = b.createdAt || new Date(0);
+        return dateB - dateA;
+      });
+      
       callback(notifications);
     }, (error) => {
       console.error('Error listening to notifications:', error);
@@ -229,7 +233,7 @@ class NotificationsService {
       const notificationsRef = collection(db, this.notificationsCollection);
       const q = query(
         notificationsRef,
-        where('recipientEmail', 'in', [userEmail.toLowerCase(), null]),
+        where('recipientEmail', '==', userEmail.toLowerCase()),
         where('isRead', '==', false)
       );
 

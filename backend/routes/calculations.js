@@ -14,14 +14,53 @@ router.get('/:projectId', async (req, res) => {
       return res.status(400).json({ error: 'userId is required' });
     }
 
-    const result = await query(`
+    let result = await query(`
       SELECT calculation_data, calculation_count, updated_at
       FROM projects 
       WHERE id = ? AND owner_id = ?
     `, [projectId, userId]);
 
+    // If project doesn't exist in SQLite3, create a stub entry
     if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Project not found or access denied' });
+      console.log(`Creating project stub in SQLite3 for project: ${projectId}`);
+      
+      try {
+        await execute(`
+          INSERT INTO projects (
+            id, name, owner_id, calculation_data, calculation_count
+          ) VALUES (?, ?, ?, ?, ?)
+        `, [
+          projectId,
+          'Project (from Firestore)', // Placeholder name
+          userId,
+          JSON.stringify({}),
+          0
+        ]);
+
+        // Log activity
+        await execute(`
+          INSERT INTO project_activities (
+            id, project_id, user_id, activity_type, description
+          ) VALUES (?, ?, ?, ?, ?)
+        `, [
+          uuidv4(),
+          projectId,
+          userId,
+          'project_stub_created',
+          'Project stub created in SQLite3 for calculation data'
+        ]);
+
+        // Query again to get the created project
+        result = await query(`
+          SELECT calculation_data, calculation_count, updated_at
+          FROM projects 
+          WHERE id = ? AND owner_id = ?
+        `, [projectId, userId]);
+
+      } catch (insertError) {
+        console.error('Error creating project stub:', insertError);
+        return res.status(500).json({ error: 'Failed to initialize project for calculations' });
+      }
     }
 
     // Parse JSON calculation data
@@ -59,12 +98,36 @@ router.put('/:projectId', async (req, res) => {
     }
 
     // Check if project exists and user owns it
-    const existingProject = await query(`
+    let existingProject = await query(`
       SELECT calculation_data FROM projects WHERE id = ? AND owner_id = ?
     `, [projectId, userId]);
 
+    // If project doesn't exist in SQLite3, create a stub entry
     if (existingProject.rows.length === 0) {
-      return res.status(404).json({ error: 'Project not found or access denied' });
+      console.log(`Creating project stub in SQLite3 for saving calculations: ${projectId}`);
+      
+      try {
+        await execute(`
+          INSERT INTO projects (
+            id, name, owner_id, calculation_data, calculation_count
+          ) VALUES (?, ?, ?, ?, ?)
+        `, [
+          projectId,
+          'Project (from Firestore)', // Placeholder name
+          userId,
+          JSON.stringify({}),
+          0
+        ]);
+
+        // Query again to get the created project
+        existingProject = await query(`
+          SELECT calculation_data FROM projects WHERE id = ? AND owner_id = ?
+        `, [projectId, userId]);
+
+      } catch (insertError) {
+        console.error('Error creating project stub for save:', insertError);
+        return res.status(500).json({ error: 'Failed to initialize project for calculations' });
+      }
     }
 
     // Get existing calculation data

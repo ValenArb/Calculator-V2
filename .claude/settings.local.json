@@ -29,7 +29,8 @@
       "Bash(npm run:*)",
       "Bash(curl:*)",
       "Bash(node:*)",
-      "Bash(code .)"
+      "Bash(code .)",
+      "Bash(npm start)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits",
