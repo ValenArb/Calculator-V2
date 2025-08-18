@@ -3,6 +3,7 @@ import {
   collection, 
   doc,
   setDoc,
+  getDoc,
   getDocs,
   query,
   where,
@@ -80,6 +81,32 @@ export const usersService = {
       return userData;
     } catch (error) {
       console.error('Error getting user by email:', error);
+      throw error;
+    }
+  },
+
+  // Get user by UID
+  async getUserByUid(uid) {
+    try {
+      console.log('Searching for user with UID:', uid);
+      
+      const userRef = doc(db, USERS_COLLECTION, uid);
+      const userDoc = await getDoc(userRef);
+      
+      if (!userDoc.exists()) {
+        console.warn('User not found in Firestore users collection:', uid);
+        return null;
+      }
+      
+      const userData = {
+        id: userDoc.id,
+        ...userDoc.data()
+      };
+      
+      console.log('User found in Firestore:', { id: userData.id, email: userData.email });
+      return userData;
+    } catch (error) {
+      console.error('Error getting user by UID:', error);
       throw error;
     }
   },

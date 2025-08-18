@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useLocation } from 'react-router-dom';
-import { Calculator, FolderOpen, User, Copy, LogOut, Mail, Hash, Edit3, X, Upload, Menu, ChevronLeft, AlertTriangle, BookOpen, Bell } from 'lucide-react';
+import { Calculator, FolderOpen, User, Copy, LogOut, Mail, Hash, Edit3, X, Upload, Menu, ChevronLeft, AlertTriangle, BookOpen, Bell, Server, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ProjectsGrid from '../../components/projects/ProjectsGrid';
 import CalculatorApp from '../../components/calculator/CalculatorApp';
@@ -12,6 +12,7 @@ import { authService } from '../../services/firebase/auth';
 import notificationsService from '../../services/firebase/notifications';
 import projectsService from '../../services/firebase/projects';
 import { setUser } from '../../store/slices/authSlice';
+import { useBackendStatus } from '../../hooks/useBackendStatus';
 
 const Dashboard = () => {
   const location = useLocation();
@@ -45,6 +46,7 @@ const Dashboard = () => {
   
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
+  const { isOnline: backendOnline, lastCheck, checkBackendStatus } = useBackendStatus();
 
   // Escuchar notificaciones en tiempo real
   useEffect(() => {
@@ -286,6 +288,17 @@ const Dashboard = () => {
     }
   };
 
+  const handleDeleteNotification = async (notificationId, e) => {
+    try {
+      e.stopPropagation();
+      await notificationsService.deleteNotification(notificationId);
+      toast.success('Notificación eliminada');
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      toast.error('Error al eliminar la notificación');
+    }
+  };
+
   const renderContent = () => {
     console.log('Current activeSection:', activeSection);
     switch (activeSection) {
@@ -313,12 +326,49 @@ const Dashboard = () => {
           >
             {sidebarCollapsed ? <Menu className="w-5 h-5 text-gray-600" /> : <ChevronLeft className="w-5 h-5 text-gray-600" />}
           </button>
+          
+          {/* Backend Status Indicator - Collapsed Mode */}
+          {sidebarCollapsed && (
+            <div 
+              className="flex items-center justify-center mt-2 cursor-pointer"
+              onClick={() => checkBackendStatus()}
+              title={`Backend: ${backendOnline === null ? 'Verificando...' : backendOnline ? 'Online' : 'Offline'}${lastCheck ? ` (${lastCheck.toLocaleTimeString()})` : ''}`}
+            >
+              <div className="relative">
+                <Server className={`w-4 h-4 ${
+                  backendOnline === null ? 'text-gray-400' : 
+                  backendOnline ? 'text-green-500' : 'text-red-500'
+                }`} />
+                <div className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${
+                  backendOnline === null ? 'bg-gray-400 animate-pulse' : 
+                  backendOnline ? 'bg-green-500' : 'bg-red-500'
+                }`} />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Menu Header */}
         {!sidebarCollapsed && (
           <div className="p-4 flex-shrink-0">
-            <h2 className="text-lg font-semibold text-gray-900">Menu</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">Menu</h2>
+              {/* Backend Status Indicator */}
+              <div 
+                className="flex items-center gap-1 cursor-pointer"
+                onClick={() => checkBackendStatus()}
+                title={`Backend: ${backendOnline === null ? 'Verificando...' : backendOnline ? 'Online' : 'Offline'}${lastCheck ? ` (${lastCheck.toLocaleTimeString()})` : ''}`}
+              >
+                <Server className={`w-3 h-3 ${
+                  backendOnline === null ? 'text-gray-400' : 
+                  backendOnline ? 'text-green-500' : 'text-red-500'
+                }`} />
+                <div className={`w-2 h-2 rounded-full ${
+                  backendOnline === null ? 'bg-gray-400 animate-pulse' : 
+                  backendOnline ? 'bg-green-500' : 'bg-red-500'
+                }`} />
+              </div>
+            </div>
           </div>
         )}
 
@@ -406,9 +456,18 @@ const Dashboard = () => {
                                 {notification.createdAt?.toLocaleDateString('es-ES')}
                               </p>
                             </div>
-                            {!notification.isRead && (
-                              <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 ml-2 mt-1"></div>
-                            )}
+                            <div className="flex items-center gap-2">
+                              {!notification.isRead && (
+                                <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
+                              )}
+                              <button
+                                onClick={(e) => handleDeleteNotification(notification.id, e)}
+                                className="text-gray-400 hover:text-red-500 transition-colors p-1 hover:bg-red-50 rounded"
+                                title="Eliminar notificación"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
                           </div>
                           
                           {/* Botones para invitaciones de proyecto */}

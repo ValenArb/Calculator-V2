@@ -13,6 +13,7 @@ import {
   onSnapshot,
   serverTimestamp
 } from 'firebase/firestore';
+import { usersService } from './users';
 
 class NotificationsService {
   constructor() {
@@ -400,24 +401,35 @@ class NotificationsService {
     projectName,
     response
   }) {
-    const responseMessage = response === 'accepted' 
-      ? `${senderName} ha aceptado tu invitación al proyecto "${projectName}"`
-      : `${senderName} ha rechazado tu invitación al proyecto "${projectName}"`;
-
-    return await this.createNotification({
-      type: NotificationsService.TYPES.INVITATION_RESPONSE,
-      title: `Respuesta a invitación: ${projectName}`,
-      message: responseMessage,
-      recipientUid,
-      priority: NotificationsService.PRIORITIES.MEDIUM,
-      actionBy: 'system',
-      metadata: {
-        projectId,
-        projectName,
-        response,
-        action: 'invitation_response'
+    try {
+      // Get recipient user data to get their email
+      const recipientUser = await usersService.getUserByUid(recipientUid);
+      if (!recipientUser) {
+        throw new Error('Recipient user not found');
       }
-    });
+
+      const responseMessage = response === 'accepted' 
+        ? `${senderName} ha aceptado tu invitación al proyecto "${projectName}"`
+        : `${senderName} ha rechazado tu invitación al proyecto "${projectName}"`;
+
+      return await this.createNotification({
+        type: NotificationsService.TYPES.INVITATION_RESPONSE,
+        title: `Respuesta a invitación: ${projectName}`,
+        message: responseMessage,
+        recipientEmail: recipientUser.email, // Use email instead of UID
+        priority: NotificationsService.PRIORITIES.MEDIUM,
+        actionBy: 'system',
+        metadata: {
+          projectId,
+          projectName,
+          response,
+          action: 'invitation_response'
+        }
+      });
+    } catch (error) {
+      console.error('Error creating invitation response:', error);
+      throw error;
+    }
   }
 
   // Clean up expired notifications

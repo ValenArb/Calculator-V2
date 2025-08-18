@@ -41,7 +41,7 @@ class PDFExportService {
 
       // Set document properties
       pdf.setProperties({
-        title: 'FAT - ${project.name}',
+        title: `FAT - ${project.name}`,
         subject: 'Protocolo de FAT para tableros',
         author: project.client_name || 'Calculadora Eléctrica',
         keywords: 'electrical,testing,protocol,IEC60364',
@@ -89,7 +89,7 @@ class PDFExportService {
 
       // Set document properties
       pdf.setProperties({
-        title: 'Protocolo de Ensayos - ${project.name}',
+        title: `Protocolo de Ensayos - ${project.name}`,
         subject: 'Protocolo de Ensayos Eléctricos',
         author: project.client_name || project.company || 'Cliente',
         keywords: 'electrical,testing,protocol,FAT',
@@ -104,7 +104,7 @@ class PDFExportService {
       this.generateProtocol(pdf, project, protocol, tableroName, { pageWidth, pageHeight, margin });
 
       // Save the PDF
-      const filename = 'Protocolo_${(project.name || 'Proyecto').replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf';
+      const filename = `Protocolo_${(project.name || 'Proyecto').replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
       pdf.save(filename);
 
       return { success: true, filename };
@@ -145,13 +145,13 @@ class PDFExportService {
     pdf.setFont('helvetica', 'normal');
     
     const projectInfo = [
-      ['Nombre del Proyecto:', project.name || 'N/A'],
-      ['Cliente:', project.client_name || 'N/A'],
-      ['Ubicación:', project.location || 'N/A'],
-      ['Tipo de Proyecto:', this.formatProjectType(project.project_type)],
-      ['Estado:', this.formatStatus(project.status)],
-      ['Fecha de Creación:', this.formatDate(project.created_at)],
-      ['Última Actualización:', this.formatDate(project.updated_at)]
+      [`Nombre del Proyecto:`, project.name || 'N/A'],
+      [`Cliente:`, project.client_name || 'N/A'],
+      [`Ubicación:`, project.location || 'N/A'],
+      [`Tipo de Proyecto:`, this.formatProjectType(project.project_type)],
+      [`Estado:`, this.formatStatus(project.status)],
+      [`Fecha de Creación:`, this.formatDate(project.created_at)],
+      [`Última Actualización:`, this.formatDate(project.updated_at)]
     ];
 
     projectInfo.forEach(([label, value]) => {
@@ -210,22 +210,22 @@ class PDFExportService {
     if (sectionData && typeof sectionData === 'object') {
       Object.entries(sectionData).forEach(([key, value]) => {
         if (typeof value === 'object' && value !== null) {
-          let displayText = '${key}: ';
+          let displayText = `${key}: `;
           
           if (value.estado) {
-            displayText += 'Estado: ${value.estado}';
+            displayText += `Estado: ${value.estado}`;
           }
           if (value.valor_medido) {
-            displayText += ' | Valor: ${value.valor_medido}';
+            displayText += ` | Valor: ${value.valor_medido}`;
           }
           if (value.observaciones || value.observacion) {
-            displayText += ' | Obs: ${value.observaciones || value.observacion}';
+            displayText += ` | Obs: ${value.observaciones || value.observacion}`;
           }
           
           pdf.text(displayText, config.margin.left + 5, yPosition);
           yPosition += 5;
         } else {
-          pdf.text('${key}: ${value || 'N/A'}', config.margin.left + 5, yPosition);
+          pdf.text(`${key}: ${value || 'N/A'}`, config.margin.left + 5, yPosition);
           yPosition += 5;
         }
 
@@ -276,15 +276,15 @@ class PDFExportService {
         }
 
         pdf.setFont('helvetica', 'bold');
-        pdf.text('${signatureType.label}:', config.margin.left, yPosition);
+        pdf.text(`${signatureType.label}:`, config.margin.left, yPosition);
         yPosition += 8;
         
         pdf.setFont('helvetica', 'normal');
         pdf.setFontSize(8);
         
         // Add signature metadata
-        pdf.text('Tipo: ${signature.type === 'drawn' ? 'Dibujada' : 'Cargada'}', config.margin.left + 5, yPosition);
-        pdf.text('Fecha: ${this.formatDate(signature.timestamp)}', config.margin.left + 80, yPosition);
+        pdf.text(`Tipo: ${signature.type === 'drawn' ? 'Dibujada' : 'Cargada'}`, config.margin.left + 5, yPosition);
+        pdf.text(`Fecha: ${this.formatDate(signature.timestamp)}`, config.margin.left + 80, yPosition);
         yPosition += 5;
 
         // Add signature image (simplified - just show that it exists)
@@ -292,7 +292,7 @@ class PDFExportService {
         pdf.text('FIRMA DIGITAL', config.margin.left + 15, yPosition + 8);
         yPosition += 20;
       } else {
-        pdf.text('${signatureType.label}: Sin firmar', config.margin.left, yPosition);
+        pdf.text(`${signatureType.label}: Sin firmar`, config.margin.left, yPosition);
         yPosition += 8;
       }
     });
@@ -322,13 +322,13 @@ class PDFExportService {
     pdf.setFontSize(10);
     pdf.setFont('helvetica', 'bold');
     
-    const clientText = 'CLIENTE: ${project.company || project.client_name || 'N/A'}';
-    const obraText = 'OBRA: ${project.location || 'N/A'}';
+    const clientText = `CLIENTE: ${project.company || project.client_name || 'N/A'}`;
+    const obraText = `OBRA: ${project.location || 'N/A'}`;
     
     pdf.text(clientText, margin + 2, y + 5);
     pdf.text(obraText, margin + 100, y + 5);
     
-    pdf.text('TABLERO: ${tableroName}', margin + 2, y + 9);
+    pdf.text(`TABLERO: ${tableroName}`, margin + 2, y + 9);
     y += 15;
 
     // Project details box
@@ -340,11 +340,11 @@ class PDFExportService {
     
     // // Project info grid
     // const projectInfo = [
-    //   ['CLIENTE:', project.company || project.client_name || ''],
-    //   ['PROYECTO:', project.name || ''],
-    //   ['Un(V):', '380', 'F(Hz):', '50', 'In(A):', '630'],
-    //   ['Icc(kA):', '50', 'TIPO:', 'ESTANDARD', 'IP:', '65'],
-    //   ['Nº SERIE:', '735461023', 'FECHA:', '2024']
+    //   [`CLIENTE:`, project.company || project.client_name || ''],
+    //   [`PROYECTO:`, project.name || ''],
+    //   [`Un(V):`, '380', `F(Hz):`, '50', `In(A):`, '630'],
+    //   [`Icc(kA):`, '50', `TIPO:`, 'ESTANDARD', `IP:`, '65'],
+    //   [`Nº SERIE:`, '735461023', `FECHA:`, '2024']
     // ];
 
     // let yPos = y + 6;
@@ -392,7 +392,7 @@ class PDFExportService {
     pdf.setTextColor(0, 0, 0);
 
     pdf.setFont('helvetica', 'normal');
-    pdf.text('FECHA: ${new Date().toLocaleDateString('es-ES')}', margin, y + 5);
+    pdf.text(`FECHA: ${new Date().toLocaleDateString('es-ES')}`, margin, y + 5);
     y += 10;
 
     // Testing sections
@@ -465,28 +465,25 @@ class PDFExportService {
    */
   addSection(pdf, sectionNum, sectionTitle, items, sectionData, y, config) {
     const { pageWidth, margin } = config;
-    const rowHeight = 5;
-    const colWidths = [120, 15, 15, 15, 25]; // Description, SI, NO, N/A, OBS
+    const rowHeight = 4.5; // Reducido para headers más compactos
+    const colWidths = [125, 12, 12, 12, 30]; // Description, SI, NO, N/A, OBS - reducido espaciado
     
-    // Section header
+    // Section header CON headers en la misma fila
     pdf.setFillColor(255, 165, 0);
     pdf.rect(margin, y, pageWidth - 2 * margin, rowHeight, 'F');
     
     pdf.setTextColor(0, 0, 0);
-    pdf.setFontSize(9);
+    pdf.setFontSize(8);
     pdf.setFont('helvetica', 'bold');
-    pdf.text('${sectionNum} ${sectionTitle}', margin + 2, y + 3.5);
+    pdf.text(`${sectionNum} ${sectionTitle}`, margin + 2, y + 3.2);
     
-    // Column headers
-    y += rowHeight;
-    pdf.setFillColor(255, 165, 0);
-    pdf.rect(margin, y, pageWidth - 2 * margin, rowHeight, 'F');
-    
+    // Headers SI, NO, N/A, OBS en la MISMA fila que el título
     let x = margin;
     const headers = ['', 'SI', 'NO', 'N/A', 'OBS.'];
+    pdf.setFontSize(7); // Fuente más pequeña para headers compactos
     headers.forEach((header, index) => {
       if (index > 0) {
-        pdf.text(header, x + colWidths[index] / 2 - pdf.getTextWidth(header) / 2, y + 3.5);
+        pdf.text(header, x + colWidths[index] / 2 - pdf.getTextWidth(header) / 2, y + 3.2);
       }
       x += colWidths[index];
     });
@@ -562,20 +559,20 @@ addAislacionSection(pdf, aislacionData, y, config) {
   // Left side equipment info - más compacto
   const equipmentStartY = y;
   y += 5;
-  pdf.text('MARCA:', margin + 2, y);
-  pdf.text('SONEL', margin + 25, y);
+  pdf.text(`MARCA:`, margin + 2, y);
+  pdf.text(`${aislacionData?.marca || 'N/A'}`, margin + 25, y);
   y += 3;
   
-  pdf.text('MODELO:', margin + 2, y);
-  pdf.text('MIC-5000', margin + 25, y);
+  pdf.text(`MODELO:`, margin + 2, y);
+  pdf.text(`${aislacionData?.modelo || 'N/A'}`, margin + 25, y);
   y += 3;
   
-  pdf.text('ESCALA:', margin + 2, y);
-  pdf.text('2.5 Kv', margin + 25, y);
+  pdf.text(`ESCALA:`, margin + 2, y);
+  pdf.text(`${aislacionData?.escala || 'N/A'}`, margin + 25, y);
   y += 3;
   
-  pdf.text('TIEMPO:', margin + 2, y);
-  pdf.text('60 s', margin + 25, y);
+  pdf.text(`TIEMPO:`, margin + 2, y);
+  pdf.text(`${aislacionData?.tiempo || 'N/A'}`, margin + 25, y);
   
   // Table positioned right next to equipment info
   const tableStartY = equipmentStartY; // Alineado con el primer texto del equipo
@@ -609,12 +606,60 @@ addAislacionSection(pdf, aislacionData, y, config) {
     x += colWidths[index];
   });
   
-  // Data rows with exact labels from image
+  // Data rows with exact labels from image and units
   const measurements = [
-    { label: 'N-RST', values: ['N/A', 'N/A', 'N/A', 'N/A'] },
-    { label: 'R-NST', values: ['N/A', 'N/A', 'N/A', 'N/A'] },
-    { label: 'S-NRT', values: ['N/A', 'N/A', 'N/A', 'N/A'] },
-    { label: 'T-NSR', values: ['N/A', 'N/A', 'N/A', 'N/A'] }
+    { 
+      label: 'N-RST', 
+      values: [
+        (aislacionData?.mediciones?.['N-RST']?.resistencia2 || 'N/A') + 
+        (aislacionData?.mediciones?.['N-RST']?.resistencia2 ? ` ${aislacionData?.mediciones?.['N-RST']?.unidad_resistencia2 || 'MΩ'}` : ''),
+        (aislacionData?.mediciones?.['N-RST']?.resistencia1 || 'N/A') + 
+        (aislacionData?.mediciones?.['N-RST']?.resistencia1 ? ` ${aislacionData?.mediciones?.['N-RST']?.unidad_resistencia1 || 'MΩ'}` : ''),
+        (aislacionData?.mediciones?.['N-RST']?.corriente2 || 'N/A') + 
+        (aislacionData?.mediciones?.['N-RST']?.corriente2 ? ` ${aislacionData?.mediciones?.['N-RST']?.unidad_corriente2 || 'mA'}` : ''),
+        (aislacionData?.mediciones?.['N-RST']?.corriente1 || 'N/A') + 
+        (aislacionData?.mediciones?.['N-RST']?.corriente1 ? ` ${aislacionData?.mediciones?.['N-RST']?.unidad_corriente1 || 'mA'}` : '')
+      ]
+    },
+    { 
+      label: 'R-NST', 
+      values: [
+        (aislacionData?.mediciones?.['R-NST']?.resistencia2 || 'N/A') + 
+        (aislacionData?.mediciones?.['R-NST']?.resistencia2 ? ` ${aislacionData?.mediciones?.['R-NST']?.unidad_resistencia2 || 'MΩ'}` : ''),
+        (aislacionData?.mediciones?.['R-NST']?.resistencia1 || 'N/A') + 
+        (aislacionData?.mediciones?.['R-NST']?.resistencia1 ? ` ${aislacionData?.mediciones?.['R-NST']?.unidad_resistencia1 || 'MΩ'}` : ''),
+        (aislacionData?.mediciones?.['R-NST']?.corriente2 || 'N/A') + 
+        (aislacionData?.mediciones?.['R-NST']?.corriente2 ? ` ${aislacionData?.mediciones?.['R-NST']?.unidad_corriente2 || 'mA'}` : ''),
+        (aislacionData?.mediciones?.['R-NST']?.corriente1 || 'N/A') + 
+        (aislacionData?.mediciones?.['R-NST']?.corriente1 ? ` ${aislacionData?.mediciones?.['R-NST']?.unidad_corriente1 || 'mA'}` : '')
+      ]
+    },
+    { 
+      label: 'S-NRT', 
+      values: [
+        (aislacionData?.mediciones?.['S-NRT']?.resistencia2 || 'N/A') + 
+        (aislacionData?.mediciones?.['S-NRT']?.resistencia2 ? ` ${aislacionData?.mediciones?.['S-NRT']?.unidad_resistencia2 || 'MΩ'}` : ''),
+        (aislacionData?.mediciones?.['S-NRT']?.resistencia1 || 'N/A') + 
+        (aislacionData?.mediciones?.['S-NRT']?.resistencia1 ? ` ${aislacionData?.mediciones?.['S-NRT']?.unidad_resistencia1 || 'MΩ'}` : ''),
+        (aislacionData?.mediciones?.['S-NRT']?.corriente2 || 'N/A') + 
+        (aislacionData?.mediciones?.['S-NRT']?.corriente2 ? ` ${aislacionData?.mediciones?.['S-NRT']?.unidad_corriente2 || 'mA'}` : ''),
+        (aislacionData?.mediciones?.['S-NRT']?.corriente1 || 'N/A') + 
+        (aislacionData?.mediciones?.['S-NRT']?.corriente1 ? ` ${aislacionData?.mediciones?.['S-NRT']?.unidad_corriente1 || 'mA'}` : '')
+      ]
+    },
+    { 
+      label: 'T-NSR', 
+      values: [
+        (aislacionData?.mediciones?.['T-NSR']?.resistencia2 || 'N/A') + 
+        (aislacionData?.mediciones?.['T-NSR']?.resistencia2 ? ` ${aislacionData?.mediciones?.['T-NSR']?.unidad_resistencia2 || 'MΩ'}` : ''),
+        (aislacionData?.mediciones?.['T-NSR']?.resistencia1 || 'N/A') + 
+        (aislacionData?.mediciones?.['T-NSR']?.resistencia1 ? ` ${aislacionData?.mediciones?.['T-NSR']?.unidad_resistencia1 || 'MΩ'}` : ''),
+        (aislacionData?.mediciones?.['T-NSR']?.corriente2 || 'N/A') + 
+        (aislacionData?.mediciones?.['T-NSR']?.corriente2 ? ` ${aislacionData?.mediciones?.['T-NSR']?.unidad_corriente2 || 'mA'}` : ''),
+        (aislacionData?.mediciones?.['T-NSR']?.corriente1 || 'N/A') + 
+        (aislacionData?.mediciones?.['T-NSR']?.corriente1 ? ` ${aislacionData?.mediciones?.['T-NSR']?.unidad_corriente1 || 'mA'}` : '')
+      ]
+    }
   ];
   
   let currentY = tableStartY + rowHeight;
@@ -707,7 +752,7 @@ addAislacionSection(pdf, aislacionData, y, config) {
       
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(7);
-      pdf.text('CARGO: ${sig.cargo}', x, y + 10);
+      pdf.text(`CARGO: ${sig.cargo}`, x, y + 10);
       
       // Signature line
       const lineY = y + 15;
@@ -763,8 +808,8 @@ addAislacionSection(pdf, aislacionData, y, config) {
     
     // Table configuration
     const tableWidth = pageWidth - (margin * 2);
-    const colWidths = [15, 120, 15, 15, 15, 60]; // ID, Description, SI, NO, N/A, Observations
-    const rowHeight = 6;
+    const colWidths = [15, 125, 12, 12, 12, 60]; // ID, Description, SI, NO, N/A, Observations - reducido espaciado
+    const rowHeight = 5; // Reducido para headers más compactos
     
     // Testing sections
     const sections = [
@@ -776,33 +821,36 @@ addAislacionSection(pdf, aislacionData, y, config) {
     ];
     
     sections.forEach((section, sectionIndex) => {
-      // Section header
+      // Section header CON headers en la misma fila
       pdf.setFillColor(...section.color);
       pdf.rect(margin, yPosition, tableWidth, rowHeight, 'F');
       
       pdf.setTextColor(255, 255, 255);
-      pdf.setFontSize(9);
+      pdf.setFontSize(8);
       pdf.setFont('helvetica', 'bold');
-      pdf.text(section.title, margin + 2, yPosition + 4);
-      pdf.setTextColor(0, 0, 0);
+      pdf.text(section.title, margin + 2, yPosition + 3.2);
       
-      yPosition += rowHeight;
-      
-      // Table headers
+      // Headers ID, DESCRIPCIÓN, SI, NO, N/A, OBSERVACIONES en la MISMA fila que el título
       const headers = ['ID', 'DESCRIPCIÓN', 'SI', 'NO', 'N/A', 'OBSERVACIONES'];
       let xPosition = margin;
       
-      pdf.setFillColor(220, 220, 220);
-      pdf.rect(margin, yPosition, tableWidth, rowHeight, 'F');
-      
+      pdf.setTextColor(255, 255, 255); // Mantener texto blanco para que se vea sobre el fondo verde
       headers.forEach((header, index) => {
-        pdf.rect(xPosition, yPosition, colWidths[index], rowHeight);
-        pdf.setFontSize(8);
+        // Fuente más pequeña para headers compactos
+        if (index >= 2 && index <= 4) { // SI, NO, N/A
+          pdf.setFontSize(7);
+          // Centrar los headers SI, NO, N/A
+          const textWidth = pdf.getTextWidth(header);
+          pdf.text(header, xPosition + (colWidths[index] / 2) - (textWidth / 2), yPosition + 3.2);
+        } else {
+          pdf.setFontSize(8);
+          pdf.text(header, xPosition + 2, yPosition + 3.2);
+        }
         pdf.setFont('helvetica', 'bold');
-        pdf.text(header, xPosition + 2, yPosition + 4);
         xPosition += colWidths[index];
       });
       
+      pdf.setTextColor(0, 0, 0); // Restablecer color de texto
       yPosition += rowHeight;
       
       // Table rows
@@ -893,7 +941,7 @@ addAislacionSection(pdf, aislacionData, y, config) {
       pdf.setFont('helvetica', 'normal');
       if (signature && signature.data) {
         pdf.text('FIRMADO DIGITALMENTE', xPosition + 2, yPosition + 10);
-        pdf.text('Fecha: ${this.formatDate(signature.timestamp)}', xPosition + 2, yPosition + 15);
+        pdf.text(`Fecha: ${this.formatDate(signature.timestamp)}`, xPosition + 2, yPosition + 15);
       } else {
         pdf.text('SIN FIRMAR', xPosition + 2, yPosition + 10);
       }
@@ -971,8 +1019,8 @@ addAislacionSection(pdf, aislacionData, y, config) {
       pdf.setFont('helvetica', 'normal');
       
       // Footer text
-      const footerText = 'Generado por Calculadora Eléctrica V2 - Página ${i} de ${pageCount}';
-      const footerDate = 'Fecha de generación: ${new Date().toLocaleDateString('es-ES')}';
+      const footerText = `Generado por Calculadora Eléctrica V2 - Página ${i} de ${pageCount}`;
+      const footerDate = `Fecha de generación: ${new Date().toLocaleDateString('es-ES')}`;
       
       pdf.text(footerText, config.margin.left, 285);
       pdf.text(footerDate, 210 - config.margin.right - pdf.getTextWidth(footerDate), 285);
@@ -985,7 +1033,7 @@ addAislacionSection(pdf, aislacionData, y, config) {
   generateFilename(project) {
     const date = new Date().toISOString().split('T')[0];
     const projectName = (project.name || 'Proyecto').replace(/[^a-zA-Z0-9]/g, '_');
-    return 'Protocolo_${projectName}_${date}.pdf';
+    return `Protocolo_${projectName}_${date}.pdf`;
   }
 
   /**

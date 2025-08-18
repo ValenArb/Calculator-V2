@@ -40,6 +40,7 @@ const ProjectDetail = () => {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteData, setInviteData] = useState({ email: '', message: '' });
   const [isInviting, setIsInviting] = useState(false);
+  const [hasPendingChanges, setHasPendingChanges] = useState(false);
   
   // Estado para los protocolos de ensayos por tablero
   const [protocolosPorTablero, setProtocolosPorTablero] = useState({});
@@ -95,28 +96,59 @@ const ProjectDetail = () => {
       '3.5.6': { estado: '', observacion: '' }
     },
     aislamiento: {
-      // Mediciones entre conductores y tierra
-      'L1-PE': { tension_ensayo: '500', valor_medido: '', observaciones: '' },
-      'L2-PE': { tension_ensayo: '500', valor_medido: '', observaciones: '' },
-      'L3-PE': { tension_ensayo: '500', valor_medido: '', observaciones: '' },
-      'N-PE': { tension_ensayo: '500', valor_medido: '', observaciones: '' },
-      // Mediciones entre conductores activos
-      'L1-L2': { tension_ensayo: '500', valor_medido: '', observaciones: '' },
-      'L1-L3': { tension_ensayo: '500', valor_medido: '', observaciones: '' },
-      'L1-N': { tension_ensayo: '500', valor_medido: '', observaciones: '' },
-      'L2-L3': { tension_ensayo: '500', valor_medido: '', observaciones: '' },
-      'L2-N': { tension_ensayo: '500', valor_medido: '', observaciones: '' },
-      'L3-N': { tension_ensayo: '500', valor_medido: '', observaciones: '' },
-      // Condiciones ambientales
-      temperatura: '',
-      humedad: '',
-      presion: '',
-      tiempo_carga: '60',
-      // Información del equipo
-      equipo_marca: '',
-      equipo_modelo: '',
-      equipo_serie: '',
-      fecha_calibracion: ''
+      // Campo para el protocolo básico (4.1)
+      '4.1': { estado: '', observacion: '' },
+      // Información del equipo de medición
+      marca: '',
+      modelo: '',
+      escala: '',
+      tiempo: '',
+      // Unidades de medición
+      unidad_resistencia: 'MΩ', // MΩ, kΩ, Ω
+      unidad_corriente: 'mA', // mA, µA, A
+      // Mediciones según tabla solicitada
+      mediciones: {
+        'N-RST': {
+          resistencia2: '',
+          resistencia1: '',
+          corriente2: '',
+          corriente1: '',
+          unidad_resistencia2: 'MΩ',
+          unidad_resistencia1: 'MΩ',
+          unidad_corriente2: 'mA',
+          unidad_corriente1: 'mA'
+        },
+        'R-NST': {
+          resistencia2: '',
+          resistencia1: '',
+          corriente2: '',
+          corriente1: '',
+          unidad_resistencia2: 'MΩ',
+          unidad_resistencia1: 'MΩ',
+          unidad_corriente2: 'mA',
+          unidad_corriente1: 'mA'
+        },
+        'S-NRT': {
+          resistencia2: '',
+          resistencia1: '',
+          corriente2: '',
+          corriente1: '',
+          unidad_resistencia2: 'MΩ',
+          unidad_resistencia1: 'MΩ',
+          unidad_corriente2: 'mA',
+          unidad_corriente1: 'mA'
+        },
+        'T-NSR': {
+          resistencia2: '',
+          resistencia1: '',
+          corriente2: '',
+          corriente1: '',
+          unidad_resistencia2: 'MΩ',
+          unidad_resistencia1: 'MΩ',
+          unidad_corriente2: 'mA',
+          unidad_corriente1: 'mA'
+        }
+      }
     },
     controlFinal: {
       '5.1': { estado: '', observacion: '' },
@@ -445,6 +477,12 @@ const ProjectDetail = () => {
       return;
     }
 
+    // Prevenir auto-invitaciones
+    if (inviteData.email.toLowerCase() === user.email.toLowerCase()) {
+      toast.error('No puedes invitarte a ti mismo');
+      return;
+    }
+
     setIsInviting(true);
     try {
       // Buscar el usuario por email para obtener su UID
@@ -453,6 +491,35 @@ const ProjectDetail = () => {
       
       if (!recipientUser) {
         toast.error(`Usuario con email "${inviteData.email}" no encontrado en la base de datos. Verifica que el usuario esté registrado y haya iniciado sesión al menos una vez.`);
+        setIsInviting(false);
+        return;
+      }
+
+      // Verificar si el usuario ya es parte del proyecto (owner o colaborador)
+      if (project.owner_id === recipientUser.uid) {
+        toast.error('Este usuario ya es el dueño del proyecto');
+        setIsInviting(false);
+        return;
+      }
+
+      if (project.collaborators && project.collaborators.includes(recipientUser.uid)) {
+        toast.error('Este usuario ya es colaborador del proyecto');
+        setIsInviting(false);
+        return;
+      }
+
+      // Verificar invitaciones pendientes para prevenir spam
+      const existingNotifications = await notificationsService.getUserNotifications(inviteData.email);
+      const pendingInvitations = existingNotifications.filter(
+        notification => 
+          notification.type === 'project_invitation' && 
+          notification.status === 'pending' &&
+          notification.metadata?.projectId === projectId &&
+          notification.metadata?.senderUid === user.uid
+      );
+
+      if (pendingInvitations.length > 0) {
+        toast.error('Ya existe una invitación pendiente para este usuario en este proyecto');
         setIsInviting(false);
         return;
       }
@@ -485,23 +552,37 @@ const ProjectDetail = () => {
       clearTimeout(saveTimeoutRef.current);
     }
     
+    // Indicar que hay cambios pendientes de guardar
+    setHasPendingChanges(true);
+    
     saveTimeoutRef.current = setTimeout(async () => {
       if (!selectedTablero || isUpdatingRef.current) return;
       
       isUpdatingRef.current = true;
       
       try {
+        // Debug log para troubleshooting
+        console.log('💾 Guardando protocolos:', { 
+          projectId, 
+          userId: user.uid, 
+          protocolosPorTablero: JSON.stringify(protocolosPorTablero, null, 2) 
+        });
+        
         // Save only FAT protocols to SQLite3
         await calculationService.saveCalculations(projectId, user.uid, {
           protocolosPorTablero: protocolosPorTablero
         });
+        
+        console.log('✅ Protocolos guardados exitosamente');
+        setHasPendingChanges(false); // Marcar como guardado
       } catch (error) {
         console.error('Error saving protocol data:', error);
         toast.error('Error al guardar los datos del protocolo');
+        setHasPendingChanges(false); // También limpiar en caso de error
       } finally {
         isUpdatingRef.current = false;
       }
-    }, 200); // Reducido a 200ms para mejor respuesta
+    }, 2000); // 2 segundos de debouncing para reducir llamadas a la DB
   }, [selectedTablero, protocolosPorTablero, projectId, user.uid]);
 
   // Función para actualizar campos generales del protocolo del tablero actual
@@ -520,9 +601,47 @@ const ProjectDetail = () => {
     debouncedSave();
   };
 
+  // Función para actualizar campos anidados del protocolo
+  const updateNestedProtocolField = (path, value) => {
+    if (!selectedTablero) return;
+    
+    // Asegurar que los valores vacíos se guarden como string vacío
+    const valorFinal = value === null || value === undefined ? '' : value;
+    
+    const pathArray = path.split('.');
+    const newData = { ...protocolData };
+    
+    // Navegar hasta el campo anidado y actualizarlo
+    let current = newData;
+    for (let i = 0; i < pathArray.length - 1; i++) {
+      if (!current[pathArray[i]]) {
+        current[pathArray[i]] = {};
+      }
+      current = current[pathArray[i]];
+    }
+    current[pathArray[pathArray.length - 1]] = valorFinal;
+    
+    // Actualización optimista del estado local
+    setProtocolosPorTablero(prev => ({
+      ...prev,
+      [selectedTablero.id]: newData
+    }));
+    
+    // Guardar con debouncing
+    debouncedSave();
+  };
+
   // Funciones para manejar el protocolo de ensayos del tablero actual
   const updateProtocolItem = (seccion, item, campo, valor) => {
     if (!selectedTablero) return;
+    
+    // Asegurar que los valores vacíos se guarden como string vacío
+    const valorFinal = valor === null || valor === undefined ? '' : valor;
+    
+    // Debug log para troubleshooting
+    if (campo === 'observacion' && valorFinal === '') {
+      console.log('🔍 Borrando observación:', { seccion, item, campo, valorOriginal: valor, valorFinal });
+    }
     
     // Actualizar el item específico
     const newData = {
@@ -531,7 +650,7 @@ const ProjectDetail = () => {
         ...protocolData[seccion],
         [item]: {
           ...protocolData[seccion][item],
-          [campo]: valor
+          [campo]: valorFinal
         }
       }
     };
@@ -670,25 +789,11 @@ const ProjectDetail = () => {
               </div>
 
               <div className="flex items-center gap-3">
-                {/* PDF Export buttons - only show for protocol documents */}
-                {selectedDocumentType?.id === 'protocolo-ensayos' && (
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleExportPDF}
-                      className="flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                      title="Exportar protocolo completo a PDF"
-                    >
-                      <FileDown className="w-4 h-4" />
-                      Exportar PDF
-                    </button>
-                    <button
-                      onClick={handlePrintView}
-                      className="flex items-center gap-2 px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-                      title="Vista de impresión"
-                    >
-                      <Printer className="w-4 h-4" />
-                      Imprimir
-                    </button>
+                {/* Indicador de cambios pendientes */}
+                {hasPendingChanges && (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-amber-100 border border-amber-300 text-amber-800 rounded-lg text-sm">
+                    <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
+                    Guardando cambios...
                   </div>
                 )}
                 
@@ -1253,268 +1358,170 @@ const ProjectDetail = () => {
                       </table>
                     </div>
 
-                    {/* Sección 4: MEDICIÓN DE AISLAMIENTO - NUEVA VERSIÓN MEJORADA */}
+                    {/* Sección 4: MEDICIÓN DE AISLAMIENTO - FORMATO PERSONALIZADO */}
                     <div className="bg-white border border-gray-800 rounded-lg overflow-hidden mt-4">
                       {/* Encabezado principal */}
-                      <div className="bg-green-600 text-white p-3">
-                        <h3 className="font-bold text-lg">4. MEDICIÓN DE AISLAMIENTO</h3>
-                        <p className="text-sm mt-1">Mediciones de resistencia de aislamiento según IEC 60364-6</p>
+                      <div className="bg-orange-500 text-white p-3">
+                        <h3 className="font-bold text-lg">4. AISLACIÓN</h3>
                       </div>
 
-                      {/* Tabla de mediciones principales */}
                       <div className="p-4">
-                        <h4 className="font-semibold text-gray-800 mb-3">4.1 Mediciones entre conductores y tierra</h4>
-                        <table className="w-full text-sm border border-gray-300 mb-6">
-                          <thead>
-                            <tr className="bg-blue-100">
-                              <th className="border border-gray-300 px-3 py-2 text-left">Medición</th>
-                              <th className="border border-gray-300 px-3 py-2 text-center">Tensión ensayo (V)</th>
-                              <th className="border border-gray-300 px-3 py-2 text-center">Valor medido (MΩ)</th>
-                              <th className="border border-gray-300 px-3 py-2 text-center">Valor mínimo</th>
-                              <th className="border border-gray-300 px-3 py-2 text-center">Estado</th>
-                              <th className="border border-gray-300 px-3 py-2 text-center">Observaciones</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {[
-                              { id: 'L1-PE', desc: 'L1 - PE (Tierra)', min: '≥ 1.0' },
-                              { id: 'L2-PE', desc: 'L2 - PE (Tierra)', min: '≥ 1.0' },
-                              { id: 'L3-PE', desc: 'L3 - PE (Tierra)', min: '≥ 1.0' },
-                              { id: 'N-PE', desc: 'N - PE (Tierra)', min: '≥ 1.0' }
-                            ].map((item) => (
-                              <tr key={item.id} className="hover:bg-gray-50">
-                                <td className="border border-gray-300 px-3 py-2 font-medium">{item.desc}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-center">
-                                  <select
-                                    value={protocolData.aislamiento?.[item.id]?.tension || '500'}
-                                    onChange={(e) => updateProtocolItem('aislamiento', item.id, 'tension', e.target.value)}
-                                    className="w-full px-2 py-1 border border-gray-300 rounded text-center"
-                                  >
-                                    <option value="250">250</option>
-                                    <option value="500">500</option>
-                                    <option value="1000">1000</option>
-                                  </select>
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-center">
-                                  <input
-                                    type="number"
-                                    step="0.01"
-                                    value={protocolData.aislamiento?.[item.id]?.valor || ''}
-                                    onChange={(e) => updateProtocolItem('aislamiento', item.id, 'valor', e.target.value)}
-                                    className="w-full px-2 py-1 border border-gray-300 rounded text-center"
-                                    placeholder="0.00"
-                                  />
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-center text-gray-600">{item.min} MΩ</td>
-                                <td className="border border-gray-300 px-3 py-2 text-center">
-                                  <div className="flex justify-center space-x-2">
-                                    <label className="flex items-center">
-                                      <input
-                                        type="radio"
-                                        name={`aislamiento-${item.id}`}
-                                        checked={protocolData.aislamiento?.[item.id]?.conforme === 'CONFORME'}
-                                        onChange={() => updateProtocolItem('aislamiento', item.id, 'conforme', 'CONFORME')}
-                                        className="w-3 h-3"
-                                      />
-                                      <span className="ml-1 text-xs text-green-600">✓</span>
-                                    </label>
-                                    <label className="flex items-center">
-                                      <input
-                                        type="radio"
-                                        name={`aislamiento-${item.id}`}
-                                        checked={protocolData.aislamiento?.[item.id]?.conforme === 'NO_CONFORME'}
-                                        onChange={() => updateProtocolItem('aislamiento', item.id, 'conforme', 'NO_CONFORME')}
-                                        className="w-3 h-3"
-                                      />
-                                      <span className="ml-1 text-xs text-red-600">✗</span>
-                                    </label>
-                                  </div>
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2">
-                                  <input
-                                    type="text"
-                                    value={protocolData.aislamiento?.[item.id]?.observacion || ''}
-                                    onChange={(e) => updateProtocolItem('aislamiento', item.id, 'observacion', e.target.value)}
-                                    className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
-                                    placeholder="Observaciones..."
-                                  />
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-
-                        <h4 className="font-semibold text-gray-800 mb-3">4.2 Mediciones entre conductores activos</h4>
-                        <table className="w-full text-sm border border-gray-300 mb-6">
-                          <thead>
-                            <tr className="bg-blue-100">
-                              <th className="border border-gray-300 px-3 py-2 text-left">Medición</th>
-                              <th className="border border-gray-300 px-3 py-2 text-center">Tensión ensayo (V)</th>
-                              <th className="border border-gray-300 px-3 py-2 text-center">Valor medido (MΩ)</th>
-                              <th className="border border-gray-300 px-3 py-2 text-center">Valor mínimo</th>
-                              <th className="border border-gray-300 px-3 py-2 text-center">Estado</th>
-                              <th className="border border-gray-300 px-3 py-2 text-center">Observaciones</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {[
-                              { id: 'L1-L2', desc: 'L1 - L2', min: '≥ 1.0' },
-                              { id: 'L2-L3', desc: 'L2 - L3', min: '≥ 1.0' },
-                              { id: 'L3-L1', desc: 'L3 - L1', min: '≥ 1.0' },
-                              { id: 'L1-N', desc: 'L1 - N', min: '≥ 1.0' },
-                              { id: 'L2-N', desc: 'L2 - N', min: '≥ 1.0' },
-                              { id: 'L3-N', desc: 'L3 - N', min: '≥ 1.0' }
-                            ].map((item) => (
-                              <tr key={item.id} className="hover:bg-gray-50">
-                                <td className="border border-gray-300 px-3 py-2 font-medium">{item.desc}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-center">
-                                  <select
-                                    value={protocolData.aislamiento?.[item.id]?.tension || '500'}
-                                    onChange={(e) => updateProtocolItem('aislamiento', item.id, 'tension', e.target.value)}
-                                    className="w-full px-2 py-1 border border-gray-300 rounded text-center"
-                                  >
-                                    <option value="250">250</option>
-                                    <option value="500">500</option>
-                                    <option value="1000">1000</option>
-                                  </select>
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-center">
-                                  <input
-                                    type="number"
-                                    step="0.01"
-                                    value={protocolData.aislamiento?.[item.id]?.valor || ''}
-                                    onChange={(e) => updateProtocolItem('aislamiento', item.id, 'valor', e.target.value)}
-                                    className="w-full px-2 py-1 border border-gray-300 rounded text-center"
-                                    placeholder="0.00"
-                                  />
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-center text-gray-600">{item.min} MΩ</td>
-                                <td className="border border-gray-300 px-3 py-2 text-center">
-                                  <div className="flex justify-center space-x-2">
-                                    <label className="flex items-center">
-                                      <input
-                                        type="radio"
-                                        name={`aislamiento-${item.id}`}
-                                        checked={protocolData.aislamiento?.[item.id]?.conforme === 'CONFORME'}
-                                        onChange={() => updateProtocolItem('aislamiento', item.id, 'conforme', 'CONFORME')}
-                                        className="w-3 h-3"
-                                      />
-                                      <span className="ml-1 text-xs text-green-600">✓</span>
-                                    </label>
-                                    <label className="flex items-center">
-                                      <input
-                                        type="radio"
-                                        name={`aislamiento-${item.id}`}
-                                        checked={protocolData.aislamiento?.[item.id]?.conforme === 'NO_CONFORME'}
-                                        onChange={() => updateProtocolItem('aislamiento', item.id, 'conforme', 'NO_CONFORME')}
-                                        className="w-3 h-3"
-                                      />
-                                      <span className="ml-1 text-xs text-red-600">✗</span>
-                                    </label>
-                                  </div>
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2">
-                                  <input
-                                    type="text"
-                                    value={protocolData.aislamiento?.[item.id]?.observacion || ''}
-                                    onChange={(e) => updateProtocolItem('aislamiento', item.id, 'observacion', e.target.value)}
-                                    className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
-                                    placeholder="Observaciones..."
-                                  />
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-
-                        <h4 className="font-semibold text-gray-800 mb-3">4.3 Condiciones de ensayo y equipo utilizado</h4>
-                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-300">
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Temperatura (°C):</label>
-                              <input
-                                type="number"
-                                value={protocolData.aislamiento?.condiciones?.temperatura || ''}
-                                onChange={(e) => updateProtocolItem('aislamiento', 'condiciones', 'temperatura', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                                placeholder="20"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Humedad relativa (%):</label>
-                              <input
-                                type="number"
-                                value={protocolData.aislamiento?.condiciones?.humedad || ''}
-                                onChange={(e) => updateProtocolItem('aislamiento', 'condiciones', 'humedad', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                                placeholder="65"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Presión atmosférica (hPa):</label>
-                              <input
-                                type="number"
-                                value={protocolData.aislamiento?.condiciones?.presion || ''}
-                                onChange={(e) => updateProtocolItem('aislamiento', 'condiciones', 'presion', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                                placeholder="1013"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Tiempo de carga (s):</label>
-                              <select
-                                value={protocolData.aislamiento?.condiciones?.tiempoCarga || '60'}
-                                onChange={(e) => updateProtocolItem('aislamiento', 'condiciones', 'tiempoCarga', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                              >
-                                <option value="15">15 s</option>
-                                <option value="60">60 s</option>
-                                <option value="120">120 s</option>
-                              </select>
-                            </div>
-                          </div>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Instrumento utilizado:</label>
-                              <input
-                                type="text"
-                                value={protocolData.aislamiento?.condiciones?.instrumento || ''}
-                                onChange={(e) => updateProtocolItem('aislamiento', 'condiciones', 'instrumento', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                                placeholder="Ej: Megger MIT515, Serie: 12345"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de calibración:</label>
-                              <input
-                                type="date"
-                                value={protocolData.aislamiento?.condiciones?.fechaCalibracion || ''}
-                                onChange={(e) => updateProtocolItem('aislamiento', 'condiciones', 'fechaCalibracion', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                              />
+                        <div className="flex gap-6">
+                          {/* Información del equipo - lado izquierdo */}
+                          <div className="w-1/3">
+                            <div className="space-y-3 text-sm">
+                              <div className="flex items-center gap-2">
+                                <label className="font-medium text-gray-700 w-16">MARCA:</label>
+                                <input
+                                  type="text"
+                                  value={protocolData.aislamiento?.marca || ''}
+                                  onChange={(e) => updateNestedProtocolField('aislamiento.marca', e.target.value)}
+                                  className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                                  placeholder="Ej: SONEL"
+                                />
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <label className="font-medium text-gray-700 w-16">MODELO:</label>
+                                <input
+                                  type="text"
+                                  value={protocolData.aislamiento?.modelo || ''}
+                                  onChange={(e) => updateNestedProtocolField('aislamiento.modelo', e.target.value)}
+                                  className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                                  placeholder="Ej: MIC-5000"
+                                />
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <label className="font-medium text-gray-700 w-16">ESCALA:</label>
+                                <input
+                                  type="text"
+                                  value={protocolData.aislamiento?.escala || ''}
+                                  onChange={(e) => updateNestedProtocolField('aislamiento.escala', e.target.value)}
+                                  className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                                  placeholder="Ej: 2.5 Kv"
+                                />
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <label className="font-medium text-gray-700 w-16">TIEMPO:</label>
+                                <input
+                                  type="text"
+                                  value={protocolData.aislamiento?.tiempo || ''}
+                                  onChange={(e) => updateNestedProtocolField('aislamiento.tiempo', e.target.value)}
+                                  className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                                  placeholder="Ej: 60 s"
+                                />
+                              </div>
                             </div>
                           </div>
 
-                          <div className="mt-4">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Observaciones del ensayo:</label>
-                            <textarea
-                              value={protocolData.aislamiento?.condiciones?.observaciones || ''}
-                              onChange={(e) => updateProtocolItem('aislamiento', 'condiciones', 'observaciones', e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                              rows="3"
-                              placeholder="Observaciones sobre las condiciones del ensayo, estado de la instalación, etc."
-                            />
-                          </div>
-                        </div>
-
-                        {/* Resumen de resultados */}
-                        <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                          <h4 className="font-semibold text-blue-800 mb-2">Resumen de resultados</h4>
-                          <div className="text-sm text-blue-700">
-                            <p>• Todas las mediciones deben cumplir con el valor mínimo de 1.0 MΩ según IEC 60364-6</p>
-                            <p>• Para instalaciones nuevas se recomienda un valor mínimo de 2.0 MΩ</p>
-                            <p>• Los ensayos se realizan con la instalación desenergizada y equipos desconectados</p>
+                          {/* Tabla de mediciones - lado derecho */}
+                          <div className="w-2/3">
+                            <table className="w-full text-sm border border-gray-800">
+                              <thead>
+                                <tr className="bg-orange-500 text-white">
+                                  <th className="border border-gray-800 px-2 py-2 text-center font-bold w-16"></th>
+                                  <th className="border border-gray-800 px-2 py-2 text-center font-bold">RESISTENCIA 2</th>
+                                  <th className="border border-gray-800 px-2 py-2 text-center font-bold">RESISTENCIA 1</th>
+                                  <th className="border border-gray-800 px-2 py-2 text-center font-bold">CORRIENTE 2</th>
+                                  <th className="border border-gray-800 px-2 py-2 text-center font-bold">CORRIENTE 1</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {[
+                                  'N-RST',
+                                  'R-NST', 
+                                  'S-NRT',
+                                  'T-NSR'
+                                ].map((medicion) => (
+                                  <tr key={medicion} className="bg-white">
+                                    <td className="border border-gray-800 px-2 py-2 font-medium text-center">{medicion}</td>
+                                    <td className="border border-gray-800 px-1 py-1 text-center">
+                                      <div className="flex flex-col gap-1">
+                                        <input
+                                          type="number"
+                                          step="0.001"
+                                          value={protocolData.aislamiento?.mediciones?.[medicion]?.resistencia2 || ''}
+                                          onChange={(e) => updateNestedProtocolField(`aislamiento.mediciones.${medicion}.resistencia2`, e.target.value)}
+                                          className="w-full px-1 py-1 text-xs text-center border border-gray-300 rounded focus:outline-none focus:border-blue-400"
+                                          placeholder="N/A"
+                                        />
+                                        <select
+                                          value={protocolData.aislamiento?.mediciones?.[medicion]?.unidad_resistencia2 || 'MΩ'}
+                                          onChange={(e) => updateNestedProtocolField(`aislamiento.mediciones.${medicion}.unidad_resistencia2`, e.target.value)}
+                                          className="w-full px-1 py-0 text-xs border border-gray-300 rounded focus:outline-none"
+                                        >
+                                          <option value="Ω">Ω</option>
+                                          <option value="kΩ">kΩ</option>
+                                          <option value="MΩ">MΩ</option>
+                                        </select>
+                                      </div>
+                                    </td>
+                                    <td className="border border-gray-800 px-1 py-1 text-center">
+                                      <div className="flex flex-col gap-1">
+                                        <input
+                                          type="number"
+                                          step="0.001"
+                                          value={protocolData.aislamiento?.mediciones?.[medicion]?.resistencia1 || ''}
+                                          onChange={(e) => updateNestedProtocolField(`aislamiento.mediciones.${medicion}.resistencia1`, e.target.value)}
+                                          className="w-full px-1 py-1 text-xs text-center border border-gray-300 rounded focus:outline-none focus:border-blue-400"
+                                          placeholder="N/A"
+                                        />
+                                        <select
+                                          value={protocolData.aislamiento?.mediciones?.[medicion]?.unidad_resistencia1 || 'MΩ'}
+                                          onChange={(e) => updateNestedProtocolField(`aislamiento.mediciones.${medicion}.unidad_resistencia1`, e.target.value)}
+                                          className="w-full px-1 py-0 text-xs border border-gray-300 rounded focus:outline-none"
+                                        >
+                                          <option value="Ω">Ω</option>
+                                          <option value="kΩ">kΩ</option>
+                                          <option value="MΩ">MΩ</option>
+                                        </select>
+                                      </div>
+                                    </td>
+                                    <td className="border border-gray-800 px-1 py-1 text-center">
+                                      <div className="flex flex-col gap-1">
+                                        <input
+                                          type="number"
+                                          step="0.001"
+                                          value={protocolData.aislamiento?.mediciones?.[medicion]?.corriente2 || ''}
+                                          onChange={(e) => updateNestedProtocolField(`aislamiento.mediciones.${medicion}.corriente2`, e.target.value)}
+                                          className="w-full px-1 py-1 text-xs text-center border border-gray-300 rounded focus:outline-none focus:border-blue-400"
+                                          placeholder="N/A"
+                                        />
+                                        <select
+                                          value={protocolData.aislamiento?.mediciones?.[medicion]?.unidad_corriente2 || 'mA'}
+                                          onChange={(e) => updateNestedProtocolField(`aislamiento.mediciones.${medicion}.unidad_corriente2`, e.target.value)}
+                                          className="w-full px-1 py-0 text-xs border border-gray-300 rounded focus:outline-none"
+                                        >
+                                          <option value="µA">µA</option>
+                                          <option value="mA">mA</option>
+                                          <option value="A">A</option>
+                                        </select>
+                                      </div>
+                                    </td>
+                                    <td className="border border-gray-800 px-1 py-1 text-center">
+                                      <div className="flex flex-col gap-1">
+                                        <input
+                                          type="number"
+                                          step="0.001"
+                                          value={protocolData.aislamiento?.mediciones?.[medicion]?.corriente1 || ''}
+                                          onChange={(e) => updateNestedProtocolField(`aislamiento.mediciones.${medicion}.corriente1`, e.target.value)}
+                                          className="w-full px-1 py-1 text-xs text-center border border-gray-300 rounded focus:outline-none focus:border-blue-400"
+                                          placeholder="N/A"
+                                        />
+                                        <select
+                                          value={protocolData.aislamiento?.mediciones?.[medicion]?.unidad_corriente1 || 'mA'}
+                                          onChange={(e) => updateNestedProtocolField(`aislamiento.mediciones.${medicion}.unidad_corriente1`, e.target.value)}
+                                          className="w-full px-1 py-0 text-xs border border-gray-300 rounded focus:outline-none"
+                                        >
+                                          <option value="µA">µA</option>
+                                          <option value="mA">mA</option>
+                                          <option value="A">A</option>
+                                        </select>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
                           </div>
                         </div>
                       </div>

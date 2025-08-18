@@ -101,9 +101,9 @@ const DigitalSignature = ({
       return;
     }
 
-    // Validate file size (max 2MB)
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error('La imagen no puede ser mayor a 2MB');
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('La imagen no puede ser mayor a 10MB');
       return;
     }
 
@@ -271,7 +271,7 @@ const DigitalSignature = ({
                       <Upload className="w-5 h-5 text-gray-400" />
                       <div className="text-center">
                         <p className="text-sm font-medium text-gray-700">Cargar Imagen</p>
-                        <p className="text-xs text-gray-500">JPG, PNG, GIF (max 2MB)</p>
+                        <p className="text-xs text-gray-500">JPG, PNG, GIF (max 10MB)</p>
                       </div>
                     </button>
 
