@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Calculator, FolderOpen, User, Copy, LogOut, Mail, Hash, Edit3, Menu, ChevronLeft, AlertTriangle, Bell } from 'lucide-react';
+import { Calculator, FolderOpen, User, Copy, LogOut, Mail, Hash, Edit3, Menu, ChevronLeft, AlertTriangle, Bell, Server } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { authService } from '../../../services/firebase/auth';
 import notificationsService from '../../../services/firebase/notifications';
+import { useBackendStatus } from '../../../hooks/useBackendStatus';
 import { setUser } from '../../../store/slices/authSlice';
 
 const MainSidebar = ({ defaultCollapsed = false, activeSection = 'projects' }) => {
@@ -13,6 +14,7 @@ const MainSidebar = ({ defaultCollapsed = false, activeSection = 'projects' }) =
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useSelector((state) => state.auth);
+  const { isOnline: backendOnline } = useBackendStatus();
   
   // Estado para notificaciones
   const [notifications, setNotifications] = useState([]);
@@ -186,6 +188,26 @@ const MainSidebar = ({ defaultCollapsed = false, activeSection = 'projects' }) =
         </button>
       </div>
 
+      {/* Backend Status Indicator */}
+      <div className="p-2 border-b border-gray-200 flex-shrink-0">
+        <div className="relative group">
+          <div className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center px-2 py-2' : 'px-3 py-2'} rounded-lg`}>
+            <Server className={`w-4 h-4 ${sidebarCollapsed ? '' : 'mr-2'} ${backendOnline ? 'text-green-600' : 'text-red-600'}`} />
+            {!sidebarCollapsed && (
+              <span className={`text-xs font-medium ${backendOnline ? 'text-green-800' : 'text-red-800'}`}>
+                BD: {backendOnline ? 'Conectada' : 'Desconectada'}
+              </span>
+            )}
+          </div>
+          
+          {/* Tooltip for collapsed mode */}
+          {sidebarCollapsed && (
+            <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 bg-gray-800 text-white px-2 py-1 rounded text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+              Base de Datos: {backendOnline ? 'Conectada' : 'Desconectada'}
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Menu Header */}
       {!sidebarCollapsed && (

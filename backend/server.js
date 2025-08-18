@@ -10,6 +10,7 @@ import projectRoutes from './routes/projects.js';
 import calculationRoutes from './routes/calculations.js';
 import templateRoutes from './routes/templates.js';
 import statsRoutes from './routes/stats.js';
+import emailRoutes from './routes/email.js';
 
 dotenv.config();
 
@@ -56,6 +57,7 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/calculations', calculationRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/stats', statsRoutes);
+app.use('/api/email', emailRoutes);
 
 // 404 handler
 app.use('*', (req, res) => {
@@ -91,7 +93,7 @@ async function startServer() {
     }
 
     app.listen(PORT, () => {
-      console.log(`🚀 Calculator V2 API Server running on port ${PORT}`);
+      console.log(`🚀 NotiCalc API Server running on port ${PORT}`);
       console.log(`📊 Health check: http://localhost:${PORT}/health`);
       console.log(`🔗 API endpoints: http://localhost:${PORT}/api`);
       console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);

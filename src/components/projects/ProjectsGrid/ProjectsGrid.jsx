@@ -4,10 +4,12 @@ import { Plus, FileText, Shuffle } from 'lucide-react';
 import RecentProjectsCard from '../RecentProjectsCard';
 import CreateProjectModal from '../CreateProjectModal';
 import projectsService from '../../../services/firebase/projects';
+import { useBackendStatus } from '../../../hooks/useBackendStatus';
 import toast from 'react-hot-toast';
 
 const ProjectsGrid = ({ refreshTrigger: externalRefreshTrigger = 0 }) => {
   const { user } = useSelector((state) => state.auth);
+  const { isOnline: backendOnline } = useBackendStatus();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   
@@ -122,9 +124,21 @@ const ProjectsGrid = ({ refreshTrigger: externalRefreshTrigger = 0 }) => {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Gestión de Proyectos
           </h1>
-          <p className="text-lg text-gray-600">
+          <p className="text-lg text-gray-600 mb-2">
             Administra tus proyectos eléctricos de forma eficiente.
           </p>
+          <div className="flex items-center gap-2">
+            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+              backendOnline 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-red-100 text-red-800'
+            }`}>
+              <span className={`w-2 h-2 rounded-full mr-1.5 ${
+                backendOnline ? 'bg-green-400' : 'bg-red-400'
+              }`} />
+              Base de Datos: {backendOnline ? 'Conectada' : 'Desconectada'}
+            </span>
+          </div>
         </div>
         
         <div className="flex gap-3">

@@ -1,16 +1,19 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { ArrowLeft, Building2, User, Mail, Phone, MapPin, Calendar, Calculator, FileText, Edit, Trash2, CheckSquare, X, AlertTriangle, Plus, UserPlus, Download, FileDown, Printer } from 'lucide-react';
+import { ArrowLeft, Building2, User, Users, Mail, Phone, MapPin, Calendar, Calculator, FileText, Edit, Trash2, CheckSquare, X, AlertTriangle, Plus, UserPlus, Download, FileDown, Printer } from 'lucide-react';
 import toast from 'react-hot-toast';
 import projectsService from '../../services/firebase/projects';
 import calculationService from '../../services/calculations';
 import notificationsService from '../../services/firebase/notifications';
-import usersService from '../../services/firebase/users';
+import usersService, { USER_ROLES } from '../../services/firebase/users';
 import EditProjectModal from '../../components/projects/EditProjectModal';
+import CollaboratorManagementModal from '../../components/users/CollaboratorManagementModal';
 import MainSidebar from '../../components/layout/MainSidebar';
 import DocumentTypeSidebar from '../../components/layout/DocumentTypeSidebar';
 import { Loading, Modal, DigitalSignature } from '../../components/ui';
+import { OwnerOnly, CanEdit, CanInvite, CanAddSignatures, CanEditCalculations } from '../../components/auth/PermissionGate';
+import useUserPermissions from '../../hooks/useUserPermissions';
 import pdfExportService from '../../utils/pdfExport';
 
 const ProjectDetail = () => {
@@ -18,6 +21,9 @@ const ProjectDetail = () => {
   const navigate = useNavigate();
   const { user } = useSelector((state) => state.auth);
   const [project, setProject] = useState(null);
+  
+  // User permissions hook
+  const permissions = useUserPermissions(project);
   const [isLoading, setIsLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedDocumentType, setSelectedDocumentType] = useState({
@@ -36,10 +42,8 @@ const ProjectDetail = () => {
   // Estado para edición inline de información del proyecto
   const [editableProject, setEditableProject] = useState({});
   
-  // Estado para modal de invitación
-  const [showInviteModal, setShowInviteModal] = useState(false);
-  const [inviteData, setInviteData] = useState({ email: '', message: '' });
-  const [isInviting, setIsInviting] = useState(false);
+  // Estado para modal de colaboradores
+  const [showCollaboratorModal, setShowCollaboratorModal] = useState(false);
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
   
   // Estado para los protocolos de ensayos por tablero
@@ -96,8 +100,6 @@ const ProjectDetail = () => {
       '3.5.6': { estado: '', observacion: '' }
     },
     aislamiento: {
-      // Campo para el protocolo básico (4.1)
-      '4.1': { estado: '', observacion: '' },
       // Información del equipo de medición
       marca: '',
       modelo: '',
@@ -165,78 +167,146 @@ const ProjectDetail = () => {
     }
   });
 
+  // Función para normalizar protocolo cargado desde DB
+  const normalizeProtocolData = (loadedData) => {
+    const defaultProtocol = getProtocoloDefecto();
+    
+    if (!loadedData) return defaultProtocol;
+    
+    // Combinar datos cargados con estructura por defecto
+    const normalized = {
+      ...defaultProtocol,
+      ...loadedData,
+      // Asegurar que todas las secciones existan con la estructura correcta
+      estructura: { ...defaultProtocol.estructura, ...loadedData.estructura },
+      electromontaje: { ...defaultProtocol.electromontaje, ...loadedData.electromontaje },
+      pruebas: { ...defaultProtocol.pruebas, ...loadedData.pruebas },
+      controlFinal: { ...defaultProtocol.controlFinal, ...loadedData.controlFinal },
+      aislamiento: { ...defaultProtocol.aislamiento, ...loadedData.aislamiento },
+      firmasDigitales: { ...defaultProtocol.firmasDigitales, ...loadedData.firmasDigitales }
+    };
+    
+    console.log('🔧 Normalized protocol data:', normalized);
+    return normalized;
+  };
+
   // Protocolo actual basado en el tablero seleccionado
   const protocolData = selectedTablero ? 
     (protocolosPorTablero[selectedTablero.id] || getProtocoloDefecto()) : 
     getProtocoloDefecto();
+    
+  // Debug: Check if protocolData has the expected structure
+  if (selectedTablero) {
+    console.log('🧪 protocolData calculation:', {
+      selectedTableroId: selectedTablero.id,
+      hasProtocolInState: !!protocolosPorTablero[selectedTablero.id],
+      protocolFromState: protocolosPorTablero[selectedTablero.id],
+      finalProtocolData: protocolData,
+      estructuraSection: protocolData.estructura
+    });
+  }
+    
+  // Debug logging for protocol data
+  useEffect(() => {
+    if (selectedTablero) {
+      console.log('=== Protocol Data Debug ===');
+      console.log('Selected tablero:', selectedTablero);
+      console.log('Protocol for selected tablero:', protocolosPorTablero[selectedTablero.id]);
+      console.log('Final protocol data:', protocolData);
+      console.log('All protocols:', protocolosPorTablero);
+      console.log('========================');
+    }
+  }, [selectedTablero, protocolosPorTablero]);
 
   // Referencias para debouncing y control de guardado
   const saveTimeoutRef = useRef(null);
   const isUpdatingRef = useRef(false);
   const pendingUpdatesRef = useRef({});
 
-  useEffect(() => {
-    const loadProject = async () => {
-      if (!projectId || !user?.uid) return;
+  // Function to load/reload project data
+  const loadProject = async () => {
+    if (!projectId || !user?.uid) return;
+    
+    setIsLoading(true);
+    try {
+      // Load project metadata from Firestore
+      const projectData = await projectsService.getProject(projectId, user.uid);
+      setProject(projectData);
       
-      setIsLoading(true);
+      // Inicializar datos editables
+      setEditableProject({
+        name: projectData.name || '',
+        company: projectData.company || '',
+        location: projectData.location || '',
+        work_number: projectData.work_number || '',
+        client_name: projectData.client_name || '',
+        client_email: projectData.client_email || '',
+        client_phone: projectData.client_phone || '',
+        client_logo_url: projectData.client_logo_url || ''
+      });
+      
+      // Load calculation data from backend
       try {
-        // Load project metadata from Firestore
-        const projectData = await projectsService.getProject(projectId, user.uid);
-        setProject(projectData);
+        const calculations = await calculationService.getCalculations(projectId, user.uid);
+        console.log('Loaded calculation data:', calculations);
         
-        // Inicializar datos editables
-        setEditableProject({
-          name: projectData.name || '',
-          company: projectData.company || '',
-          client_name: projectData.client_name || '',
-          client_email: projectData.client_email || '',
-          client_phone: projectData.client_phone || '',
-          location: projectData.location || '',
-          work_number: projectData.work_number || '',
-        });
-        
-        // Cargar tableros del proyecto
-        const tablerosData = projectData.tableros || [];
-        setTableros(tablerosData);
-        // Seleccionar el primer tablero por defecto
-        if (tablerosData.length > 0) {
-          setSelectedTablero(tablerosData[0]);
-        }
-        
-        // Load calculation data (FAT protocols) from SQLite3
-        try {
-          const calculationData = await calculationService.getCalculations(projectId, user.uid);
-          setProtocolosPorTablero(calculationData.protocolosPorTablero || {});
-        } catch (calcError) {
-          console.warn('No calculation data found, starting with empty protocols:', calcError);
+        if (calculations && calculations.protocolosPorTablero && Object.keys(calculations.protocolosPorTablero).length > 0) {
+          // Normalizar cada protocolo cargado
+          const normalizedProtocols = {};
+          Object.keys(calculations.protocolosPorTablero).forEach(tableroId => {
+            normalizedProtocols[tableroId] = normalizeProtocolData(calculations.protocolosPorTablero[tableroId]);
+          });
+          
+          setProtocolosPorTablero(normalizedProtocols);
+          console.log('Loading protocols for tableros:', normalizedProtocols);
+        } else {
+          console.log('No calculation data found, starting with empty protocols:', calculations);
           setProtocolosPorTablero({});
         }
-      } catch (error) {
-        console.error('Error loading project:', error);
-        toast.error('Error al cargar el proyecto');
-        navigate('/dashboard');
-      } finally {
-        setIsLoading(false);
+      } catch (calculationError) {
+        console.error('Calculation API request failed:', calculationError);
+        setProtocolosPorTablero({});
       }
-    };
+      finally { console.log('Calculation API request completed'); }
+            
+      // Load tableros
+      const tablerosData = projectData.tableros || [];
+      setTableros(tablerosData);
+    } catch (error) {
+      console.error('Error loading project:', error);
+      toast.error('Error al cargar el proyecto');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     loadProject();
-  }, [projectId, user?.uid, navigate]);
+  }, [projectId, user?.uid]);
 
   // Efecto para asegurar que todos los tableros tengan protocolo
   useEffect(() => {
     if (tableros.length > 0) {
+      console.log('Setting up protocols for tableros:', tableros);
+      console.log('Current protocols state before update:', protocolosPorTablero);
+      
       setProtocolosPorTablero(prev => {
         const nuevosProtocolos = { ...prev };
         let actualizado = false;
         
         tableros.forEach(tablero => {
           if (!nuevosProtocolos[tablero.id]) {
+            console.log(`Creating default protocol for tablero: ${tablero.id} (${tablero.nombre})`);
             nuevosProtocolos[tablero.id] = getProtocoloDefecto();
             actualizado = true;
+          } else {
+            console.log(`Protocol already exists for tablero: ${tablero.id} (${tablero.nombre})`);
           }
         });
+        
+        if (actualizado) {
+          console.log('Updated protocols state:', nuevosProtocolos);
+        }
         
         return actualizado ? nuevosProtocolos : prev;
       });
@@ -380,12 +450,21 @@ const ProjectDetail = () => {
       setTableros(updatedTableros);
       setProject(prev => ({ ...prev, tableros: updatedTableros }));
       
-      // Eliminar el protocolo del tablero eliminado
-      setProtocolosPorTablero(prev => {
-        const nuevosProtocolos = { ...prev };
-        delete nuevosProtocolos[tableroId];
-        return nuevosProtocolos;
-      });
+      // Eliminar el protocolo del tablero eliminado del estado local
+      const nuevosProtocolos = { ...protocolosPorTablero };
+      delete nuevosProtocolos[tableroId];
+      setProtocolosPorTablero(nuevosProtocolos);
+      
+      // Guardar los protocolos actualizados en la base de datos
+      try {
+        await calculationService.saveCalculations(projectId, user.uid, {
+          protocolosPorTablero: nuevosProtocolos
+        });
+        console.log('✅ Datos del tablero eliminado de la base de datos');
+      } catch (dbError) {
+        console.error('Error cleaning up database after tablero deletion:', dbError);
+        // No mostrar error al usuario ya que el tablero se eliminó correctamente del frontend
+      }
       
       if (selectedTablero?.id === tableroId) {
         // Si eliminamos el tablero seleccionado, seleccionar el primero disponible
@@ -463,88 +542,6 @@ const ProjectDetail = () => {
     }
   };
 
-  // Función para enviar invitación
-  const sendInvitation = async () => {
-    if (!inviteData.email.trim()) {
-      toast.error('El email es requerido');
-      return;
-    }
-
-    // Validar formato de email
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(inviteData.email)) {
-      toast.error('Por favor ingresa un email válido');
-      return;
-    }
-
-    // Prevenir auto-invitaciones
-    if (inviteData.email.toLowerCase() === user.email.toLowerCase()) {
-      toast.error('No puedes invitarte a ti mismo');
-      return;
-    }
-
-    setIsInviting(true);
-    try {
-      // Buscar el usuario por email para obtener su UID
-      console.log('Inviting user with email:', inviteData.email);
-      const recipientUser = await usersService.getUserByEmail(inviteData.email);
-      
-      if (!recipientUser) {
-        toast.error(`Usuario con email "${inviteData.email}" no encontrado en la base de datos. Verifica que el usuario esté registrado y haya iniciado sesión al menos una vez.`);
-        setIsInviting(false);
-        return;
-      }
-
-      // Verificar si el usuario ya es parte del proyecto (owner o colaborador)
-      if (project.owner_id === recipientUser.uid) {
-        toast.error('Este usuario ya es el dueño del proyecto');
-        setIsInviting(false);
-        return;
-      }
-
-      if (project.collaborators && project.collaborators.includes(recipientUser.uid)) {
-        toast.error('Este usuario ya es colaborador del proyecto');
-        setIsInviting(false);
-        return;
-      }
-
-      // Verificar invitaciones pendientes para prevenir spam
-      const existingNotifications = await notificationsService.getUserNotifications(inviteData.email);
-      const pendingInvitations = existingNotifications.filter(
-        notification => 
-          notification.type === 'project_invitation' && 
-          notification.status === 'pending' &&
-          notification.metadata?.projectId === projectId &&
-          notification.metadata?.senderUid === user.uid
-      );
-
-      if (pendingInvitations.length > 0) {
-        toast.error('Ya existe una invitación pendiente para este usuario en este proyecto');
-        setIsInviting(false);
-        return;
-      }
-
-      await notificationsService.createProjectInvitation({
-        recipientEmail: inviteData.email,
-        recipientUid: recipientUser.uid,
-        senderUid: user.uid,
-        senderName: user.displayName || user.email,
-        senderEmail: user.email,
-        projectId: projectId,
-        projectName: project.name,
-        message: inviteData.message
-      });
-
-      toast.success('Invitación enviada exitosamente');
-      setShowInviteModal(false);
-      setInviteData({ email: '', message: '' });
-    } catch (error) {
-      console.error('Error sending invitation:', error);
-      toast.error('Error al enviar la invitación');
-    } finally {
-      setIsInviting(false);
-    }
-  };
 
   // Función con debouncing para guardar FAT protocols en SQLite3
   const debouncedSave = useCallback(() => {
@@ -639,9 +636,15 @@ const ProjectDetail = () => {
     const valorFinal = valor === null || valor === undefined ? '' : valor;
     
     // Debug log para troubleshooting
-    if (campo === 'observacion' && valorFinal === '') {
-      console.log('🔍 Borrando observación:', { seccion, item, campo, valorOriginal: valor, valorFinal });
-    }
+    console.log('🔍 updateProtocolItem called:', { 
+      seccion, 
+      item, 
+      campo, 
+      valor, 
+      valorFinal,
+      selectedTablero: selectedTablero.id,
+      currentValue: protocolData[seccion][item]?.[campo]
+    });
     
     // Actualizar el item específico
     const newData = {
@@ -654,6 +657,12 @@ const ProjectDetail = () => {
         }
       }
     };
+    
+    console.log('🔧 newData after update:', {
+      oldValue: protocolData[seccion][item]?.[campo],
+      newValue: newData[seccion][item][campo],
+      itemData: newData[seccion][item]
+    });
     
     // Calcular estado general con los nuevos datos
     const allItems = {
@@ -683,10 +692,14 @@ const ProjectDetail = () => {
     };
     
     // Actualización optimista del estado local (inmediata)
-    setProtocolosPorTablero(prev => ({
-      ...prev,
-      [selectedTablero.id]: finalData
-    }));
+    setProtocolosPorTablero(prev => {
+      const updatedState = {
+        ...prev,
+        [selectedTablero.id]: finalData
+      };
+      console.log('📊 Updated protocols state (updateProtocolItem):', updatedState);
+      return updatedState;
+    });
     
     // Guardar en la base de datos con debouncing
     debouncedSave();
@@ -797,13 +810,15 @@ const ProjectDetail = () => {
                   </div>
                 )}
                 
-                <button
-                  onClick={() => setShowInviteModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  Invitar Usuario
-                </button>
+                <CanInvite project={project}>
+                  <button
+                    onClick={() => setShowCollaboratorModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    <Users className="w-4 h-4" />
+                    Administrar Colaboradores
+                  </button>
+                </CanInvite>
               </div>
             </div>
           </div>
@@ -852,47 +867,71 @@ const ProjectDetail = () => {
                         <div className="space-y-3">
                           <div>
                             <label className="block text-sm font-medium text-gray-600 mb-1">Nombre del Proyecto:</label>
-                            <input
-                              type="text"
-                              value={editableProject.name || ''}
-                              onChange={(e) => setEditableProject(prev => ({ ...prev, name: e.target.value }))}
-                              onBlur={(e) => updateProjectField('name', e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                              placeholder="Nombre del proyecto"
-                            />
+                            <CanEdit project={project} fallback={
+                              <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900">
+                                {project?.name || 'Sin nombre'}
+                              </div>
+                            }>
+                              <input
+                                type="text"
+                                value={editableProject.name || ''}
+                                onChange={(e) => setEditableProject(prev => ({ ...prev, name: e.target.value }))}
+                                onBlur={(e) => updateProjectField('name', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                                placeholder="Nombre del proyecto"
+                              />
+                            </CanEdit>
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-600 mb-1">Empresa:</label>
-                            <input
-                              type="text"
-                              value={editableProject.company || ''}
-                              onChange={(e) => setEditableProject(prev => ({ ...prev, company: e.target.value }))}
-                              onBlur={(e) => updateProjectField('company', e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                              placeholder="Nombre de la empresa"
-                            />
+                            <CanEdit project={project} fallback={
+                              <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900">
+                                {editableProject.company || 'Sin empresa'}
+                              </div>
+                            }>
+                              <input
+                                type="text"
+                                value={editableProject.company || ''}
+                                onChange={(e) => setEditableProject(prev => ({ ...prev, company: e.target.value }))}
+                                onBlur={(e) => updateProjectField('company', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                                placeholder="Nombre de la empresa"
+                              />
+                            </CanEdit>
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-600 mb-1">Ubicación:</label>
-                            <input
-                              type="text"
-                              value={editableProject.location || ''}
-                              onChange={(e) => setEditableProject(prev => ({ ...prev, location: e.target.value }))}
-                              onBlur={(e) => updateProjectField('location', e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                              placeholder="Ciudad, Provincia"
-                            />
+                            <CanEdit project={project} fallback={
+                              <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900">
+                                {editableProject.location || 'Sin ubicación'}
+                              </div>
+                            }>
+                              <input
+                                type="text"
+                                value={editableProject.location || ''}
+                                onChange={(e) => setEditableProject(prev => ({ ...prev, location: e.target.value }))}
+                                onBlur={(e) => updateProjectField('location', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                                placeholder="Ciudad, Provincia"
+                              />
+                            </CanEdit>
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-600 mb-1">Número de Obra:</label>
-                            <input
-                              type="text"
-                              value={editableProject.work_number || ''}
-                              onChange={(e) => setEditableProject(prev => ({ ...prev, work_number: e.target.value }))}
-                              onBlur={(e) => updateProjectField('work_number', e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                              placeholder="Ej: OB-2024-001"
-                            />
+                            <CanEdit project={project} fallback={
+                              <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900">
+                                {editableProject.work_number || 'Sin número de obra'}
+                              </div>
+                            }>
+                              <input
+                                type="text"
+                                value={editableProject.work_number || ''}
+                                onChange={(e) => setEditableProject(prev => ({ ...prev, work_number: e.target.value }))}
+                                onBlur={(e) => updateProjectField('work_number', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                                placeholder="Ej: OB-2024-001"
+                              />
+                            </CanEdit>
                           </div>
                         </div>
                       </div>
@@ -1001,38 +1040,56 @@ const ProjectDetail = () => {
                         <div className="space-y-3">
                           <div>
                             <label className="block text-sm font-medium text-gray-600 mb-1">Nombre del Cliente:</label>
-                            <input
-                              type="text"
-                              value={editableProject.client_name || ''}
-                              onChange={(e) => setEditableProject(prev => ({ ...prev, client_name: e.target.value }))}
-                              onBlur={(e) => updateProjectField('client_name', e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                              placeholder="Nombre del cliente"
-                            />
+                            <CanEdit project={project} fallback={
+                              <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900">
+                                {editableProject.client_name || 'Sin nombre'}
+                              </div>
+                            }>
+                              <input
+                                type="text"
+                                value={editableProject.client_name || ''}
+                                onChange={(e) => setEditableProject(prev => ({ ...prev, client_name: e.target.value }))}
+                                onBlur={(e) => updateProjectField('client_name', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                                placeholder="Nombre del cliente"
+                              />
+                            </CanEdit>
                           </div>
                           
                           <div>
                             <label className="block text-sm font-medium text-gray-600 mb-1">Email del Cliente:</label>
-                            <input
-                              type="email"
-                              value={editableProject.client_email || ''}
-                              onChange={(e) => setEditableProject(prev => ({ ...prev, client_email: e.target.value }))}
-                              onBlur={(e) => updateProjectField('client_email', e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                              placeholder="email@ejemplo.com"
-                            />
+                            <CanEdit project={project} fallback={
+                              <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900">
+                                {editableProject.client_email || 'Sin email'}
+                              </div>
+                            }>
+                              <input
+                                type="email"
+                                value={editableProject.client_email || ''}
+                                onChange={(e) => setEditableProject(prev => ({ ...prev, client_email: e.target.value }))}
+                                onBlur={(e) => updateProjectField('client_email', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                                placeholder="email@ejemplo.com"
+                              />
+                            </CanEdit>
                           </div>
                           
                           <div>
                             <label className="block text-sm font-medium text-gray-600 mb-1">Teléfono del Cliente:</label>
-                            <input
-                              type="tel"
-                              value={editableProject.client_phone || ''}
-                              onChange={(e) => setEditableProject(prev => ({ ...prev, client_phone: e.target.value }))}
-                              onBlur={(e) => updateProjectField('client_phone', e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                              placeholder="+54 11 1234-5678"
-                            />
+                            <CanEdit project={project} fallback={
+                              <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900">
+                                {editableProject.client_phone || 'Sin teléfono'}
+                              </div>
+                            }>
+                              <input
+                                type="tel"
+                                value={editableProject.client_phone || ''}
+                                onChange={(e) => setEditableProject(prev => ({ ...prev, client_phone: e.target.value }))}
+                                onBlur={(e) => updateProjectField('client_phone', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                                placeholder="+54 11 1234-5678"
+                              />
+                            </CanEdit>
                           </div>
                         </div>
                       </div>
@@ -1138,9 +1195,14 @@ const ProjectDetail = () => {
                                   <input
                                     type="radio"
                                     name={`estructura-${item.id}`}
-                                    checked={protocolData.estructura[item.id]?.estado === 'SI'}
+                                    checked={(() => {
+                                      const currentState = protocolData.estructura[item.id]?.estado;
+                                      const isChecked = currentState === 'SI';
+                                      console.log(`🔍 Button check [${item.id}] SI: current="${currentState}" checked=${isChecked}`);
+                                      return isChecked;
+                                    })()}
                                     onChange={() => updateProtocolItem('estructura', item.id, 'estado', 'SI')}
-                                    className="w-4 h-4 pointer-events-none"
+                                    className="w-4 h-4"
                                   />
                                 </div>
                               </td>
@@ -1154,7 +1216,7 @@ const ProjectDetail = () => {
                                     name={`estructura-${item.id}`}
                                     checked={protocolData.estructura[item.id]?.estado === 'NO'}
                                     onChange={() => updateProtocolItem('estructura', item.id, 'estado', 'NO')}
-                                    className="w-4 h-4 pointer-events-none"
+                                    className="w-4 h-4"
                                   />
                                 </div>
                               </td>
@@ -1168,7 +1230,7 @@ const ProjectDetail = () => {
                                     name={`estructura-${item.id}`}
                                     checked={protocolData.estructura[item.id]?.estado === 'NA'}
                                     onChange={() => updateProtocolItem('estructura', item.id, 'estado', 'NA')}
-                                    className="w-4 h-4 pointer-events-none"
+                                    className="w-4 h-4"
                                   />
                                 </div>
                               </td>
@@ -1224,7 +1286,7 @@ const ProjectDetail = () => {
                                     name={`electromontaje-${item.id}`}
                                     checked={protocolData.electromontaje[item.id]?.estado === 'SI'}
                                     onChange={() => updateProtocolItem('electromontaje', item.id, 'estado', 'SI')}
-                                    className="w-4 h-4 pointer-events-none"
+                                    className="w-4 h-4"
                                   />
                                 </div>
                               </td>
@@ -1238,7 +1300,7 @@ const ProjectDetail = () => {
                                     name={`electromontaje-${item.id}`}
                                     checked={protocolData.electromontaje[item.id]?.estado === 'NO'}
                                     onChange={() => updateProtocolItem('electromontaje', item.id, 'estado', 'NO')}
-                                    className="w-4 h-4 pointer-events-none"
+                                    className="w-4 h-4"
                                   />
                                 </div>
                               </td>
@@ -1252,7 +1314,7 @@ const ProjectDetail = () => {
                                     name={`electromontaje-${item.id}`}
                                     checked={protocolData.electromontaje[item.id]?.estado === 'NA'}
                                     onChange={() => updateProtocolItem('electromontaje', item.id, 'estado', 'NA')}
-                                    className="w-4 h-4 pointer-events-none"
+                                    className="w-4 h-4"
                                   />
                                 </div>
                               </td>
@@ -1311,7 +1373,7 @@ const ProjectDetail = () => {
                                     name={`pruebas-${item.id}`}
                                     checked={protocolData.pruebas[item.id]?.estado === 'SI'}
                                     onChange={() => updateProtocolItem('pruebas', item.id, 'estado', 'SI')}
-                                    className="w-4 h-4 pointer-events-none"
+                                    className="w-4 h-4"
                                   />
                                 </div>
                               </td>
@@ -1325,7 +1387,7 @@ const ProjectDetail = () => {
                                     name={`pruebas-${item.id}`}
                                     checked={protocolData.pruebas[item.id]?.estado === 'NO'}
                                     onChange={() => updateProtocolItem('pruebas', item.id, 'estado', 'NO')}
-                                    className="w-4 h-4 pointer-events-none"
+                                    className="w-4 h-4"
                                   />
                                 </div>
                               </td>
@@ -1339,7 +1401,7 @@ const ProjectDetail = () => {
                                     name={`pruebas-${item.id}`}
                                     checked={protocolData.pruebas[item.id]?.estado === 'NA'}
                                     onChange={() => updateProtocolItem('pruebas', item.id, 'estado', 'NA')}
-                                    className="w-4 h-4 pointer-events-none"
+                                    className="w-4 h-4"
                                   />
                                 </div>
                               </td>
@@ -1560,7 +1622,7 @@ const ProjectDetail = () => {
                                     name={`controlFinal-${item.id}`}
                                     checked={protocolData.controlFinal[item.id]?.estado === 'SI'}
                                     onChange={() => updateProtocolItem('controlFinal', item.id, 'estado', 'SI')}
-                                    className="w-4 h-4 pointer-events-none"
+                                    className="w-4 h-4"
                                   />
                                 </div>
                               </td>
@@ -1574,7 +1636,7 @@ const ProjectDetail = () => {
                                     name={`controlFinal-${item.id}`}
                                     checked={protocolData.controlFinal[item.id]?.estado === 'NO'}
                                     onChange={() => updateProtocolItem('controlFinal', item.id, 'estado', 'NO')}
-                                    className="w-4 h-4 pointer-events-none"
+                                    className="w-4 h-4"
                                   />
                                 </div>
                               </td>
@@ -1588,7 +1650,7 @@ const ProjectDetail = () => {
                                     name={`controlFinal-${item.id}`}
                                     checked={protocolData.controlFinal[item.id]?.estado === 'NA'}
                                     onChange={() => updateProtocolItem('controlFinal', item.id, 'estado', 'NA')}
-                                    className="w-4 h-4 pointer-events-none"
+                                    className="w-4 h-4"
                                   />
                                 </div>
                               </td>
@@ -1699,70 +1761,13 @@ const ProjectDetail = () => {
         />
       )}
 
-      {/* Invite User Modal */}
-      <Modal
-        isOpen={showInviteModal}
-        onClose={() => setShowInviteModal(false)}
-        title="Invitar Usuario al Proyecto"
-        size="md"
-      >
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email del Usuario
-            </label>
-            <input
-              type="email"
-              value={inviteData.email}
-              onChange={(e) => setInviteData(prev => ({ ...prev, email: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="usuario@ejemplo.com"
-              disabled={isInviting}
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Mensaje (opcional)
-            </label>
-            <textarea
-              value={inviteData.message}
-              onChange={(e) => setInviteData(prev => ({ ...prev, message: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              rows="3"
-              placeholder="Mensaje personalizado para el usuario invitado..."
-              disabled={isInviting}
-            />
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4">
-            <button
-              onClick={() => setShowInviteModal(false)}
-              disabled={isInviting}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={sendInvitation}
-              disabled={isInviting}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-            >
-              {isInviting ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Enviando...
-                </>
-              ) : (
-                <>
-                  <UserPlus className="w-4 h-4" />
-                  Enviar Invitación
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      </Modal>
+      {/* Collaborator Management Modal */}
+      <CollaboratorManagementModal
+        isOpen={showCollaboratorModal}
+        onClose={() => setShowCollaboratorModal(false)}
+        project={project}
+        onProjectUpdate={loadProject}
+      />
     </div>
   );
 };

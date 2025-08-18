@@ -163,6 +163,46 @@ project_activities
 - **No Firestore**: All project data stored locally in SQLite3
 - **User IDs**: Firebase UIDs used as foreign keys in local database
 
+### Email Service Configuration (Gmail App Password)
+
+**Email Service**: Uses Gmail with App Password authentication for sending emails
+**Location**: `backend/config/email.js`
+**Frontend Service**: `src/services/email.js`
+**Sending Email**: noticalculadora@gmail.com
+
+**Required Environment Variables** (Backend):
+```env
+GMAIL_USER=noticalculadora@gmail.com
+GMAIL_APP_PASSWORD=eljs_oisk_rosi_jjal
+```
+
+**Email API Endpoints**:
+- `GET /api/email/status` - Get email service configuration status
+- `GET /api/email/test` - Test email service configuration
+- `POST /api/email/invitation` - Send project invitation email
+- `POST /api/email/notification` - Send general notification email
+- `POST /api/email/send` - Send custom email with HTML content
+
+**Email Types**:
+- **Project Invitations**: Automatic emails when users are invited to projects
+- **System Notifications**: Project updates, protocol completions, etc.
+- **Custom Emails**: Protocol reports, administrative communications
+
+**Gmail App Password Setup** (Already configured):
+1. ✅ Gmail account created: noticalculadora@gmail.com
+2. ✅ 2-Factor Authentication enabled
+3. ✅ App Password generated: eljs oisk rosi jjal
+4. ✅ Environment variables configured in backend/.env
+
+**Email Service Features**:
+- Beautiful HTML email templates
+- Automatic fallback to plain text
+- Email validation and error handling
+- Rate limiting and spam protection
+- Status monitoring and testing tools
+- Integration with invitation system
+- Simplified authentication with App Password
+
 ## Electrical Engineering Context
 
 This application implements professional electrical calculations following IEC and IEEE standards:

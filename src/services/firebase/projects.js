@@ -132,15 +132,21 @@ class ProjectsService {
     try {
       const docRef = doc(db, PROJECTS_COLLECTION, projectId);
       
-      // First verify ownership
+      // First verify project exists and user has edit permissions
       const currentDoc = await getDoc(docRef);
       if (!currentDoc.exists()) {
         throw new Error('Project not found');
       }
       
       const currentProjectData = currentDoc.data();
-      if (currentProjectData.owner_id !== userId) {
-        throw new Error('Unauthorized: Not your project');
+      const project = { id: projectId, ...currentProjectData };
+      
+      // Import users service for permission checking
+      const { usersService, PERMISSIONS } = await import('./users');
+      
+      // Check if user can edit the project
+      if (!usersService.canUserPerformAction(project, userId, PERMISSIONS.PROJECT_EDIT)) {
+        throw new Error('Unauthorized: You do not have permission to edit this project');
       }
       
       // If logo is being changed, delete the old one
@@ -252,7 +258,7 @@ class ProjectsService {
   }
 
   // Collaborator management
-  async addCollaborator(projectId, collaboratorUserId, ownerUserId) {
+  async addCollaborator(projectId, collaboratorUserId, ownerUserId, role = 'user') {
     try {
       const docRef = doc(db, PROJECTS_COLLECTION, projectId);
       
@@ -269,6 +275,7 @@ class ProjectsService {
       
       // Get current collaborators array or initialize empty array
       const currentCollaborators = projectData.collaborators || [];
+      const currentCollaboratorRoles = projectData.collaborators_roles || {};
       
       // Check if user is already a collaborator
       if (currentCollaborators.includes(collaboratorUserId)) {
@@ -277,17 +284,65 @@ class ProjectsService {
       
       // Add the new collaborator
       const updatedCollaborators = [...currentCollaborators, collaboratorUserId];
+      const updatedCollaboratorRoles = {
+        ...currentCollaboratorRoles,
+        [collaboratorUserId]: role
+      };
       
       // Update the document
       await updateDoc(docRef, {
         collaborators: updatedCollaborators,
+        collaborators_roles: updatedCollaboratorRoles,
         updated_at: serverTimestamp()
       });
       
-      console.log(`Added collaborator ${collaboratorUserId} to project ${projectId}`);
+      console.log(`Added collaborator ${collaboratorUserId} with role ${role} to project ${projectId}`);
       return { success: true };
     } catch (error) {
       console.error('Error adding collaborator:', error);
+      throw error;
+    }
+  }
+
+  // Update collaborator role
+  async updateCollaboratorRole(projectId, collaboratorUserId, newRole, ownerUserId) {
+    try {
+      const docRef = doc(db, PROJECTS_COLLECTION, projectId);
+      
+      // First verify ownership
+      const currentDoc = await getDoc(docRef);
+      if (!currentDoc.exists()) {
+        throw new Error('Project not found');
+      }
+      
+      const projectData = currentDoc.data();
+      if (projectData.owner_id !== ownerUserId) {
+        throw new Error('Unauthorized: Only project owner can update collaborator roles');
+      }
+      
+      // Check if user is a collaborator
+      const currentCollaborators = projectData.collaborators || [];
+      if (!currentCollaborators.includes(collaboratorUserId)) {
+        throw new Error('User is not a collaborator on this project');
+      }
+      
+      // Update collaborator role
+      const currentCollaboratorRoles = projectData.collaborators_roles || {};
+      const updatedCollaboratorRoles = {
+        ...currentCollaboratorRoles,
+        [collaboratorUserId]: newRole
+      };
+      
+      // Update the document
+      await updateDoc(docRef, {
+        collaborators_roles: updatedCollaboratorRoles,
+        updated_at: serverTimestamp()
+      });
+      
+      console.log(`Updated collaborator ${collaboratorUserId} role to ${newRole} in project ${projectId}`);
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating collaborator role:', error);
       throw error;
     }
   }
@@ -307,15 +362,21 @@ class ProjectsService {
         throw new Error('Unauthorized: Only project owner can remove collaborators');
       }
       
-      // Get current collaborators array
+      // Get current collaborators array and roles
       const currentCollaborators = projectData.collaborators || [];
+      const currentCollaboratorRoles = projectData.collaborators_roles || {};
       
       // Remove the collaborator
       const updatedCollaborators = currentCollaborators.filter(uid => uid !== collaboratorUserId);
       
+      // Remove collaborator role
+      const updatedCollaboratorRoles = { ...currentCollaboratorRoles };
+      delete updatedCollaboratorRoles[collaboratorUserId];
+      
       // Update the document
       await updateDoc(docRef, {
         collaborators: updatedCollaborators,
+        collaborators_roles: updatedCollaboratorRoles,
         updated_at: serverTimestamp()
       });
       
@@ -363,6 +424,7 @@ export const {
   uploadClientLogo,
   deleteClientLogo,
   addCollaborator,
+  updateCollaboratorRole,
   removeCollaborator,
   getProjectStats
 } = projectsService;

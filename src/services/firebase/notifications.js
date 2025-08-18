@@ -357,7 +357,8 @@ class NotificationsService {
     senderEmail,
     projectId,
     projectName,
-    message
+    message,
+    role = 'user'
   }) {
     return await this.createNotification({
       type: NotificationsService.TYPES.PROJECT_INVITATION,
@@ -373,6 +374,7 @@ class NotificationsService {
         senderEmail,
         projectId,
         projectName,
+        role,
         action: 'project_invite'
       }
     });

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useLocation } from 'react-router-dom';
-import { Calculator, FolderOpen, User, Copy, LogOut, Mail, Hash, Edit3, X, Upload, Menu, ChevronLeft, AlertTriangle, BookOpen, Bell, Server, Trash2 } from 'lucide-react';
+import { Calculator, FolderOpen, User, Copy, LogOut, Mail, Hash, Edit3, X, Upload, Menu, ChevronLeft, AlertTriangle, BookOpen, Bell, Server, Trash2, Settings } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ProjectsGrid from '../../components/projects/ProjectsGrid';
 import CalculatorApp from '../../components/calculator/CalculatorApp';
 import ErrorCodesApp from '../../components/error-codes/ErrorCodesApp';
+import EmailServiceStatus from '../../components/admin/EmailServiceStatus';
 import DocumentTypeSidebar from '../../components/layout/DocumentTypeSidebar';
 import { Modal } from '../../components/ui';
 import { authService } from '../../services/firebase/auth';
@@ -81,6 +82,12 @@ const Dashboard = () => {
       name: 'Códigos de Error',
       icon: AlertTriangle,
     },
+    // Admin section only visible for specific admin user
+    ...(user?.uid === 'ZfznJOAjvoS2LfIKVOy0Xp7SQwz2' ? [{
+      id: 'admin',
+      name: 'Administración',
+      icon: Settings,
+    }] : []),
   ];
 
   const handleLogout = async () => {
@@ -235,11 +242,12 @@ const Dashboard = () => {
         user.uid
       );
 
-      // Agregar al usuario como colaborador del proyecto
+      // Agregar al usuario como colaborador del proyecto con el rol especificado
       await projectsService.addCollaborator(
         notification.metadata.projectId,
         user.uid,
-        notification.metadata.senderUid
+        notification.metadata.senderUid,
+        notification.metadata.role || 'user'
       );
 
       // Crear notificación de respuesta para el remitente
@@ -306,6 +314,20 @@ const Dashboard = () => {
         return <CalculatorApp />;
       case 'error-codes':
         return <ErrorCodesApp />;
+      case 'admin':
+        return (
+          <div className="max-w-4xl mx-auto">
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                Administración del Sistema
+              </h1>
+              <p className="text-lg text-gray-600">
+                Configuración y monitoreo de servicios del sistema.
+              </p>
+            </div>
+            <EmailServiceStatus />
+          </div>
+        );
       case 'projects':
         return <ProjectsGrid refreshTrigger={refreshTrigger} />;
       default:
