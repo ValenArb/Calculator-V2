@@ -270,8 +270,6 @@ class PDFExportService {
    * Add digital signatures section to PDF
    */
   addDigitalSignatures(pdf, signatures, yPosition, config, protocol) {
-    console.log('🔍 PDF Export - addDigitalSignatures called with:', signatures);
-    console.log('🔍 PDF Export - protocol data:', protocol);
     
     // Check if we need a new page
     if (yPosition > 220) {
@@ -295,7 +293,6 @@ class PDFExportService {
 
     signatureTypes.forEach((signatureType) => {
       const signature = signatures[signatureType.id];
-      console.log(`🔍 Processing signature ${signatureType.id}:`, signature);
       
       // Check if we need a new page
       if (yPosition > 230) {
@@ -315,13 +312,6 @@ class PDFExportService {
                     protocol?.[`${signatureType.id}_cargo`] || 
                     'No especificado';
       
-      console.log(`🔍 Signature ${signatureType.id} data:`, {
-        signatureObject: signature,
-        protocolNameField: protocol?.[`${signatureType.id}_nombre`],
-        protocolCargoField: protocol?.[`${signatureType.id}_cargo`],
-        finalNombre: nombre,
-        finalCargo: cargo
-      });
       
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(10);
@@ -774,18 +764,6 @@ addAislacionSection(pdf, aislacionData, y, config) {
   addSignatures(pdf, protocol, y, config) {
     const { pageWidth, margin } = config;
 
-    console.log('=== PDF Signatures Debug ===');
-    console.log('Protocol object:', protocol);
-    console.log('Protocol keys:', Object.keys(protocol));
-    console.log('Firmas Digitales:', protocol.firmasDigitales);
-    
-    // Debug individual signature fields
-    ['realizo', 'controlo', 'aprobo'].forEach(signatureType => {
-      console.log(`🔍 ${signatureType}_nombre:`, protocol[`${signatureType}_nombre`]);
-      console.log(`🔍 ${signatureType}_cargo:`, protocol[`${signatureType}_cargo`]);
-      console.log(`🔍 firmasDigitales.${signatureType}:`, protocol.firmasDigitales?.[signatureType]);
-    });
-    console.log('============================');
     
     // Signatures - using correct property names with fallbacks
     const signatures = [
@@ -812,7 +790,6 @@ addAislacionSection(pdf, aislacionData, y, config) {
     const sigWidth = (pageWidth - 2 * margin) / 3;
     
     signatures.forEach((sig, index) => {
-      console.log(`🔍 Rendering signature ${index}:`, sig);
       const x = margin + (index * sigWidth);
       
       pdf.setFont('helvetica', 'bold');

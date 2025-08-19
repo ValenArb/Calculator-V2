@@ -202,75 +202,22 @@ const ProjectDetail = () => {
       firmasDigitales: { ...defaultProtocol.firmasDigitales, ...cleanSignatures }
     };
     
-    console.log('🔧 Normalized protocol data:', normalized);
-    console.log('🔧 Clean signatures:', cleanSignatures);
     return normalized;
   };
 
   // Protocolo actual basado en el tablero seleccionado (with useMemo for reactivity)
   const protocolData = useMemo(() => {
     if (!selectedTablero) {
-      console.log('🧪 No tablero selected, returning default protocol');
       return getProtocoloDefecto();
     }
     
     const protocolFromState = protocolosPorTablero[selectedTablero.id];
     const result = protocolFromState || getProtocoloDefecto();
     
-    // Enhanced debug logging
-    console.log('🧪 PROTOCOL DATA CALCULATION (useMemo):', {
-      selectedTableroId: selectedTablero.id,
-      selectedTableroName: selectedTablero.nombre,
-      hasProtocolInState: !!protocolFromState,
-      protocolsLoadedFromBackend,
-      protocolFromState: protocolFromState,
-      finalResult: result,
-      estruturaData: result.estructura,
-      estructuraKeys: Object.keys(result.estructura || {}),
-      timestamp: new Date().toISOString()
-    });
-    
-    // Check specific estructura items
-    if (result.estructura) {
-      Object.keys(result.estructura).forEach(key => {
-        const item = result.estructura[key];
-        console.log(`🔍 estructura[${key}]:`, item);
-      });
-    }
     
     return result;
   }, [selectedTablero, protocolosPorTablero, protocolsLoadedFromBackend]);
     
-  // Debug logging for protocol data
-  useEffect(() => {
-    console.log('🐛 === DETAILED PROTOCOL DEBUG ===');
-    console.log('🐛 selectedTablero:', selectedTablero);
-    console.log('🐛 protocolosPorTablero:', protocolosPorTablero);
-    console.log('🐛 protocolsLoadedFromBackend:', protocolsLoadedFromBackend);
-    
-    if (selectedTablero) {
-      const protocolForTablero = protocolosPorTablero[selectedTablero.id];
-      console.log(`🐛 Protocol for tablero ${selectedTablero.id}:`, protocolForTablero);
-      
-      if (protocolForTablero) {
-        console.log('🐛 estructura section:', protocolForTablero.estructura);
-        console.log('🐛 electromontaje section:', protocolForTablero.electromontaje);
-        console.log('🐛 pruebas section:', protocolForTablero.pruebas);
-        
-        // Check specific items
-        if (protocolForTablero.estructura) {
-          Object.keys(protocolForTablero.estructura).forEach(key => {
-            const item = protocolForTablero.estructura[key];
-            console.log(`🐛 estructura[${key}]:`, item);
-          });
-        }
-      }
-      
-      console.log('🐛 Final protocolData used by UI:', protocolData);
-      console.log('🐛 protocolData.estructura:', protocolData.estructura);
-    }
-    console.log('🐛 ================================');
-  }, [selectedTablero, protocolosPorTablero, protocolData, protocolsLoadedFromBackend]);
 
   // Referencias para debouncing y control de guardado
   const saveTimeoutRef = useRef(null);
@@ -380,7 +327,6 @@ const ProjectDetail = () => {
   // Effect to auto-select first tablero when entering protocol view
   useEffect(() => {
     if (selectedDocumentType?.id === 'protocolo-ensayos' && tableros.length > 0 && !selectedTablero) {
-      console.log('🎯 Auto-seleccionando primer tablero para protocolo-ensayos:', tableros[0]);
       setSelectedTablero(tableros[0]);
     }
   }, [selectedDocumentType, tableros, selectedTablero]);
@@ -388,9 +334,6 @@ const ProjectDetail = () => {
   // Efecto para asegurar que todos los tableros tengan protocolo
   useEffect(() => {
     if (tableros.length > 0) {
-      console.log('🎯 Setting up protocols for tableros:', tableros);
-      console.log('🎯 Current protocols state before update:', protocolosPorTablero);
-      console.log('🎯 Protocols loaded from backend:', protocolsLoadedFromBackend);
       
       // Only create default protocols if we haven't loaded any from backend yet
       if (!protocolsLoadedFromBackend) {
@@ -400,22 +343,14 @@ const ProjectDetail = () => {
           
           tableros.forEach(tablero => {
             if (!nuevosProtocolos[tablero.id]) {
-              console.log(`🆕 Creating default protocol for tablero: ${tablero.id} (${tablero.nombre})`);
               nuevosProtocolos[tablero.id] = getProtocoloDefecto();
               actualizado = true;
-            } else {
-              console.log(`✅ Protocol already exists for tablero: ${tablero.id} (${tablero.nombre})`);
             }
           });
           
-          if (actualizado) {
-            console.log('🔄 Updated protocols state with defaults:', nuevosProtocolos);
-          }
           
           return actualizado ? nuevosProtocolos : prev;
         });
-      } else {
-        console.log('🚫 Skipping default protocol creation - protocols already loaded from backend');
       }
     }
   }, [tableros, protocolsLoadedFromBackend]);
@@ -1413,13 +1348,6 @@ const ProjectDetail = () => {
                                     checked={(() => {
                                       const currentState = protocolData.estructura[item.id]?.estado;
                                       const isChecked = currentState === 'SI';
-                                      console.log(`🔴 BUTTON RENDER [${item.id}] SI:`, {
-                                        currentState,
-                                        isChecked,
-                                        fullItem: protocolData.estructura[item.id],
-                                        protocolDataRef: protocolData,
-                                        timestamp: new Date().toISOString()
-                                      });
                                       return isChecked;
                                     })()}
                                     onChange={() => updateProtocolItem('estructura', item.id, 'estado', 'SI')}
@@ -1439,11 +1367,6 @@ const ProjectDetail = () => {
                                     checked={(() => {
                                       const currentState = protocolData.estructura[item.id]?.estado;
                                       const isChecked = currentState === 'NO';
-                                      console.log(`🟡 BUTTON RENDER [${item.id}] NO:`, {
-                                        currentState,
-                                        isChecked,
-                                        fullItem: protocolData.estructura[item.id]
-                                      });
                                       return isChecked;
                                     })()}
                                     onChange={() => updateProtocolItem('estructura', item.id, 'estado', 'NO')}
@@ -1463,11 +1386,6 @@ const ProjectDetail = () => {
                                     checked={(() => {
                                       const currentState = protocolData.estructura[item.id]?.estado;
                                       const isChecked = currentState === 'NA';
-                                      console.log(`🔵 BUTTON RENDER [${item.id}] NA:`, {
-                                        currentState,
-                                        isChecked,
-                                        fullItem: protocolData.estructura[item.id]
-                                      });
                                       return isChecked;
                                     })()}
                                     onChange={() => updateProtocolItem('estructura', item.id, 'estado', 'NA')}
