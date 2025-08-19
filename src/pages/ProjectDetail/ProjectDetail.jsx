@@ -14,6 +14,7 @@ import DocumentTypeSidebar from '../../components/layout/DocumentTypeSidebar';
 import { Loading, Modal, DigitalSignature } from '../../components/ui';
 import { OwnerOnly, CanEdit, CanInvite, CanAddSignatures, CanEditCalculations } from '../../components/auth/PermissionGate';
 import useUserPermissions from '../../hooks/useUserPermissions';
+import ActiveUsersIndicator from '../../components/users/ActiveUsersIndicator';
 import pdfExportService from '../../utils/pdfExport';
 
 const ProjectDetail = () => {
@@ -802,6 +803,12 @@ const ProjectDetail = () => {
               </div>
 
               <div className="flex items-center gap-3">
+                {/* Active Users Indicator */}
+                <ActiveUsersIndicator 
+                  projectId={projectId} 
+                  maxVisible={3}
+                />
+                
                 {/* Indicador de cambios pendientes */}
                 {hasPendingChanges && (
                   <div className="flex items-center gap-2 px-3 py-2 bg-amber-100 border border-amber-300 text-amber-800 rounded-lg text-sm">

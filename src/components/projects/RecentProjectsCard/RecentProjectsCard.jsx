@@ -5,6 +5,7 @@ import projectsService from '../../../services/firebase/projects';
 import toast from 'react-hot-toast';
 import EditProjectModal from '../EditProjectModal';
 import ViewProjectModal from '../ViewProjectModal';
+import ActiveUsersIndicator from '../../users/ActiveUsersIndicator';
 
 const RecentProjectsCard = ({ userId, refreshTrigger }) => {
   const navigate = useNavigate();
@@ -353,9 +354,19 @@ const RecentProjectsCard = ({ userId, refreshTrigger }) => {
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-semibold text-gray-900 group-hover:text-blue-900 text-sm leading-tight line-clamp-2 mb-1">
-                    {project.name}
-                  </h4>
+                  <div className="flex items-start justify-between mb-1">
+                    <h4 className="font-semibold text-gray-900 group-hover:text-blue-900 text-sm leading-tight line-clamp-2 flex-1">
+                      {project.name}
+                    </h4>
+                    <div className="ml-2 flex-shrink-0">
+                      <ActiveUsersIndicator 
+                        projectId={project.id} 
+                        maxVisible={2}
+                        compact={true}
+                        autoStart={false}
+                      />
+                    </div>
+                  </div>
                   <p className="text-xs text-gray-600 line-clamp-1">
                     {project.company || 'Sin empresa'}
                   </p>

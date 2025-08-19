@@ -26,11 +26,9 @@
       "Bash(git remote add:*)",
       "Bash(git push:*)",
       "Bash(npm install:*)",
-      "Bash(npm run:*)",
       "Bash(curl:*)",
       "Bash(node:*)",
-      "Bash(code .)",
-      "Bash(npm start)"
+      "Bash(code .)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits",

@@ -25,16 +25,16 @@ npm start                      # Start backend in production mode
 
 ## Development Server Management
 
-**CRITICAL: Always Keep Both Servers Running**
+**CRITICAL RULE: NEVER START SERVERS AUTOMATICALLY**
+
+**🚨 IMPORTANT: Claude must NEVER run server commands automatically. Always ask the user first before starting any servers.**
 
 **Frontend Server (Required):**
-- **ALWAYS start the frontend development server**: `npm run dev`
-- **Keep the server running in background** throughout the entire work session
+- **ASK USER before starting**: `npm run dev`
 - **Frontend runs on**: `http://localhost:3000`
 
 **Backend API Server (Required):**
-- **ALWAYS start the backend API server**: `cd backend && npm run dev`
-- **Keep the backend running in background** throughout the entire work session  
+- **ASK USER before starting**: `cd backend && npm run dev`
 - **Backend runs on**: `http://localhost:3001`
 
 **Development Workflow:**
