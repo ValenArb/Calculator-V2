@@ -22,28 +22,22 @@ const DigitalSignature = ({
   // Standard signature types for electrical protocols
   const signatureTypes = [
     {
-      id: 'tecnico_ensayos',
-      label: 'Técnico de Ensayos',
-      description: 'Técnico responsable de la ejecución de las pruebas',
+      id: 'realizo',
+      label: 'Realizó',
+      description: 'Técnico que realizó las pruebas y ensayos',
       required: true
     },
     {
-      id: 'supervisor_electrico',
-      label: 'Supervisor Eléctrico',
-      description: 'Supervisor técnico responsable del proyecto',
+      id: 'controlo',
+      label: 'Controló',
+      description: 'Supervisor que controló y verificó los ensayos',
       required: true
     },
     {
-      id: 'cliente_representante',
-      label: 'Representante del Cliente',
-      description: 'Representante autorizado del cliente',
-      required: false
-    },
-    {
-      id: 'inspector_certificacion',
-      label: 'Inspector de Certificación',
-      description: 'Inspector autorizado para certificación',
-      required: false
+      id: 'aprobo',
+      label: 'Aprobó',
+      description: 'Responsable que aprobó los resultados del protocolo',
+      required: true
     }
   ];
 
@@ -127,11 +121,33 @@ const DigitalSignature = ({
     ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
   };
 
-  // Handle signature change
-  const handleSignatureChange = (signatureType, signatureData) => {
+  // Handle signature field changes (nombre, cargo)
+  const handleSignatureFieldChange = (signatureType, field, value) => {
+    const currentSignature = signatures[signatureType] || {};
+    const updatedSignature = {
+      ...currentSignature,
+      [field]: value
+    };
+    
     const updatedSignatures = {
       ...signatures,
-      [signatureType]: signatureData
+      [signatureType]: updatedSignature
+    };
+    
+    onSignatureChange?.(updatedSignatures);
+  };
+
+  // Handle signature change
+  const handleSignatureChange = (signatureType, signatureData) => {
+    const currentSignature = signatures[signatureType] || {};
+    const updatedSignature = {
+      ...currentSignature,
+      ...signatureData
+    };
+    
+    const updatedSignatures = {
+      ...signatures,
+      [signatureType]: updatedSignature
     };
     onSignatureChange?.(updatedSignatures);
   };
@@ -202,101 +218,141 @@ const DigitalSignature = ({
 
       <div className="grid gap-6">
         {signatureTypes.map((signatureType) => {
-          const signature = signatures[signatureType.id];
+          const signature = signatures[signatureType.id] || {};
           const hasSignature = signature && signature.data;
 
           return (
             <div key={signatureType.id} className="bg-white border border-gray-300 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <h4 className="font-medium text-gray-900 flex items-center gap-2">
-                    {signatureType.label}
-                    {signatureType.required && showRequiredFields && (
-                      <span className="text-red-600">*</span>
-                    )}
-                  </h4>
-                  <p className="text-sm text-gray-600">{signatureType.description}</p>
-                </div>
-                
-                {hasSignature && (
-                  <div className="flex items-center gap-2">
-                    <span className="flex items-center gap-1 text-sm text-green-600">
-                      <Check className="w-4 h-4" />
-                      Firmado
-                    </span>
-                    {!disabled && (
-                      <button
-                        onClick={() => removeSignature(signatureType.id)}
-                        className="text-red-600 hover:text-red-700 p-1"
-                        title="Eliminar firma"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                )}
+              <div className="mb-4">
+                <h4 className="font-medium text-gray-900 flex items-center gap-2 mb-2">
+                  {signatureType.label}
+                  {signatureType.required && showRequiredFields && (
+                    <span className="text-red-600">*</span>
+                  )}
+                </h4>
+                <p className="text-sm text-gray-600">{signatureType.description}</p>
               </div>
 
-              {hasSignature ? (
-                // Show existing signature
-                <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-600">
-                      Tipo: {signature.type === 'drawn' ? 'Dibujada' : 'Cargada'}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      {new Date(signature.timestamp).toLocaleString('es-ES')}
-                    </span>
-                  </div>
-                  <div className="w-full h-32 border border-gray-200 rounded bg-white overflow-hidden">
-                    <img 
-                      src={signature.data} 
-                      alt={`Firma de ${signatureType.label}`}
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                  {signature.filename && (
-                    <p className="text-xs text-gray-500 mt-1">Archivo: {signature.filename}</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                {/* Campo Nombre */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Nombre
+                  </label>
+                  <input
+                    type="text"
+                    value={signature.nombre || ''}
+                    onChange={(e) => handleSignatureFieldChange(signatureType.id, 'nombre', e.target.value)}
+                    disabled={disabled}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                    placeholder="Nombre completo"
+                  />
+                </div>
+
+                {/* Campo Cargo */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Cargo
+                  </label>
+                  <input
+                    type="text"
+                    value={signature.cargo || ''}
+                    onChange={(e) => handleSignatureFieldChange(signatureType.id, 'cargo', e.target.value)}
+                    disabled={disabled}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                    placeholder="Cargo o posición"
+                  />
+                </div>
+
+                {/* Estado de la firma */}
+                <div className="flex items-end">
+                  {hasSignature && (
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center gap-1 text-sm text-green-600">
+                        <Check className="w-4 h-4" />
+                        Firmado
+                      </span>
+                      {!disabled && (
+                        <button
+                          onClick={() => removeSignature(signatureType.id)}
+                          className="text-red-600 hover:text-red-700 p-1"
+                          title="Eliminar firma"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
-              ) : (
-                // Show signature options
-                !disabled && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {/* Upload signature */}
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="flex items-center justify-center gap-3 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors"
-                    >
-                      <Upload className="w-5 h-5 text-gray-400" />
-                      <div className="text-center">
-                        <p className="text-sm font-medium text-gray-700">Cargar Imagen</p>
-                        <p className="text-xs text-gray-500">JPG, PNG, GIF (max 10MB)</p>
-                      </div>
-                    </button>
+              </div>
 
-                    {/* Draw signature */}
-                    <button
-                      onClick={() => openDrawingModal(signatureType.id)}
-                      className="flex items-center justify-center gap-3 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-400 hover:bg-green-50 transition-colors"
-                    >
-                      <Pen className="w-5 h-5 text-gray-400" />
-                      <div className="text-center">
-                        <p className="text-sm font-medium text-gray-700">Dibujar Firma</p>
-                        <p className="text-xs text-gray-500">Usar mouse o pantalla táctil</p>
-                      </div>
-                    </button>
-
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleFileUpload(e, signatureType.id)}
-                      className="hidden"
-                    />
+              {/* Sección de Firma */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Firma Digital
+                </label>
+                
+                {hasSignature ? (
+                  // Show existing signature
+                  <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-gray-600">
+                        Tipo: {signature.type === 'drawn' ? 'Dibujada' : 'Cargada'}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {signature.timestamp ? new Date(signature.timestamp).toLocaleString('es-ES') : ''}
+                      </span>
+                    </div>
+                    <div className="w-full h-32 border border-gray-200 rounded bg-white overflow-hidden">
+                      <img 
+                        src={signature.data} 
+                        alt={`Firma de ${signatureType.label}`}
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                    {signature.filename && (
+                      <p className="text-xs text-gray-500 mt-1">Archivo: {signature.filename}</p>
+                    )}
                   </div>
-                )
-              )}
+                ) : (
+                  // Show signature options
+                  !disabled && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {/* Upload signature */}
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex items-center justify-center gap-3 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors"
+                      >
+                        <Upload className="w-5 h-5 text-gray-400" />
+                        <div className="text-center">
+                          <p className="text-sm font-medium text-gray-700">Cargar Imagen</p>
+                          <p className="text-xs text-gray-500">JPG, PNG, GIF (max 10MB)</p>
+                        </div>
+                      </button>
+
+                      {/* Draw signature */}
+                      <button
+                        onClick={() => openDrawingModal(signatureType.id)}
+                        className="flex items-center justify-center gap-3 p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-400 hover:bg-green-50 transition-colors"
+                      >
+                        <Pen className="w-5 h-5 text-gray-400" />
+                        <div className="text-center">
+                          <p className="text-sm font-medium text-gray-700">Dibujar Firma</p>
+                          <p className="text-xs text-gray-500">Usar mouse o pantalla táctil</p>
+                        </div>
+                      </button>
+
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleFileUpload(e, signatureType.id)}
+                        className="hidden"
+                      />
+                    </div>
+                  )
+                )}
+              </div>
             </div>
           );
         })}

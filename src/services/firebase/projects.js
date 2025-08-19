@@ -42,7 +42,7 @@ class ProjectsService {
     }
   }
 
-  async getProject(projectId, userId) {
+  async getProject(projectId, userId, options = {}) {
     try {
       const docRef = doc(db, PROJECTS_COLLECTION, projectId);
       const projectDoc = await getDoc(docRef);
@@ -53,12 +53,15 @@ class ProjectsService {
       
       const projectData = projectDoc.data();
       
-      // Verify ownership or collaboration
-      const isOwner = projectData.owner_id === userId;
-      const isCollaborator = projectData.collaborators && projectData.collaborators.includes(userId);
-      
-      if (!isOwner && !isCollaborator) {
-        throw new Error('Unauthorized: Not your project or you are not a collaborator');
+      // Skip auth check for public access
+      if (!options.bypassAuth) {
+        // Verify ownership or collaboration
+        const isOwner = projectData.owner_id === userId;
+        const isCollaborator = projectData.collaborators && projectData.collaborators.includes(userId);
+        
+        if (!isOwner && !isCollaborator) {
+          throw new Error('Unauthorized: Not your project or you are not a collaborator');
+        }
       }
       
       return { id: projectDoc.id, ...projectData };
@@ -408,6 +411,151 @@ class ProjectsService {
       throw error;
     }
   }
+
+  // Public sharing system
+  async createPublicShareLink(projectId, ownerUserId, options = {}) {
+    try {
+      const docRef = doc(db, PROJECTS_COLLECTION, projectId);
+      const currentDoc = await getDoc(docRef);
+      
+      if (!currentDoc.exists()) {
+        throw new Error('Project not found');
+      }
+      
+      const projectData = currentDoc.data();
+      if (projectData.owner_id !== ownerUserId) {
+        throw new Error('Unauthorized: Only project owner can create public share links');
+      }
+      
+      // Generate unique share token
+      const shareToken = this.generateShareToken();
+      
+      // Set default expiration (7 days if not specified)
+      const defaultExpirationHours = 24 * 7; // 7 days
+      const expirationHours = options.expirationHours || defaultExpirationHours;
+      const expiryTime = new Date();
+      expiryTime.setHours(expiryTime.getHours() + expirationHours);
+      
+      const shareLink = {
+        token: shareToken,
+        created_at: serverTimestamp(),
+        expires_at: expiryTime.toISOString(),
+        created_by: ownerUserId,
+        access_count: 0,
+        is_active: true,
+        permissions: options.permissions || {
+          view_project: true,
+          view_calculations: true,
+          view_protocols: true,
+          download_pdf: options.allowDownload || false
+        }
+      };
+      
+      // Update project with share link
+      await updateDoc(docRef, {
+        public_share_link: shareLink,
+        updated_at: serverTimestamp()
+      });
+      
+      console.log(`Created public share link for project ${projectId}: ${shareToken}`);
+      return { shareToken, expiresAt: expiryTime.toISOString(), shareUrl: `${window.location.origin}/public/${projectId}/${shareToken}` };
+      
+    } catch (error) {
+      console.error('Error creating public share link:', error);
+      throw error;
+    }
+  }
+
+  async validatePublicAccess(projectId, shareToken) {
+    try {
+      const docRef = doc(db, PROJECTS_COLLECTION, projectId);
+      const currentDoc = await getDoc(docRef);
+      
+      if (!currentDoc.exists()) {
+        return { valid: false, reason: 'Project not found' };
+      }
+      
+      const projectData = currentDoc.data();
+      const shareLink = projectData.public_share_link;
+      
+      if (!shareLink || !shareLink.is_active) {
+        return { valid: false, reason: 'No active public share link' };
+      }
+      
+      if (shareLink.token !== shareToken) {
+        return { valid: false, reason: 'Invalid share token' };
+      }
+      
+      // Check if link has expired
+      const now = new Date();
+      const expiryTime = new Date(shareLink.expires_at);
+      
+      if (now > expiryTime) {
+        // Automatically deactivate expired link
+        await updateDoc(docRef, {
+          'public_share_link.is_active': false,
+          updated_at: serverTimestamp()
+        });
+        
+        return { valid: false, reason: 'Share link has expired', expiredAt: expiryTime.toISOString() };
+      }
+      
+      // Increment access count
+      await updateDoc(docRef, {
+        'public_share_link.access_count': shareLink.access_count + 1,
+        updated_at: serverTimestamp()
+      });
+      
+      return {
+        valid: true,
+        permissions: shareLink.permissions,
+        expiresAt: shareLink.expires_at,
+        accessCount: shareLink.access_count + 1
+      };
+      
+    } catch (error) {
+      console.error('Error validating public access:', error);
+      throw error;
+    }
+  }
+
+  async revokePublicShareLink(projectId, ownerUserId) {
+    try {
+      const docRef = doc(db, PROJECTS_COLLECTION, projectId);
+      const currentDoc = await getDoc(docRef);
+      
+      if (!currentDoc.exists()) {
+        throw new Error('Project not found');
+      }
+      
+      const projectData = currentDoc.data();
+      if (projectData.owner_id !== ownerUserId) {
+        throw new Error('Unauthorized: Only project owner can revoke share links');
+      }
+      
+      await updateDoc(docRef, {
+        'public_share_link.is_active': false,
+        updated_at: serverTimestamp()
+      });
+      
+      console.log(`Revoked public share link for project ${projectId}`);
+      return { success: true };
+      
+    } catch (error) {
+      console.error('Error revoking public share link:', error);
+      throw error;
+    }
+  }
+
+  generateShareToken() {
+    // Generate a secure random token
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < 32; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  }
 }
 
 // Create and export singleton instance
@@ -426,5 +574,9 @@ export const {
   addCollaborator,
   updateCollaboratorRole,
   removeCollaborator,
-  getProjectStats
+  getProjectStats,
+  createPublicShareLink,
+  validatePublicAccess,
+  revokePublicShareLink,
+  generateShareToken
 } = projectsService;

@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Calculator from './pages/Calculator';
 import ProjectDetail from './pages/ProjectDetail';
+import PublicProjectView from './pages/PublicProject/PublicProjectView';
 import { Loading } from './components/ui';
 import './styles/globals.css';
 
@@ -89,6 +90,10 @@ const AppContent = () => {
         <Route
           path="/calculator"
           element={<Calculator />}
+        />
+        <Route
+          path="/public/:projectId/:shareToken"
+          element={<PublicProjectView />}
         />
         <Route
           path="/dashboard"

@@ -66,6 +66,7 @@ const CollaboratorManagementModal = ({
       
       collaboratorsData.forEach(collaborator => {
         const collaboratorRole = project.collaborators_roles?.[collaborator.uid] || USER_ROLES.USER;
+        
         allMembers.push({
           ...usersService.getUserDisplayInfo(collaborator),
           role: collaboratorRole,

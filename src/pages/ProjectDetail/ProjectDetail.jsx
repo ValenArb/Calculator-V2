@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { ArrowLeft, Building2, User, Users, Mail, Phone, MapPin, Calendar, Calculator, FileText, Edit, Trash2, CheckSquare, X, AlertTriangle, Plus, UserPlus, Download, FileDown, Printer } from 'lucide-react';
+import { ArrowLeft, Building2, User, Users, Mail, Phone, MapPin, Calendar, Calculator, FileText, Edit, Trash2, CheckSquare, X, AlertTriangle, Plus, UserPlus, Download, FileDown, Printer, Globe } from 'lucide-react';
 import toast from 'react-hot-toast';
 import projectsService from '../../services/firebase/projects';
 import calculationService from '../../services/calculations';
@@ -9,9 +9,10 @@ import notificationsService from '../../services/firebase/notifications';
 import usersService, { USER_ROLES } from '../../services/firebase/users';
 import EditProjectModal from '../../components/projects/EditProjectModal';
 import CollaboratorManagementModal from '../../components/users/CollaboratorManagementModal';
+import PublicShareModal from '../../components/projects/PublicShareModal';
 import MainSidebar from '../../components/layout/MainSidebar';
 import DocumentTypeSidebar from '../../components/layout/DocumentTypeSidebar';
-import { Loading, Modal, DigitalSignature } from '../../components/ui';
+import { Loading, Modal, DigitalSignature, AccessTimer } from '../../components/ui';
 import { OwnerOnly, CanEdit, CanInvite, CanAddSignatures, CanEditCalculations } from '../../components/auth/PermissionGate';
 import useUserPermissions from '../../hooks/useUserPermissions';
 import ActiveUsersIndicator from '../../components/users/ActiveUsersIndicator';
@@ -45,10 +46,14 @@ const ProjectDetail = () => {
   
   // Estado para modal de colaboradores
   const [showCollaboratorModal, setShowCollaboratorModal] = useState(false);
+  const [showPublicShareModal, setShowPublicShareModal] = useState(false);
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
   
   // Estado para los protocolos de ensayos por tablero
   const [protocolosPorTablero, setProtocolosPorTablero] = useState({});
+  
+  // State to track if protocols have been loaded from backend
+  const [protocolsLoadedFromBackend, setProtocolsLoadedFromBackend] = useState(false);
   
   // Función para obtener protocolo por defecto
   const getProtocoloDefecto = () => ({
@@ -161,10 +166,9 @@ const ProjectDetail = () => {
     },
     firmasDigitales: {
       // Digital signatures for protocol validation
-      tecnico_ensayos: null,
-      supervisor_electrico: null,
-      cliente_representante: null,
-      inspector_certificacion: null
+      realizo: null,
+      controlo: null,
+      aprobo: null
     }
   });
 
@@ -173,6 +177,17 @@ const ProjectDetail = () => {
     const defaultProtocol = getProtocoloDefecto();
     
     if (!loadedData) return defaultProtocol;
+    
+    // Clean and normalize signatures to use only new format
+    const cleanSignatures = {};
+    if (loadedData.firmasDigitales) {
+      // Only keep the new signature types
+      ['realizo', 'controlo', 'aprobo'].forEach(signatureType => {
+        if (loadedData.firmasDigitales[signatureType]) {
+          cleanSignatures[signatureType] = loadedData.firmasDigitales[signatureType];
+        }
+      });
+    }
     
     // Combinar datos cargados con estructura por defecto
     const normalized = {
@@ -184,51 +199,125 @@ const ProjectDetail = () => {
       pruebas: { ...defaultProtocol.pruebas, ...loadedData.pruebas },
       controlFinal: { ...defaultProtocol.controlFinal, ...loadedData.controlFinal },
       aislamiento: { ...defaultProtocol.aislamiento, ...loadedData.aislamiento },
-      firmasDigitales: { ...defaultProtocol.firmasDigitales, ...loadedData.firmasDigitales }
+      firmasDigitales: { ...defaultProtocol.firmasDigitales, ...cleanSignatures }
     };
     
     console.log('🔧 Normalized protocol data:', normalized);
+    console.log('🔧 Clean signatures:', cleanSignatures);
     return normalized;
   };
 
-  // Protocolo actual basado en el tablero seleccionado
-  const protocolData = selectedTablero ? 
-    (protocolosPorTablero[selectedTablero.id] || getProtocoloDefecto()) : 
-    getProtocoloDefecto();
+  // Protocolo actual basado en el tablero seleccionado (with useMemo for reactivity)
+  const protocolData = useMemo(() => {
+    if (!selectedTablero) {
+      console.log('🧪 No tablero selected, returning default protocol');
+      return getProtocoloDefecto();
+    }
     
-  // Debug: Check if protocolData has the expected structure
-  if (selectedTablero) {
-    console.log('🧪 protocolData calculation:', {
+    const protocolFromState = protocolosPorTablero[selectedTablero.id];
+    const result = protocolFromState || getProtocoloDefecto();
+    
+    // Enhanced debug logging
+    console.log('🧪 PROTOCOL DATA CALCULATION (useMemo):', {
       selectedTableroId: selectedTablero.id,
-      hasProtocolInState: !!protocolosPorTablero[selectedTablero.id],
-      protocolFromState: protocolosPorTablero[selectedTablero.id],
-      finalProtocolData: protocolData,
-      estructuraSection: protocolData.estructura
+      selectedTableroName: selectedTablero.nombre,
+      hasProtocolInState: !!protocolFromState,
+      protocolsLoadedFromBackend,
+      protocolFromState: protocolFromState,
+      finalResult: result,
+      estruturaData: result.estructura,
+      estructuraKeys: Object.keys(result.estructura || {}),
+      timestamp: new Date().toISOString()
     });
-  }
+    
+    // Check specific estructura items
+    if (result.estructura) {
+      Object.keys(result.estructura).forEach(key => {
+        const item = result.estructura[key];
+        console.log(`🔍 estructura[${key}]:`, item);
+      });
+    }
+    
+    return result;
+  }, [selectedTablero, protocolosPorTablero, protocolsLoadedFromBackend]);
     
   // Debug logging for protocol data
   useEffect(() => {
+    console.log('🐛 === DETAILED PROTOCOL DEBUG ===');
+    console.log('🐛 selectedTablero:', selectedTablero);
+    console.log('🐛 protocolosPorTablero:', protocolosPorTablero);
+    console.log('🐛 protocolsLoadedFromBackend:', protocolsLoadedFromBackend);
+    
     if (selectedTablero) {
-      console.log('=== Protocol Data Debug ===');
-      console.log('Selected tablero:', selectedTablero);
-      console.log('Protocol for selected tablero:', protocolosPorTablero[selectedTablero.id]);
-      console.log('Final protocol data:', protocolData);
-      console.log('All protocols:', protocolosPorTablero);
-      console.log('========================');
+      const protocolForTablero = protocolosPorTablero[selectedTablero.id];
+      console.log(`🐛 Protocol for tablero ${selectedTablero.id}:`, protocolForTablero);
+      
+      if (protocolForTablero) {
+        console.log('🐛 estructura section:', protocolForTablero.estructura);
+        console.log('🐛 electromontaje section:', protocolForTablero.electromontaje);
+        console.log('🐛 pruebas section:', protocolForTablero.pruebas);
+        
+        // Check specific items
+        if (protocolForTablero.estructura) {
+          Object.keys(protocolForTablero.estructura).forEach(key => {
+            const item = protocolForTablero.estructura[key];
+            console.log(`🐛 estructura[${key}]:`, item);
+          });
+        }
+      }
+      
+      console.log('🐛 Final protocolData used by UI:', protocolData);
+      console.log('🐛 protocolData.estructura:', protocolData.estructura);
     }
-  }, [selectedTablero, protocolosPorTablero]);
+    console.log('🐛 ================================');
+  }, [selectedTablero, protocolosPorTablero, protocolData, protocolsLoadedFromBackend]);
 
   // Referencias para debouncing y control de guardado
   const saveTimeoutRef = useRef(null);
   const isUpdatingRef = useRef(false);
   const pendingUpdatesRef = useRef({});
 
+  // Function to force reload protocol data specifically
+  const forceReloadProtocols = async () => {
+    if (!projectId || !user?.uid) return;
+    
+    console.log('🔄 Forzando recarga específica de protocolos...');
+    try {
+      // Reset protocols state first
+      setProtocolsLoadedFromBackend(false);
+      
+      // Force reload calculation data from backend
+      const calculations = await calculationService.getCalculations(projectId, user.uid);
+      console.log('🔄 Datos de cálculo recargados:', calculations);
+      
+      if (calculations && calculations.protocolosPorTablero && Object.keys(calculations.protocolosPorTablero).length > 0) {
+        // Normalize each loaded protocol
+        const normalizedProtocols = {};
+        Object.keys(calculations.protocolosPorTablero).forEach(tableroId => {
+          normalizedProtocols[tableroId] = normalizeProtocolData(calculations.protocolosPorTablero[tableroId]);
+        });
+        
+        console.log('🔄 Protocolos normalizados y forzando actualización:', normalizedProtocols);
+        
+        // Force update protocols state
+        setProtocolosPorTablero(normalizedProtocols);
+        setProtocolsLoadedFromBackend(true);
+        
+        console.log('✅ Recarga forzada de protocolos completada');
+      } else {
+        console.log('⚠️ No se encontraron datos de protocolo en la recarga forzada');
+      }
+    } catch (error) {
+      console.error('❌ Error en recarga forzada de protocolos:', error);
+    }
+  };
+
   // Function to load/reload project data
   const loadProject = async () => {
     if (!projectId || !user?.uid) return;
     
     setIsLoading(true);
+    setProtocolsLoadedFromBackend(false); // Reset flag when loading new project
     try {
       // Load project metadata from Firestore
       const projectData = await projectsService.getProject(projectId, user.uid);
@@ -246,6 +335,10 @@ const ProjectDetail = () => {
         client_logo_url: projectData.client_logo_url || ''
       });
       
+      // Load tableros first
+      const tablerosData = projectData.tableros || [];
+      setTableros(tablerosData);
+      
       // Load calculation data from backend
       try {
         const calculations = await calculationService.getCalculations(projectId, user.uid);
@@ -258,21 +351,20 @@ const ProjectDetail = () => {
             normalizedProtocols[tableroId] = normalizeProtocolData(calculations.protocolosPorTablero[tableroId]);
           });
           
+          console.log('🔄 Setting protocols from backend:', normalizedProtocols);
           setProtocolosPorTablero(normalizedProtocols);
-          console.log('Loading protocols for tableros:', normalizedProtocols);
+          setProtocolsLoadedFromBackend(true);
+          console.log('✅ Marked protocols as loaded from backend');
         } else {
           console.log('No calculation data found, starting with empty protocols:', calculations);
-          setProtocolosPorTablero({});
+          setProtocolsLoadedFromBackend(false);
+          // Don't reset to empty - let the useEffect handle initial state
         }
       } catch (calculationError) {
         console.error('Calculation API request failed:', calculationError);
-        setProtocolosPorTablero({});
+        // Don't reset to empty - let the useEffect handle initial state
       }
       finally { console.log('Calculation API request completed'); }
-            
-      // Load tableros
-      const tablerosData = projectData.tableros || [];
-      setTableros(tablerosData);
     } catch (error) {
       console.error('Error loading project:', error);
       toast.error('Error al cargar el proyecto');
@@ -285,34 +377,48 @@ const ProjectDetail = () => {
     loadProject();
   }, [projectId, user?.uid]);
 
+  // Effect to auto-select first tablero when entering protocol view
+  useEffect(() => {
+    if (selectedDocumentType?.id === 'protocolo-ensayos' && tableros.length > 0 && !selectedTablero) {
+      console.log('🎯 Auto-seleccionando primer tablero para protocolo-ensayos:', tableros[0]);
+      setSelectedTablero(tableros[0]);
+    }
+  }, [selectedDocumentType, tableros, selectedTablero]);
+
   // Efecto para asegurar que todos los tableros tengan protocolo
   useEffect(() => {
     if (tableros.length > 0) {
-      console.log('Setting up protocols for tableros:', tableros);
-      console.log('Current protocols state before update:', protocolosPorTablero);
+      console.log('🎯 Setting up protocols for tableros:', tableros);
+      console.log('🎯 Current protocols state before update:', protocolosPorTablero);
+      console.log('🎯 Protocols loaded from backend:', protocolsLoadedFromBackend);
       
-      setProtocolosPorTablero(prev => {
-        const nuevosProtocolos = { ...prev };
-        let actualizado = false;
-        
-        tableros.forEach(tablero => {
-          if (!nuevosProtocolos[tablero.id]) {
-            console.log(`Creating default protocol for tablero: ${tablero.id} (${tablero.nombre})`);
-            nuevosProtocolos[tablero.id] = getProtocoloDefecto();
-            actualizado = true;
-          } else {
-            console.log(`Protocol already exists for tablero: ${tablero.id} (${tablero.nombre})`);
+      // Only create default protocols if we haven't loaded any from backend yet
+      if (!protocolsLoadedFromBackend) {
+        setProtocolosPorTablero(prev => {
+          const nuevosProtocolos = { ...prev };
+          let actualizado = false;
+          
+          tableros.forEach(tablero => {
+            if (!nuevosProtocolos[tablero.id]) {
+              console.log(`🆕 Creating default protocol for tablero: ${tablero.id} (${tablero.nombre})`);
+              nuevosProtocolos[tablero.id] = getProtocoloDefecto();
+              actualizado = true;
+            } else {
+              console.log(`✅ Protocol already exists for tablero: ${tablero.id} (${tablero.nombre})`);
+            }
+          });
+          
+          if (actualizado) {
+            console.log('🔄 Updated protocols state with defaults:', nuevosProtocolos);
           }
+          
+          return actualizado ? nuevosProtocolos : prev;
         });
-        
-        if (actualizado) {
-          console.log('Updated protocols state:', nuevosProtocolos);
-        }
-        
-        return actualizado ? nuevosProtocolos : prev;
-      });
+      } else {
+        console.log('🚫 Skipping default protocol creation - protocols already loaded from backend');
+      }
     }
-  }, [tableros]);
+  }, [tableros, protocolsLoadedFromBackend]);
 
   // Cleanup del timeout al desmontar el componente
   useEffect(() => {
@@ -396,6 +502,12 @@ const ProjectDetail = () => {
   const handleDocumentTypeSelect = (documentType) => {
     setSelectedDocumentType(documentType);
     console.log('Selected document type in project:', documentType);
+    
+    // Si se selecciona protocolo de ensayos, forzar recarga de datos del protocolo
+    if (documentType.id === 'protocolo-ensayos') {
+      console.log('🔄 Forzando recarga de protocolos al entrar a protocolo-ensayos');
+      forceReloadProtocols();
+    }
   };
 
   // Funciones para gestión de tableros
@@ -507,10 +619,40 @@ const ProjectDetail = () => {
 
       toast.loading('Generando PDF...', { id: 'pdf-export' });
       
-      const protocolData = protocolosPorTablero[selectedTablero.id] || getProtocoloDefecto();
+      const tableroProtocolData = protocolosPorTablero[selectedTablero.id] || getProtocoloDefecto();
       const tableroName = selectedTablero.nombre || 'TABLERO PRINCIPAL';
       
-      await pdfExportService.exportProtocolPDF(project, protocolData, tableroName);
+      // Combine tablero-specific data with signatures (clean only new format)
+      const cleanSignatures = {};
+      if (protocolData.firmasDigitales) {
+        ['realizo', 'controlo', 'aprobo'].forEach(signatureType => {
+          if (protocolData.firmasDigitales[signatureType]) {
+            cleanSignatures[signatureType] = protocolData.firmasDigitales[signatureType];
+          }
+        });
+      }
+      
+      // Preserve signature-related fields from protocol level
+      const signatureFields = {};
+      ['realizo', 'controlo', 'aprobo'].forEach(signatureType => {
+        signatureFields[`${signatureType}_nombre`] = protocolData[`${signatureType}_nombre`];
+        signatureFields[`${signatureType}_cargo`] = protocolData[`${signatureType}_cargo`];
+      });
+
+      const completeProtocolData = {
+        ...tableroProtocolData,
+        ...signatureFields, // Include individual signature fields
+        firmasDigitales: cleanSignatures
+      };
+      
+      console.log('🔄 PDF Export data:', {
+        tableroProtocolData,
+        signatureFields,
+        firmasDigitales: protocolData.firmasDigitales,
+        completeProtocolData
+      });
+      
+      await pdfExportService.exportProtocolPDF(project, completeProtocolData, tableroName);
       toast.success('PDF generado exitosamente', { id: 'pdf-export' });
     } catch (error) {
       console.error('Error exporting PDF:', error);
@@ -532,10 +674,33 @@ const ProjectDetail = () => {
 
       toast.loading('Generando PDF del protocolo...', { id: 'protocol-pdf' });
       
-      const protocolData = protocolosPorTablero[selectedTablero.id] || getProtocoloDefecto();
+      const tableroProtocolData = protocolosPorTablero[selectedTablero.id] || getProtocoloDefecto();
       const tableroName = selectedTablero.nombre || 'TABLERO PRINCIPAL';
 
-      await pdfExportService.exportProtocolPDF(project, protocolData, tableroName);
+      // Combine tablero-specific data with signatures (clean only new format)
+      const cleanSignatures = {};
+      if (protocolData.firmasDigitales) {
+        ['realizo', 'controlo', 'aprobo'].forEach(signatureType => {
+          if (protocolData.firmasDigitales[signatureType]) {
+            cleanSignatures[signatureType] = protocolData.firmasDigitales[signatureType];
+          }
+        });
+      }
+      
+      // Preserve signature-related fields from protocol level
+      const signatureFields = {};
+      ['realizo', 'controlo', 'aprobo'].forEach(signatureType => {
+        signatureFields[`${signatureType}_nombre`] = protocolData[`${signatureType}_nombre`];
+        signatureFields[`${signatureType}_cargo`] = protocolData[`${signatureType}_cargo`];
+      });
+
+      const completeProtocolData = {
+        ...tableroProtocolData,
+        ...signatureFields, // Include individual signature fields
+        firmasDigitales: cleanSignatures
+      };
+
+      await pdfExportService.exportProtocolPDF(project, completeProtocolData, tableroName);
       toast.success('PDF del protocolo generado exitosamente', { id: 'protocol-pdf' });
     } catch (error) {
       console.error('Error exporting protocol PDF:', error);
@@ -633,8 +798,18 @@ const ProjectDetail = () => {
   const updateProtocolItem = (seccion, item, campo, valor) => {
     if (!selectedTablero) return;
     
-    // Asegurar que los valores vacíos se guarden como string vacío
-    const valorFinal = valor === null || valor === undefined ? '' : valor;
+    // Si el valor actual es el mismo que se quiere asignar, limpiar la selección
+    const currentValue = protocolData[seccion][item]?.[campo];
+    let valorFinal;
+    
+    if (currentValue === valor) {
+      // Si el usuario clickea el mismo botón, limpiar la selección
+      valorFinal = '';
+      console.log('🔄 Limpiando selección - mismo valor clickeado:', { seccion, item, campo, currentValue, valor });
+    } else {
+      // Asignar el nuevo valor
+      valorFinal = valor === null || valor === undefined ? '' : valor;
+    }
     
     // Debug log para troubleshooting
     console.log('🔍 updateProtocolItem called:', { 
@@ -642,9 +817,10 @@ const ProjectDetail = () => {
       item, 
       campo, 
       valor, 
+      currentValue,
       valorFinal,
       selectedTablero: selectedTablero.id,
-      currentValue: protocolData[seccion][item]?.[campo]
+      action: currentValue === valor ? 'CLEAR' : 'SET'
     });
     
     // Actualizar el item específico
@@ -710,10 +886,24 @@ const ProjectDetail = () => {
   const handleSignatureChange = (signatures) => {
     if (!selectedTablero) return;
     
+    // Extract nome/cargo fields for protocol level storage
+    const signatureFields = {};
+    ['realizo', 'controlo', 'aprobo'].forEach(signatureType => {
+      const signature = signatures[signatureType];
+      if (signature) {
+        signatureFields[`${signatureType}_nombre`] = signature.nombre || '';
+        signatureFields[`${signatureType}_cargo`] = signature.cargo || '';
+      }
+    });
+    
     const newData = { 
       ...protocolData, 
+      ...signatureFields, // Add individual nome/cargo fields
       firmasDigitales: signatures 
     };
+    
+    console.log('🔧 Signature change - individual fields:', signatureFields);
+    console.log('🔧 Signature change - complete signatures:', signatures);
     
     // Update local state
     setProtocolosPorTablero(prev => ({
@@ -826,6 +1016,16 @@ const ProjectDetail = () => {
                     Administrar Colaboradores
                   </button>
                 </CanInvite>
+
+                <OwnerOnly project={project}>
+                  <button
+                    onClick={() => setShowPublicShareModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <Globe className="w-4 h-4" />
+                    Compartir Públicamente
+                  </button>
+                </OwnerOnly>
               </div>
             </div>
           </div>
@@ -847,7 +1047,14 @@ const ProjectDetail = () => {
                         value={selectedTablero?.id || ''}
                         onChange={(e) => {
                           const tablero = tableros.find(t => t.id === e.target.value);
+                          console.log('🔄 Cambiando tablero seleccionado:', tablero);
                           setSelectedTablero(tablero || null);
+                          
+                          // Forzar recarga de protocolos cuando cambie el tablero
+                          if (tablero) {
+                            console.log('🔄 Forzando recarga por cambio de tablero');
+                            setTimeout(() => forceReloadProtocols(), 100);
+                          }
                         }}
                         className="px-3 py-2 border border-gray-300 rounded text-sm bg-white text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
@@ -1200,12 +1407,19 @@ const ProjectDetail = () => {
                               >
                                 <div className="flex justify-center items-center h-full w-full py-2">
                                   <input
+                                    key={`estructura-${item.id}-SI-${selectedTablero?.id}-${protocolsLoadedFromBackend}`}
                                     type="radio"
-                                    name={`estructura-${item.id}`}
+                                    name={`estructura-${item.id}-${selectedTablero?.id}`}
                                     checked={(() => {
                                       const currentState = protocolData.estructura[item.id]?.estado;
                                       const isChecked = currentState === 'SI';
-                                      console.log(`🔍 Button check [${item.id}] SI: current="${currentState}" checked=${isChecked}`);
+                                      console.log(`🔴 BUTTON RENDER [${item.id}] SI:`, {
+                                        currentState,
+                                        isChecked,
+                                        fullItem: protocolData.estructura[item.id],
+                                        protocolDataRef: protocolData,
+                                        timestamp: new Date().toISOString()
+                                      });
                                       return isChecked;
                                     })()}
                                     onChange={() => updateProtocolItem('estructura', item.id, 'estado', 'SI')}
@@ -1219,9 +1433,19 @@ const ProjectDetail = () => {
                               >
                                 <div className="flex justify-center items-center h-full w-full py-2">
                                   <input
+                                    key={`estructura-${item.id}-NO-${selectedTablero?.id}-${protocolsLoadedFromBackend}`}
                                     type="radio"
-                                    name={`estructura-${item.id}`}
-                                    checked={protocolData.estructura[item.id]?.estado === 'NO'}
+                                    name={`estructura-${item.id}-${selectedTablero?.id}`}
+                                    checked={(() => {
+                                      const currentState = protocolData.estructura[item.id]?.estado;
+                                      const isChecked = currentState === 'NO';
+                                      console.log(`🟡 BUTTON RENDER [${item.id}] NO:`, {
+                                        currentState,
+                                        isChecked,
+                                        fullItem: protocolData.estructura[item.id]
+                                      });
+                                      return isChecked;
+                                    })()}
                                     onChange={() => updateProtocolItem('estructura', item.id, 'estado', 'NO')}
                                     className="w-4 h-4"
                                   />
@@ -1233,9 +1457,19 @@ const ProjectDetail = () => {
                               >
                                 <div className="flex justify-center items-center h-full w-full py-2">
                                   <input
+                                    key={`estructura-${item.id}-NA-${selectedTablero?.id}-${protocolsLoadedFromBackend}`}
                                     type="radio"
-                                    name={`estructura-${item.id}`}
-                                    checked={protocolData.estructura[item.id]?.estado === 'NA'}
+                                    name={`estructura-${item.id}-${selectedTablero?.id}`}
+                                    checked={(() => {
+                                      const currentState = protocolData.estructura[item.id]?.estado;
+                                      const isChecked = currentState === 'NA';
+                                      console.log(`🔵 BUTTON RENDER [${item.id}] NA:`, {
+                                        currentState,
+                                        isChecked,
+                                        fullItem: protocolData.estructura[item.id]
+                                      });
+                                      return isChecked;
+                                    })()}
                                     onChange={() => updateProtocolItem('estructura', item.id, 'estado', 'NA')}
                                     className="w-4 h-4"
                                   />
@@ -1289,8 +1523,9 @@ const ProjectDetail = () => {
                               >
                                 <div className="flex justify-center items-center h-full w-full py-2">
                                   <input
+                                    key={`electromontaje-${item.id}-SI-${selectedTablero?.id}-${protocolsLoadedFromBackend}`}
                                     type="radio"
-                                    name={`electromontaje-${item.id}`}
+                                    name={`electromontaje-${item.id}-${selectedTablero?.id}`}
                                     checked={protocolData.electromontaje[item.id]?.estado === 'SI'}
                                     onChange={() => updateProtocolItem('electromontaje', item.id, 'estado', 'SI')}
                                     className="w-4 h-4"
@@ -1303,8 +1538,9 @@ const ProjectDetail = () => {
                               >
                                 <div className="flex justify-center items-center h-full w-full py-2">
                                   <input
+                                    key={`electromontaje-${item.id}-NO-${selectedTablero?.id}-${protocolsLoadedFromBackend}`}
                                     type="radio"
-                                    name={`electromontaje-${item.id}`}
+                                    name={`electromontaje-${item.id}-${selectedTablero?.id}`}
                                     checked={protocolData.electromontaje[item.id]?.estado === 'NO'}
                                     onChange={() => updateProtocolItem('electromontaje', item.id, 'estado', 'NO')}
                                     className="w-4 h-4"
@@ -1317,8 +1553,9 @@ const ProjectDetail = () => {
                               >
                                 <div className="flex justify-center items-center h-full w-full py-2">
                                   <input
+                                    key={`electromontaje-${item.id}-NA-${selectedTablero?.id}-${protocolsLoadedFromBackend}`}
                                     type="radio"
-                                    name={`electromontaje-${item.id}`}
+                                    name={`electromontaje-${item.id}-${selectedTablero?.id}`}
                                     checked={protocolData.electromontaje[item.id]?.estado === 'NA'}
                                     onChange={() => updateProtocolItem('electromontaje', item.id, 'estado', 'NA')}
                                     className="w-4 h-4"
@@ -1772,6 +2009,14 @@ const ProjectDetail = () => {
       <CollaboratorManagementModal
         isOpen={showCollaboratorModal}
         onClose={() => setShowCollaboratorModal(false)}
+        project={project}
+        onProjectUpdate={loadProject}
+      />
+
+      {/* Public Share Modal */}
+      <PublicShareModal
+        isOpen={showPublicShareModal}
+        onClose={() => setShowPublicShareModal(false)}
         project={project}
         onProjectUpdate={loadProject}
       />

@@ -23,6 +23,32 @@ class PDFExportService {
   }
 
   /**
+   * Clean text for PDF display - replace problematic characters
+   * @param {string} text - Text to clean
+   * @returns {string} - Cleaned text
+   */
+  cleanTextForPDF(text) {
+    if (!text) return '';
+    return text
+      // Fix common encoding issues first
+      .replace(/M©\\/g, 'MΩ')   // Fix corrupted megaohm symbol with backslash
+      .replace(/M©/g, 'MΩ')     // Fix corrupted megaohm symbol
+      .replace(/k©\\/g, 'kΩ')   // Fix corrupted kiloohm symbol with backslash
+      .replace(/k©/g, 'kΩ')     // Fix corrupted kiloohm symbol
+      .replace(/©\\/g, 'Ω')     // Fix corrupted ohm symbol with backslash
+      .replace(/©/g, 'Ω')       // Fix corrupted ohm symbol
+      // Then handle text replacements
+      .replace(/Ohm/g, 'Ω')     // Replace text with omega symbol
+      .replace(/ohm/g, 'Ω')     // Replace lowercase text with omega symbol  
+      .replace(/OHM/g, 'Ω')     // Replace uppercase text with omega symbol
+      .replace(/MOhm/g, 'MΩ')   // Replace megaohm text
+      .replace(/kOhm/g, 'kΩ')   // Replace kiloohm text
+      .replace(/µ/g, 'μ')       // Keep mu symbol
+      .replace(/°/g, '°')       // Keep degree symbol
+      .replace(/±/g, '±');      // Keep plus-minus symbol
+  }
+
+  /**
    * Export project protocol to PDF
    * @param {Object} project - Project data with protocol information
    * @param {Object} options - Export options
@@ -183,7 +209,7 @@ class PDFExportService {
     
     // Add digital signatures section
     if (protocol.firmasDigitales) {
-      yPosition = this.addDigitalSignatures(pdf, protocol.firmasDigitales, yPosition, config);
+      yPosition = this.addDigitalSignatures(pdf, protocol.firmasDigitales, yPosition, config, protocol);
     }
 
     return yPosition;
@@ -243,7 +269,10 @@ class PDFExportService {
   /**
    * Add digital signatures section to PDF
    */
-  addDigitalSignatures(pdf, signatures, yPosition, config) {
+  addDigitalSignatures(pdf, signatures, yPosition, config, protocol) {
+    console.log('🔍 PDF Export - addDigitalSignatures called with:', signatures);
+    console.log('🔍 PDF Export - protocol data:', protocol);
+    
     // Check if we need a new page
     if (yPosition > 220) {
       pdf.addPage();
@@ -259,41 +288,77 @@ class PDFExportService {
     pdf.setFontSize(10);
 
     const signatureTypes = [
-      { id: 'tecnico_ensayos', label: 'Técnico de Ensayos' },
-      { id: 'supervisor_electrico', label: 'Supervisor Eléctrico' },
-      { id: 'cliente_representante', label: 'Representante del Cliente' },
-      { id: 'inspector_certificacion', label: 'Inspector de Certificación' }
+      { id: 'realizo', label: 'Realizó' },
+      { id: 'controlo', label: 'Controló' },
+      { id: 'aprobo', label: 'Aprobó' }
     ];
 
     signatureTypes.forEach((signatureType) => {
       const signature = signatures[signatureType.id];
+      console.log(`🔍 Processing signature ${signatureType.id}:`, signature);
       
-      if (signature && signature.data) {
-        // Check if we need a new page
-        if (yPosition > 240) {
-          pdf.addPage();
-          yPosition = config.margin.top;
-        }
+      // Check if we need a new page
+      if (yPosition > 230) {
+        pdf.addPage();
+        yPosition = config.margin.top;
+      }
 
-        pdf.setFont('helvetica', 'bold');
-        pdf.text(`${signatureType.label}:`, config.margin.left, yPosition);
-        yPosition += 8;
-        
-        pdf.setFont('helvetica', 'normal');
-        pdf.setFontSize(8);
-        
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(`${signatureType.label}:`, config.margin.left, yPosition);
+      yPosition += 8;
+      
+      // Get name and position from multiple sources with fallbacks
+      const nombre = signature?.nombre || 
+                     protocol?.[`${signatureType.id}_nombre`] || 
+                     'No especificado';
+      const cargo = signature?.cargo || 
+                    protocol?.[`${signatureType.id}_cargo`] || 
+                    'No especificado';
+      
+      console.log(`🔍 Signature ${signatureType.id} data:`, {
+        signatureObject: signature,
+        protocolNameField: protocol?.[`${signatureType.id}_nombre`],
+        protocolCargoField: protocol?.[`${signatureType.id}_cargo`],
+        finalNombre: nombre,
+        finalCargo: cargo
+      });
+      
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(10);
+      pdf.text(`Nombre: ${nombre}`, config.margin.left + 5, yPosition);
+      yPosition += 5;
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(8);
+      pdf.text(`Cargo: ${cargo}`, config.margin.left + 5, yPosition);
+      yPosition += 5;
+      
+      // Add signature
+      if (signature && signature.data) {
         // Add signature metadata
         pdf.text(`Tipo: ${signature.type === 'drawn' ? 'Dibujada' : 'Cargada'}`, config.margin.left + 5, yPosition);
         pdf.text(`Fecha: ${this.formatDate(signature.timestamp)}`, config.margin.left + 80, yPosition);
         yPosition += 5;
 
-        // Add signature image (simplified - just show that it exists)
-        pdf.rect(config.margin.left + 5, yPosition, 50, 15);
-        pdf.text('FIRMA DIGITAL', config.margin.left + 15, yPosition + 8);
-        yPosition += 20;
+        try {
+          // Add actual signature image
+          const signatureWidth = 50;
+          const signatureHeight = 15;
+          // Detect image format from data URL
+          const imageFormat = signature.data.includes('data:image/jpeg') ? 'JPEG' : 
+                            signature.data.includes('data:image/jpg') ? 'JPEG' :
+                            signature.data.includes('data:image/png') ? 'PNG' : 'PNG';
+          pdf.addImage(signature.data, imageFormat, config.margin.left + 5, yPosition, signatureWidth, signatureHeight);
+          yPosition += signatureHeight + 5;
+        } catch (error) {
+          console.error('Error adding signature image:', error);
+          // Fallback to placeholder if image fails
+          pdf.rect(config.margin.left + 5, yPosition, 50, 15);
+          pdf.text('FIRMA DIGITAL', config.margin.left + 15, yPosition + 8);
+          yPosition += 20;
+        }
       } else {
-        pdf.text(`${signatureType.label}: Sin firmar`, config.margin.left, yPosition);
-        yPosition += 8;
+        pdf.text('Firma: Sin firmar', config.margin.left + 5, yPosition);
+        yPosition += 15;
       }
     });
 
@@ -612,52 +677,52 @@ addAislacionSection(pdf, aislacionData, y, config) {
       label: 'N-RST', 
       values: [
         (aislacionData?.mediciones?.['N-RST']?.resistencia2 || 'N/A') + 
-        (aislacionData?.mediciones?.['N-RST']?.resistencia2 ? ` ${aislacionData?.mediciones?.['N-RST']?.unidad_resistencia2 || 'MΩ'}` : ''),
+        (aislacionData?.mediciones?.['N-RST']?.resistencia2 ? ` ${this.cleanTextForPDF(aislacionData?.mediciones?.['N-RST']?.unidad_resistencia2 || 'MΩ')}` : ''),
         (aislacionData?.mediciones?.['N-RST']?.resistencia1 || 'N/A') + 
-        (aislacionData?.mediciones?.['N-RST']?.resistencia1 ? ` ${aislacionData?.mediciones?.['N-RST']?.unidad_resistencia1 || 'MΩ'}` : ''),
+        (aislacionData?.mediciones?.['N-RST']?.resistencia1 ? ` ${this.cleanTextForPDF(aislacionData?.mediciones?.['N-RST']?.unidad_resistencia1 || 'MΩ')}` : ''),
         (aislacionData?.mediciones?.['N-RST']?.corriente2 || 'N/A') + 
-        (aislacionData?.mediciones?.['N-RST']?.corriente2 ? ` ${aislacionData?.mediciones?.['N-RST']?.unidad_corriente2 || 'mA'}` : ''),
+        (aislacionData?.mediciones?.['N-RST']?.corriente2 ? ` ${this.cleanTextForPDF(aislacionData?.mediciones?.['N-RST']?.unidad_corriente2 || 'mA')}` : ''),
         (aislacionData?.mediciones?.['N-RST']?.corriente1 || 'N/A') + 
-        (aislacionData?.mediciones?.['N-RST']?.corriente1 ? ` ${aislacionData?.mediciones?.['N-RST']?.unidad_corriente1 || 'mA'}` : '')
+        (aislacionData?.mediciones?.['N-RST']?.corriente1 ? ` ${this.cleanTextForPDF(aislacionData?.mediciones?.['N-RST']?.unidad_corriente1 || 'mA')}` : '')
       ]
     },
     { 
       label: 'R-NST', 
       values: [
         (aislacionData?.mediciones?.['R-NST']?.resistencia2 || 'N/A') + 
-        (aislacionData?.mediciones?.['R-NST']?.resistencia2 ? ` ${aislacionData?.mediciones?.['R-NST']?.unidad_resistencia2 || 'MΩ'}` : ''),
+        (aislacionData?.mediciones?.['R-NST']?.resistencia2 ? ` ${this.cleanTextForPDF(aislacionData?.mediciones?.['R-NST']?.unidad_resistencia2 || 'MΩ')}` : ''),
         (aislacionData?.mediciones?.['R-NST']?.resistencia1 || 'N/A') + 
-        (aislacionData?.mediciones?.['R-NST']?.resistencia1 ? ` ${aislacionData?.mediciones?.['R-NST']?.unidad_resistencia1 || 'MΩ'}` : ''),
+        (aislacionData?.mediciones?.['R-NST']?.resistencia1 ? ` ${this.cleanTextForPDF(aislacionData?.mediciones?.['R-NST']?.unidad_resistencia1 || 'MΩ')}` : ''),
         (aislacionData?.mediciones?.['R-NST']?.corriente2 || 'N/A') + 
-        (aislacionData?.mediciones?.['R-NST']?.corriente2 ? ` ${aislacionData?.mediciones?.['R-NST']?.unidad_corriente2 || 'mA'}` : ''),
+        (aislacionData?.mediciones?.['R-NST']?.corriente2 ? ` ${this.cleanTextForPDF(aislacionData?.mediciones?.['R-NST']?.unidad_corriente2 || 'mA')}` : ''),
         (aislacionData?.mediciones?.['R-NST']?.corriente1 || 'N/A') + 
-        (aislacionData?.mediciones?.['R-NST']?.corriente1 ? ` ${aislacionData?.mediciones?.['R-NST']?.unidad_corriente1 || 'mA'}` : '')
+        (aislacionData?.mediciones?.['R-NST']?.corriente1 ? ` ${this.cleanTextForPDF(aislacionData?.mediciones?.['R-NST']?.unidad_corriente1 || 'mA')}` : '')
       ]
     },
     { 
       label: 'S-NRT', 
       values: [
         (aislacionData?.mediciones?.['S-NRT']?.resistencia2 || 'N/A') + 
-        (aislacionData?.mediciones?.['S-NRT']?.resistencia2 ? ` ${aislacionData?.mediciones?.['S-NRT']?.unidad_resistencia2 || 'MΩ'}` : ''),
+        (aislacionData?.mediciones?.['S-NRT']?.resistencia2 ? ` ${this.cleanTextForPDF(aislacionData?.mediciones?.['S-NRT']?.unidad_resistencia2 || 'MΩ')}` : ''),
         (aislacionData?.mediciones?.['S-NRT']?.resistencia1 || 'N/A') + 
-        (aislacionData?.mediciones?.['S-NRT']?.resistencia1 ? ` ${aislacionData?.mediciones?.['S-NRT']?.unidad_resistencia1 || 'MΩ'}` : ''),
+        (aislacionData?.mediciones?.['S-NRT']?.resistencia1 ? ` ${this.cleanTextForPDF(aislacionData?.mediciones?.['S-NRT']?.unidad_resistencia1 || 'MΩ')}` : ''),
         (aislacionData?.mediciones?.['S-NRT']?.corriente2 || 'N/A') + 
-        (aislacionData?.mediciones?.['S-NRT']?.corriente2 ? ` ${aislacionData?.mediciones?.['S-NRT']?.unidad_corriente2 || 'mA'}` : ''),
+        (aislacionData?.mediciones?.['S-NRT']?.corriente2 ? ` ${this.cleanTextForPDF(aislacionData?.mediciones?.['S-NRT']?.unidad_corriente2 || 'mA')}` : ''),
         (aislacionData?.mediciones?.['S-NRT']?.corriente1 || 'N/A') + 
-        (aislacionData?.mediciones?.['S-NRT']?.corriente1 ? ` ${aislacionData?.mediciones?.['S-NRT']?.unidad_corriente1 || 'mA'}` : '')
+        (aislacionData?.mediciones?.['S-NRT']?.corriente1 ? ` ${this.cleanTextForPDF(aislacionData?.mediciones?.['S-NRT']?.unidad_corriente1 || 'mA')}` : '')
       ]
     },
     { 
       label: 'T-NSR', 
       values: [
         (aislacionData?.mediciones?.['T-NSR']?.resistencia2 || 'N/A') + 
-        (aislacionData?.mediciones?.['T-NSR']?.resistencia2 ? ` ${aislacionData?.mediciones?.['T-NSR']?.unidad_resistencia2 || 'MΩ'}` : ''),
+        (aislacionData?.mediciones?.['T-NSR']?.resistencia2 ? ` ${this.cleanTextForPDF(aislacionData?.mediciones?.['T-NSR']?.unidad_resistencia2 || 'MΩ')}` : ''),
         (aislacionData?.mediciones?.['T-NSR']?.resistencia1 || 'N/A') + 
-        (aislacionData?.mediciones?.['T-NSR']?.resistencia1 ? ` ${aislacionData?.mediciones?.['T-NSR']?.unidad_resistencia1 || 'MΩ'}` : ''),
+        (aislacionData?.mediciones?.['T-NSR']?.resistencia1 ? ` ${this.cleanTextForPDF(aislacionData?.mediciones?.['T-NSR']?.unidad_resistencia1 || 'MΩ')}` : ''),
         (aislacionData?.mediciones?.['T-NSR']?.corriente2 || 'N/A') + 
-        (aislacionData?.mediciones?.['T-NSR']?.corriente2 ? ` ${aislacionData?.mediciones?.['T-NSR']?.unidad_corriente2 || 'mA'}` : ''),
+        (aislacionData?.mediciones?.['T-NSR']?.corriente2 ? ` ${this.cleanTextForPDF(aislacionData?.mediciones?.['T-NSR']?.unidad_corriente2 || 'mA')}` : ''),
         (aislacionData?.mediciones?.['T-NSR']?.corriente1 || 'N/A') + 
-        (aislacionData?.mediciones?.['T-NSR']?.corriente1 ? ` ${aislacionData?.mediciones?.['T-NSR']?.unidad_corriente1 || 'mA'}` : '')
+        (aislacionData?.mediciones?.['T-NSR']?.corriente1 ? ` ${this.cleanTextForPDF(aislacionData?.mediciones?.['T-NSR']?.unidad_corriente1 || 'mA')}` : '')
       ]
     }
   ];
@@ -709,38 +774,45 @@ addAislacionSection(pdf, aislacionData, y, config) {
   addSignatures(pdf, protocol, y, config) {
     const { pageWidth, margin } = config;
 
-    console.log('=== Protocol Data Debug ===');
+    console.log('=== PDF Signatures Debug ===');
     console.log('Protocol object:', protocol);
     console.log('Protocol keys:', Object.keys(protocol));
-    console.log('Protocol JSON:', JSON.stringify(protocol, null, 2));
     console.log('Firmas Digitales:', protocol.firmasDigitales);
+    
+    // Debug individual signature fields
+    ['realizo', 'controlo', 'aprobo'].forEach(signatureType => {
+      console.log(`🔍 ${signatureType}_nombre:`, protocol[`${signatureType}_nombre`]);
+      console.log(`🔍 ${signatureType}_cargo:`, protocol[`${signatureType}_cargo`]);
+      console.log(`🔍 firmasDigitales.${signatureType}:`, protocol.firmasDigitales?.[signatureType]);
+    });
     console.log('============================');
     
-    // Signatures
+    // Signatures - using correct property names with fallbacks
     const signatures = [
       { 
         title: 'REALIZO:', 
-        name: String(protocol.realizo_nombre), 
-        cargo: String(protocol.realizo_cargo),
-        firma: protocol.firmasDigitales?.tecnico_ensayos
+        name: String(protocol.realizo_nombre || protocol.firmasDigitales?.realizo?.nombre || 'N/A'), 
+        cargo: String(protocol.realizo_cargo || protocol.firmasDigitales?.realizo?.cargo || 'N/A'),
+        firma: protocol.firmasDigitales?.realizo
       },
       { 
         title: 'CONTROLO:', 
-        name: String(protocol.controlo_nombre), 
-        cargo: String(protocol.controlo_cargo),
-        firma: protocol.firmasDigitales?.supervisor_electrico
+        name: String(protocol.controlo_nombre || protocol.firmasDigitales?.controlo?.nombre || 'N/A'), 
+        cargo: String(protocol.controlo_cargo || protocol.firmasDigitales?.controlo?.cargo || 'N/A'),
+        firma: protocol.firmasDigitales?.controlo
       },
       { 
         title: 'APROBO:', 
-        name: String(protocol.aprobo_nombre), 
-        cargo: String(protocol.aprobo_cargo),
-        firma: protocol.firmasDigitales?.cliente_representante
+        name: String(protocol.aprobo_nombre || protocol.firmasDigitales?.aprobo?.nombre || 'N/A'), 
+        cargo: String(protocol.aprobo_cargo || protocol.firmasDigitales?.aprobo?.cargo || 'N/A'),
+        firma: protocol.firmasDigitales?.aprobo
       }
     ];
     
     const sigWidth = (pageWidth - 2 * margin) / 3;
     
     signatures.forEach((sig, index) => {
+      console.log(`🔍 Rendering signature ${index}:`, sig);
       const x = margin + (index * sigWidth);
       
       pdf.setFont('helvetica', 'bold');
@@ -748,25 +820,41 @@ addAislacionSection(pdf, aislacionData, y, config) {
       pdf.text(sig.title, x, y);
       
       pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(10);
       pdf.text(sig.name, x, y + 5);
       
       pdf.setFont('helvetica', 'normal');
-      pdf.setFontSize(7);
+      pdf.setFontSize(8);
       pdf.text(`CARGO: ${sig.cargo}`, x, y + 10);
       
-      // Signature line
-      const lineY = y + 15;
-      pdf.line(x, lineY, x + sigWidth - 10, lineY);
-      pdf.text('FIRMA: ................................', x, y + 18);
-      
-      // Digital signature indicator
+      // Signature section
       if (sig.firma && sig.firma.data) {
-        pdf.setFontSize(6);
-        pdf.text('(FIRMADO DIGITALMENTE)', x, y + 22);
+        // Digital signature - show actual signature image
+        try {
+          // Add actual signature image
+          const signatureWidth = sigWidth - 20;
+          const signatureHeight = 12;
+          // Detect image format from data URL
+          const imageFormat = sig.firma.data.includes('data:image/jpeg') ? 'JPEG' : 
+                            sig.firma.data.includes('data:image/jpg') ? 'JPEG' :
+                            sig.firma.data.includes('data:image/png') ? 'PNG' : 'PNG';
+          pdf.addImage(sig.firma.data, imageFormat, x, y + 15, signatureWidth, signatureHeight);
+          pdf.setFontSize(6);
+          pdf.text('(FIRMADO DIGITALMENTE)', x, y + 30);
+        } catch (error) {
+          console.error('Error adding signature image:', error);
+          pdf.setFontSize(6);
+          pdf.text('(FIRMADO DIGITALMENTE)', x, y + 18);
+        }
+      } else {
+        // No signature - show empty signature line
+        const lineY = y + 15;
+        pdf.line(x, lineY, x + sigWidth - 10, lineY);
+        pdf.text('FIRMA: ................................', x, y + 18);
       }
     });
     
-    return y + 30;
+    return y + 45;
   }
 
   /**
