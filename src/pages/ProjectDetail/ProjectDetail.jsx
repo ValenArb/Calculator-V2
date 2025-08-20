@@ -433,10 +433,10 @@ const ProjectDetail = () => {
     setSelectedDocumentType(documentType);
     console.log('Selected document type in project:', documentType);
     
-    // Si se selecciona protocolo de ensayos, forzar recarga de datos del protocolo
+    // Si se selecciona protocolo de ensayos, no forzar recarga para evitar conflictos
     if (documentType.id === 'protocolo-ensayos') {
-      console.log('🔄 Forzando recarga de protocolos al entrar a protocolo-ensayos');
-      forceReloadProtocols();
+      console.log('📝 Entrando a protocolo-ensayos (sin forzar recarga)');
+      // Removido forceReloadProtocols() para evitar cargar datos viejos
     }
   };
 
