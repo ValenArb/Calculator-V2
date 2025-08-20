@@ -226,6 +226,12 @@ const ProjectDetail = () => {
   const saveTimeoutRef = useRef(null);
   const isUpdatingRef = useRef(false);
   const pendingUpdatesRef = useRef({});
+  const protocolosPorTableroRef = useRef({});
+
+  // Keep ref updated with current state
+  useEffect(() => {
+    protocolosPorTableroRef.current = protocolosPorTablero;
+  }, [protocolosPorTablero]);
 
   // Function to force reload protocol data specifically
   const forceReloadProtocols = async () => {
@@ -644,16 +650,16 @@ const ProjectDetail = () => {
   const debouncedSave = useCallback(() => {
     // IMPORTANTE: Cancelar el timeout anterior SIEMPRE que hay un nuevo cambio
     if (saveTimeoutRef.current) {
-      console.log('🔄 Nuevo cambio detectado - reiniciando timer de 500ms');
+      console.log('🔄 Nuevo cambio detectado - reiniciando timer de 1s');
       clearTimeout(saveTimeoutRef.current);
     }
     
     // Indicar que hay cambios pendientes de guardar
     setHasPendingChanges(true);
     
-    // Nuevo timeout de 500ms que se cancela si hay otro cambio
+    // Nuevo timeout de 1s que se cancela si hay otro cambio
     saveTimeoutRef.current = setTimeout(async () => {
-      console.log('🕐 500ms sin cambios - ejecutando guardado...');
+      console.log('🕐 1s sin cambios - ejecutando guardado...');
       
       if (!selectedTablero) {
         console.log('❌ No hay tablero seleccionado, cancelando guardado');
@@ -682,12 +688,12 @@ const ProjectDetail = () => {
       
       try {
         console.log('💾 Guardando protocolos para proyecto:', projectId, 'Usuario:', user.uid);
-        console.log('📊 Datos a guardar:', Object.keys(protocolosPorTablero));
+        console.log('📊 Datos a guardar:', Object.keys(protocolosPorTableroRef.current));
         
         // Save only FAT protocols to SQLite3
         const startTime = Date.now();
         await calculationService.saveCalculations(projectId, user.uid, {
-          protocolosPorTablero: protocolosPorTablero
+          protocolosPorTablero: protocolosPorTableroRef.current
         });
         const endTime = Date.now();
         
@@ -708,8 +714,8 @@ const ProjectDetail = () => {
         isUpdatingRef.current = false;
         setIsSaving(false);
       }
-    }, 500); // 500ms de debouncing - guarda 500ms después del último cambio
-  }, [selectedTablero, protocolosPorTablero, projectId, user.uid]);
+    }, 1000); // 1s de debouncing - guarda 1s después del último cambio
+  }, [selectedTablero, projectId, user.uid]);
 
   // Función para forzar el guardado inmediato (sin debouncing)
   const forceSave = useCallback(async () => {
@@ -740,7 +746,7 @@ const ProjectDetail = () => {
       
       const startTime = Date.now();
       await calculationService.saveCalculations(projectId, user.uid, {
-        protocolosPorTablero: protocolosPorTablero
+        protocolosPorTablero: protocolosPorTableroRef.current
       });
       const endTime = Date.now();
       
@@ -755,7 +761,7 @@ const ProjectDetail = () => {
       isUpdatingRef.current = false;
       setIsSaving(false);
     }
-  }, [selectedTablero, protocolosPorTablero, projectId, user.uid, hasPendingChanges]);
+  }, [selectedTablero, projectId, user.uid, hasPendingChanges]);
 
   // Cleanup effect para cancelar timeouts al desmontar el componente
   useEffect(() => {
