@@ -357,13 +357,46 @@ const ProjectDetail = () => {
   }, [tableros, protocolsLoadedFromBackend]);
 
   // Cleanup del timeout al desmontar el componente
+  // Cleanup effect para cancelar timeouts al desmontar el componente
   useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
+      // Intentar guardar los cambios pendientes al desmontar el componente
+      if (hasPendingChanges) {
+        forceSave();
+      }
     };
-  }, []);
+  }, [hasPendingChanges, forceSave]);
+
+  // Effect para manejar eventos de salida de página y forzar guardado
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      if (hasPendingChanges) {
+        // Forzar guardado síncrono antes de que se cierre la página
+        forceSave();
+        event.preventDefault();
+        event.returnValue = 'Tienes cambios sin guardar. ¿Estás seguro de que quieres salir?';
+        return 'Tienes cambios sin guardar. ¿Estás seguro de que quieres salir?';
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && hasPendingChanges) {
+        // Guardar cuando la página se oculta (cambio de pestaña, minimizar, etc.)
+        forceSave();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [hasPendingChanges, forceSave]);
 
   const formatDate = (timestamp) => {
     let date;
@@ -684,6 +717,38 @@ const ProjectDetail = () => {
     }, 2000); // 2 segundos de debouncing para reducir llamadas a la DB
   }, [selectedTablero, protocolosPorTablero, projectId, user.uid]);
 
+  // Función para forzar el guardado inmediato (sin debouncing)
+  const forceSave = useCallback(async () => {
+    if (!selectedTablero || isUpdatingRef.current || !hasPendingChanges) return;
+    
+    // Cancelar el debounce pendiente
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+    
+    isUpdatingRef.current = true;
+    
+    try {
+      console.log('🚨 Guardado forzado - Protocolos:', { 
+        projectId, 
+        userId: user.uid, 
+        protocolosPorTablero: JSON.stringify(protocolosPorTablero, null, 2) 
+      });
+      
+      await calculationService.saveCalculations(projectId, user.uid, {
+        protocolosPorTablero: protocolosPorTablero
+      });
+      
+      console.log('✅ Guardado forzado exitoso');
+      setHasPendingChanges(false);
+    } catch (error) {
+      console.error('Error en guardado forzado:', error);
+    } finally {
+      isUpdatingRef.current = false;
+    }
+  }, [selectedTablero, protocolosPorTablero, projectId, user.uid, hasPendingChanges]);
+
   // Función para actualizar campos generales del protocolo del tablero actual
   const updateProtocolField = (field, value) => {
     if (!selectedTablero) return;
@@ -980,9 +1045,16 @@ const ProjectDetail = () => {
                       <label className="text-sm font-medium text-gray-700">Tablero:</label>
                       <select
                         value={selectedTablero?.id || ''}
-                        onChange={(e) => {
+                        onChange={async (e) => {
                           const tablero = tableros.find(t => t.id === e.target.value);
                           console.log('🔄 Cambiando tablero seleccionado:', tablero);
+                          
+                          // Guardar cambios pendientes antes de cambiar de tablero
+                          if (hasPendingChanges) {
+                            console.log('💾 Guardando cambios antes de cambiar tablero');
+                            await forceSave();
+                          }
+                          
                           setSelectedTablero(tablero || null);
                           
                           // Forzar recarga de protocolos cuando cambie el tablero
