@@ -777,12 +777,11 @@ const ProjectDetail = () => {
       itemData: newData[seccion][item]
     });
     
-    // Calcular estado general con los nuevos datos
+    // Calcular estado general con los nuevos datos (excluyendo aislamiento que no tiene estados SI/NO/NA)
     const allItems = {
       ...newData.estructura,
       ...newData.electromontaje,
       ...newData.pruebas,
-      ...newData.aislamiento,
       ...newData.controlFinal
     };
     
