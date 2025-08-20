@@ -357,46 +357,6 @@ const ProjectDetail = () => {
   }, [tableros, protocolsLoadedFromBackend]);
 
   // Cleanup del timeout al desmontar el componente
-  // Cleanup effect para cancelar timeouts al desmontar el componente
-  useEffect(() => {
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-      // Intentar guardar los cambios pendientes al desmontar el componente
-      if (hasPendingChanges) {
-        forceSave();
-      }
-    };
-  }, [hasPendingChanges, forceSave]);
-
-  // Effect para manejar eventos de salida de página y forzar guardado
-  useEffect(() => {
-    const handleBeforeUnload = (event) => {
-      if (hasPendingChanges) {
-        // Forzar guardado síncrono antes de que se cierre la página
-        forceSave();
-        event.preventDefault();
-        event.returnValue = 'Tienes cambios sin guardar. ¿Estás seguro de que quieres salir?';
-        return 'Tienes cambios sin guardar. ¿Estás seguro de que quieres salir?';
-      }
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden' && hasPendingChanges) {
-        // Guardar cuando la página se oculta (cambio de pestaña, minimizar, etc.)
-        forceSave();
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [hasPendingChanges, forceSave]);
 
   const formatDate = (timestamp) => {
     let date;
@@ -748,6 +708,48 @@ const ProjectDetail = () => {
       isUpdatingRef.current = false;
     }
   }, [selectedTablero, protocolosPorTablero, projectId, user.uid, hasPendingChanges]);
+
+  // Cleanup effect para cancelar timeouts al desmontar el componente
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      // Intentar guardar los cambios pendientes al desmontar el componente
+      if (hasPendingChanges) {
+        forceSave();
+      }
+    };
+  }, [hasPendingChanges, forceSave]);
+
+  // Effect para manejar eventos de salida de página y forzar guardado
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      if (hasPendingChanges) {
+        // Forzar guardado síncrono antes de que se cierre la página
+        forceSave();
+        event.preventDefault();
+        event.returnValue = 'Tienes cambios sin guardar. ¿Estás seguro de que quieres salir?';
+        return 'Tienes cambios sin guardar. ¿Estás seguro de que quieres salir?';
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && hasPendingChanges) {
+        // Guardar cuando la página se oculta (cambio de pestaña, minimizar, etc.)
+        forceSave();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [hasPendingChanges, forceSave]);
+
 
   // Función para actualizar campos generales del protocolo del tablero actual
   const updateProtocolField = (field, value) => {
