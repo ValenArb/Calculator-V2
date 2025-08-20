@@ -642,15 +642,18 @@ const ProjectDetail = () => {
 
   // Función con debouncing para guardar FAT protocols en SQLite3
   const debouncedSave = useCallback(() => {
+    // IMPORTANTE: Cancelar el timeout anterior SIEMPRE que hay un nuevo cambio
     if (saveTimeoutRef.current) {
+      console.log('🔄 Nuevo cambio detectado - reiniciando timer de 500ms');
       clearTimeout(saveTimeoutRef.current);
     }
     
     // Indicar que hay cambios pendientes de guardar
     setHasPendingChanges(true);
     
+    // Nuevo timeout de 500ms que se cancela si hay otro cambio
     saveTimeoutRef.current = setTimeout(async () => {
-      console.log('🕐 Timeout ejecutado, verificando condiciones...');
+      console.log('🕐 500ms sin cambios - ejecutando guardado...');
       
       if (!selectedTablero) {
         console.log('❌ No hay tablero seleccionado, cancelando guardado');
@@ -705,7 +708,7 @@ const ProjectDetail = () => {
         isUpdatingRef.current = false;
         setIsSaving(false);
       }
-    }, 1000); // 1 segundo de debouncing para reducir llamadas a la DB
+    }, 500); // 500ms de debouncing - guarda 500ms después del último cambio
   }, [selectedTablero, protocolosPorTablero, projectId, user.uid]);
 
   // Función para forzar el guardado inmediato (sin debouncing)
