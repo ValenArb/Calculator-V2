@@ -75,3 +75,7 @@ backend/database/*.db-wal
 backend/database/*.db-shm
 *.sqlite
 *.sqlite3
+
+# Configuration files (keep templates, ignore custom configs)
+public/config/app-config.local.json
+public/config/app-config.custom.json

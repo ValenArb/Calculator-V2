@@ -97,12 +97,35 @@ calculadora-electrica/
 npm install
 ```
 
-2. **Configurar Firebase**
+2. **Configurar Backend**
+   - El backend utiliza configuración JSON para flexibilidad entre entornos
+   - Archivo de configuración: `public/config/app-config.json`
+   
+   Para desarrollo (localhost):
+   ```json
+   {
+     "backend": {
+       "baseUrl": "http://localhost:3001",
+       "apiPath": "/api"
+     },
+     "app": {
+       "name": "Calculadora Eléctrica V2",
+       "version": "2.0.0",
+       "environment": "development"
+     }
+   }
+   ```
+   
+   Para producción, actualizar `baseUrl` con tu servidor.
+   
+   > **Nota**: Si el archivo JSON no existe, la app usará `http://localhost:3001/api` por defecto.
+
+3. **Configurar Firebase**
    - Crear proyecto en Firebase Console
    - Habilitar Authentication y Firestore
    - Actualizar `firebaseconfig.js` con las credenciales
 
-3. **Ejecutar en desarrollo**
+4. **Ejecutar en desarrollo**
 ```bash
 npm run dev
 ```

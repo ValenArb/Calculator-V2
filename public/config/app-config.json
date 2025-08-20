@@ -1,0 +1,11 @@
+{
+  "backend": {
+    "baseUrl": "http://localhost:3001",
+    "apiPath": "/api"
+  },
+  "app": {
+    "name": "Calculadora Eléctrica V2",
+    "version": "2.0.0",
+    "environment": "development"
+  }
+}

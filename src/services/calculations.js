@@ -1,13 +1,31 @@
 // Calculation service for SQLite3 backend - handles FAT protocols only
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+import appConfig from '../config/appConfig.js';
 
 class CalculationService {
   constructor() {
-    this.baseURL = API_BASE_URL;
+    this.baseURL = null;
+    this.initPromise = this.initialize();
+  }
+
+  async initialize() {
+    try {
+      this.baseURL = await appConfig.getApiUrl();
+    } catch (error) {
+      console.error('Failed to load API configuration, using fallback:', error);
+      this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+    }
+  }
+
+  async ensureInitialized() {
+    if (!this.baseURL) {
+      await this.initPromise;
+    }
   }
 
   // Generic request method
   async request(endpoint, options = {}) {
+    await this.ensureInitialized();
+    
     const url = `${this.baseURL}${endpoint}`;
     const config = {
       headers: {

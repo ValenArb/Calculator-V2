@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+import appConfig from '../config/appConfig.js';
 
 export const useBackendStatus = () => {
   const [isOnline, setIsOnline] = useState(null); // null = checking, true = online, false = offline
@@ -11,7 +10,15 @@ export const useBackendStatus = () => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
-      const response = await fetch(`${API_BASE_URL.replace('/api', '')}/health`, {
+      // Get backend URL from config
+      let backendUrl;
+      try {
+        backendUrl = await appConfig.getBackendUrl();
+      } catch (error) {
+        backendUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:3001';
+      }
+
+      const response = await fetch(`${backendUrl}/health`, {
         method: 'GET',
         signal: controller.signal,
         headers: {

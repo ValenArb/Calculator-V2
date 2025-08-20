@@ -1,13 +1,33 @@
 // Email service for sending various types of emails
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+import appConfig from '../config/appConfig.js';
 
 class EmailService {
   constructor() {
-    this.baseURL = `${API_BASE_URL}/email`;
+    this.baseURL = null;
+    this.initPromise = this.initialize();
+  }
+
+  async initialize() {
+    try {
+      const apiUrl = await appConfig.getApiUrl();
+      this.baseURL = `${apiUrl}/email`;
+    } catch (error) {
+      console.error('Failed to load API configuration, using fallback:', error);
+      const fallbackUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+      this.baseURL = `${fallbackUrl}/email`;
+    }
+  }
+
+  async ensureInitialized() {
+    if (!this.baseURL) {
+      await this.initPromise;
+    }
   }
 
   // Generic request method
   async request(endpoint, options = {}) {
+    await this.ensureInitialized();
+    
     const url = `${this.baseURL}${endpoint}`;
     const config = {
       headers: {
