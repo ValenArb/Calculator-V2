@@ -28,24 +28,28 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
 
   const [resultados, setResultados] = useState({});
 
+  const [isInitialized, setIsInitialized] = useState(false);
+
   // Initialize data from project
   useEffect(() => {
-    if (projectData?.calculation_data?.cortocircuito) {
+    if (projectData?.calculation_data?.cortocircuito && !isInitialized) {
       setCortocircuitoData(prev => ({
         ...prev,
         ...projectData.calculation_data.cortocircuito
       }));
+      setIsInitialized(true);
     }
-  }, [projectData]);
+  }, [projectData, isInitialized]);
 
-  // Notify parent of changes
+  // Notify parent of changes (exclude onDataChange from deps to avoid infinite loops)
   useEffect(() => {
-    if (onDataChange) {
+    // Only notify parent after initialization and when data actually changes
+    if (onDataChange && isInitialized) {
       onDataChange({
         cortocircuito: cortocircuitoData
       });
     }
-  }, [cortocircuitoData, onDataChange]);
+  }, [cortocircuitoData, isInitialized]);
 
   const handleParametroChange = (seccion, campo, valor) => {
     setCortocircuitoData(prev => ({
