@@ -17,6 +17,7 @@ import { OwnerOnly, CanEdit, CanInvite, CanAddSignatures, CanEditCalculations } 
 import useUserPermissions from '../../hooks/useUserPermissions';
 import ActiveUsersIndicator from '../../components/users/ActiveUsersIndicator';
 import pdfExportService from '../../utils/pdfExport';
+import CalculosCortocircuito from '../../components/documents/CalculosCortocircuito';
 
 const ProjectDetail = () => {
   const { projectId } = useParams();
@@ -1854,6 +1855,24 @@ const ProjectDetail = () => {
                       />
                     </div>
                   </div>
+                ) : selectedDocumentType.id === 'calculos-cortocircuito' ? (
+                  // Vista específica para Cálculos de Cortocircuito
+                  <CalculosCortocircuito
+                    projectData={project}
+                    onDataChange={(data) => {
+                      // Actualizar los datos del proyecto con los cálculos de cortocircuito
+                      const updatedProject = {
+                        ...project,
+                        calculation_data: {
+                          ...project.calculation_data,
+                          ...data
+                        }
+                      };
+                      setProject(updatedProject);
+                      // Aquí podrías agregar lógica para guardar automáticamente
+                    }}
+                    readOnly={!permissions.canEdit}
+                  />
                 ) : (
                   // Vista para otros tipos de documento
                   <div className="space-y-6">

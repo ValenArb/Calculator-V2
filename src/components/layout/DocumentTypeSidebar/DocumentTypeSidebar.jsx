@@ -20,6 +20,13 @@ const DocumentTypeSidebar = ({ onDocumentTypeSelect, selectedType, defaultCollap
       color: 'bg-orange-100 text-orange-700 border-orange-200'
     },
     {
+      id: 'calculos-cortocircuito',
+      name: 'Cálculos de Cortocircuito',
+      description: 'Análisis de corrientes de cortocircuito y protecciones',
+      icon: FileText,
+      color: 'bg-red-100 text-red-700 border-red-200'
+    },
+    {
       id: 'informe-tecnico',
       name: 'Informe Técnico',
       description: 'Documentación técnica completa del proyecto',

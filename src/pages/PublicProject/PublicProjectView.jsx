@@ -5,6 +5,7 @@ import { Loading, AccessTimer } from '../../components/ui';
 import projectsService from '../../services/firebase/projects';
 import calculationService from '../../services/calculations';
 import pdfExportService from '../../utils/pdfExport';
+import CalculosCortocircuito from '../../components/documents/CalculosCortocircuito';
 import toast from 'react-hot-toast';
 
 const PublicProjectView = () => {
@@ -212,6 +213,12 @@ const PublicProjectView = () => {
       name: 'Protocolo de Ensayos',
       description: 'Protocolos de verificación y ensayos',
       color: 'bg-purple-100 text-purple-700 border-purple-200'
+    },
+    {
+      id: 'calculos-cortocircuito',
+      name: 'Cálculos de Cortocircuito',
+      description: 'Análisis de corrientes de cortocircuito',
+      color: 'bg-red-100 text-red-700 border-red-200'
     }
   ];
 
@@ -858,6 +865,12 @@ const PublicProjectView = () => {
                     </div>
                   )}
                 </div>
+              ) : selectedDocumentType.id === 'calculos-cortocircuito' ? (
+                // Short-circuit calculations
+                <CalculosCortocircuito
+                  projectData={project}
+                  readOnly={true}
+                />
               ) : (
                 // Other document types
                 <div className="text-center py-12 text-gray-500">
