@@ -50,6 +50,7 @@ const ProjectDetail = () => {
   const [showPublicShareModal, setShowPublicShareModal] = useState(false);
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const emergencyTimeoutRef = useRef(null);
   
   // Estado para los protocolos de ensayos por tablero
   const [protocolosPorTablero, setProtocolosPorTablero] = useState({});
@@ -649,27 +650,58 @@ const ProjectDetail = () => {
     setHasPendingChanges(true);
     
     saveTimeoutRef.current = setTimeout(async () => {
-      if (!selectedTablero || isUpdatingRef.current) return;
+      console.log('🕐 Timeout ejecutado, verificando condiciones...');
       
+      if (!selectedTablero) {
+        console.log('❌ No hay tablero seleccionado, cancelando guardado');
+        setHasPendingChanges(false);
+        setIsSaving(false);
+        return;
+      }
+      
+      if (isUpdatingRef.current) {
+        console.log('⏳ Ya hay un guardado en progreso, cancelando');
+        return;
+      }
+      
+      console.log('✅ Condiciones válidas, iniciando guardado...');
       isUpdatingRef.current = true;
       setIsSaving(true);
       
+      // Timeout de emergencia para resetear el estado si se queda trabado
+      emergencyTimeoutRef.current = setTimeout(() => {
+        console.log('🚨 TIMEOUT DE EMERGENCIA - Reseteando estado de guardado');
+        isUpdatingRef.current = false;
+        setIsSaving(false);
+        setHasPendingChanges(false);
+        toast.error('El guardado tardó demasiado tiempo. Intenta de nuevo.');
+      }, 15000); // 15 segundos timeout de emergencia
+      
       try {
-        // Log simplificado para better performance
-        console.log('💾 Guardando protocolos para proyecto:', projectId);
+        console.log('💾 Guardando protocolos para proyecto:', projectId, 'Usuario:', user.uid);
+        console.log('📊 Datos a guardar:', Object.keys(protocolosPorTablero));
         
         // Save only FAT protocols to SQLite3
+        const startTime = Date.now();
         await calculationService.saveCalculations(projectId, user.uid, {
           protocolosPorTablero: protocolosPorTablero
         });
+        const endTime = Date.now();
         
-        console.log('✅ Protocolos guardados exitosamente');
+        console.log(`✅ Protocolos guardados exitosamente en ${endTime - startTime}ms`);
         setHasPendingChanges(false); // Marcar como guardado
       } catch (error) {
         console.error('❌ Error guardando protocolos:', error);
-        toast.error('Error al guardar los datos del protocolo');
+        console.error('❌ Error details:', error.message, error.stack);
+        toast.error('Error al guardar los datos del protocolo: ' + error.message);
         setHasPendingChanges(false); // También limpiar en caso de error
       } finally {
+        // Cancelar el timeout de emergencia
+        if (emergencyTimeoutRef.current) {
+          clearTimeout(emergencyTimeoutRef.current);
+          emergencyTimeoutRef.current = null;
+        }
+        console.log('🔚 Finalizando guardado...');
         isUpdatingRef.current = false;
         setIsSaving(false);
       }
@@ -678,6 +710,8 @@ const ProjectDetail = () => {
 
   // Función para forzar el guardado inmediato (sin debouncing)
   const forceSave = useCallback(async () => {
+    console.log('🚨 ForceSave llamado, verificando condiciones...');
+    
     if (!selectedTablero || isUpdatingRef.current || !hasPendingChanges) {
       console.log('🔍 Guardado forzado omitido:', { 
         hasTablero: !!selectedTablero, 
@@ -689,26 +723,32 @@ const ProjectDetail = () => {
     
     // Cancelar el debounce pendiente
     if (saveTimeoutRef.current) {
+      console.log('⏹️ Cancelando timeout pendiente...');
       clearTimeout(saveTimeoutRef.current);
       saveTimeoutRef.current = null;
     }
     
+    console.log('🚨 Iniciando guardado forzado...');
     isUpdatingRef.current = true;
     setIsSaving(true);
-    console.log('🚨 Iniciando guardado forzado...');
     
     try {
-      // Guardado optimizado sin logs pesados
+      console.log('💾 ForceSave - Guardando para proyecto:', projectId, 'Usuario:', user.uid);
+      
+      const startTime = Date.now();
       await calculationService.saveCalculations(projectId, user.uid, {
         protocolosPorTablero: protocolosPorTablero
       });
+      const endTime = Date.now();
       
-      console.log('✅ Guardado forzado completado');
+      console.log(`✅ Guardado forzado completado en ${endTime - startTime}ms`);
       setHasPendingChanges(false);
     } catch (error) {
       console.error('❌ Error en guardado forzado:', error);
+      console.error('❌ ForceSave error details:', error.message, error.stack);
       // No cambiar hasPendingChanges en caso de error para reintentar
     } finally {
+      console.log('🔚 Finalizando guardado forzado...');
       isUpdatingRef.current = false;
       setIsSaving(false);
     }
@@ -719,6 +759,9 @@ const ProjectDetail = () => {
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
+      }
+      if (emergencyTimeoutRef.current) {
+        clearTimeout(emergencyTimeoutRef.current);
       }
       // Intentar guardar los cambios pendientes al desmontar el componente
       if (hasPendingChanges) {
@@ -1008,15 +1051,31 @@ const ProjectDetail = () => {
                 
                 {/* Indicador de cambios pendientes y guardado */}
                 {(hasPendingChanges || isSaving) && (
-                  <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
+                  <div className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${
                     isSaving 
                       ? 'bg-blue-100 border border-blue-300 text-blue-800' 
                       : 'bg-amber-100 border border-amber-300 text-amber-800'
                   }`}>
-                    <div className={`w-2 h-2 rounded-full animate-pulse ${
-                      isSaving ? 'bg-blue-500' : 'bg-amber-500'
-                    }`}></div>
-                    {isSaving ? 'Guardando...' : 'Cambios pendientes'}
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full animate-pulse ${
+                        isSaving ? 'bg-blue-500' : 'bg-amber-500'
+                      }`}></div>
+                      {isSaving ? 'Guardando...' : 'Cambios pendientes'}
+                    </div>
+                    
+                    {/* Botón para forzar guardado manual */}
+                    {hasPendingChanges && !isSaving && (
+                      <button
+                        onClick={() => {
+                          console.log('🔄 Guardado manual iniciado por usuario');
+                          forceSave();
+                        }}
+                        className="text-xs px-2 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors"
+                        title="Forzar guardado ahora"
+                      >
+                        Guardar ahora
+                      </button>
+                    )}
                   </div>
                 )}
                 
