@@ -22,7 +22,7 @@ class CalculationService {
     }
   }
 
-  // Generic request method
+  // Generic request method with timeout
   async request(endpoint, options = {}) {
     await this.ensureInitialized();
     
@@ -35,8 +35,15 @@ class CalculationService {
       ...options,
     };
 
+    // Add timeout to prevent hanging requests
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
+    config.signal = controller.signal;
+
     try {
       const response = await fetch(url, config);
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -46,6 +53,11 @@ class CalculationService {
       const data = await response.json();
       return data;
     } catch (error) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        console.error(`Request timeout: ${endpoint}`);
+        throw new Error('La request tardó demasiado tiempo. Intenta de nuevo.');
+      }
       console.error(`Calculation API request failed: ${endpoint}`, error);
       throw error;
     }

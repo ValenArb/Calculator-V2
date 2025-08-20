@@ -49,6 +49,7 @@ const ProjectDetail = () => {
   const [showCollaboratorModal, setShowCollaboratorModal] = useState(false);
   const [showPublicShareModal, setShowPublicShareModal] = useState(false);
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   
   // Estado para los protocolos de ensayos por tablero
   const [protocolosPorTablero, setProtocolosPorTablero] = useState({});
@@ -651,14 +652,11 @@ const ProjectDetail = () => {
       if (!selectedTablero || isUpdatingRef.current) return;
       
       isUpdatingRef.current = true;
+      setIsSaving(true);
       
       try {
-        // Debug log para troubleshooting
-        console.log('💾 Guardando protocolos:', { 
-          projectId, 
-          userId: user.uid, 
-          protocolosPorTablero: JSON.stringify(protocolosPorTablero, null, 2) 
-        });
+        // Log simplificado para better performance
+        console.log('💾 Guardando protocolos para proyecto:', projectId);
         
         // Save only FAT protocols to SQLite3
         await calculationService.saveCalculations(projectId, user.uid, {
@@ -668,18 +666,26 @@ const ProjectDetail = () => {
         console.log('✅ Protocolos guardados exitosamente');
         setHasPendingChanges(false); // Marcar como guardado
       } catch (error) {
-        console.error('Error saving protocol data:', error);
+        console.error('❌ Error guardando protocolos:', error);
         toast.error('Error al guardar los datos del protocolo');
         setHasPendingChanges(false); // También limpiar en caso de error
       } finally {
         isUpdatingRef.current = false;
+        setIsSaving(false);
       }
-    }, 2000); // 2 segundos de debouncing para reducir llamadas a la DB
+    }, 1000); // 1 segundo de debouncing para reducir llamadas a la DB
   }, [selectedTablero, protocolosPorTablero, projectId, user.uid]);
 
   // Función para forzar el guardado inmediato (sin debouncing)
   const forceSave = useCallback(async () => {
-    if (!selectedTablero || isUpdatingRef.current || !hasPendingChanges) return;
+    if (!selectedTablero || isUpdatingRef.current || !hasPendingChanges) {
+      console.log('🔍 Guardado forzado omitido:', { 
+        hasTablero: !!selectedTablero, 
+        isUpdating: isUpdatingRef.current, 
+        hasPending: hasPendingChanges 
+      });
+      return;
+    }
     
     // Cancelar el debounce pendiente
     if (saveTimeoutRef.current) {
@@ -688,24 +694,23 @@ const ProjectDetail = () => {
     }
     
     isUpdatingRef.current = true;
+    setIsSaving(true);
+    console.log('🚨 Iniciando guardado forzado...');
     
     try {
-      console.log('🚨 Guardado forzado - Protocolos:', { 
-        projectId, 
-        userId: user.uid, 
-        protocolosPorTablero: JSON.stringify(protocolosPorTablero, null, 2) 
-      });
-      
+      // Guardado optimizado sin logs pesados
       await calculationService.saveCalculations(projectId, user.uid, {
         protocolosPorTablero: protocolosPorTablero
       });
       
-      console.log('✅ Guardado forzado exitoso');
+      console.log('✅ Guardado forzado completado');
       setHasPendingChanges(false);
     } catch (error) {
-      console.error('Error en guardado forzado:', error);
+      console.error('❌ Error en guardado forzado:', error);
+      // No cambiar hasPendingChanges en caso de error para reintentar
     } finally {
       isUpdatingRef.current = false;
+      setIsSaving(false);
     }
   }, [selectedTablero, protocolosPorTablero, projectId, user.uid, hasPendingChanges]);
 
@@ -1001,11 +1006,17 @@ const ProjectDetail = () => {
                   maxVisible={3}
                 />
                 
-                {/* Indicador de cambios pendientes */}
-                {hasPendingChanges && (
-                  <div className="flex items-center gap-2 px-3 py-2 bg-amber-100 border border-amber-300 text-amber-800 rounded-lg text-sm">
-                    <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
-                    Guardando cambios...
+                {/* Indicador de cambios pendientes y guardado */}
+                {(hasPendingChanges || isSaving) && (
+                  <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
+                    isSaving 
+                      ? 'bg-blue-100 border border-blue-300 text-blue-800' 
+                      : 'bg-amber-100 border border-amber-300 text-amber-800'
+                  }`}>
+                    <div className={`w-2 h-2 rounded-full animate-pulse ${
+                      isSaving ? 'bg-blue-500' : 'bg-amber-500'
+                    }`}></div>
+                    {isSaving ? 'Guardando...' : 'Cambios pendientes'}
                   </div>
                 )}
                 
