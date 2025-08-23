@@ -28,7 +28,8 @@
       "Bash(npm install:*)",
       "Bash(curl:*)",
       "Bash(node:*)",
-      "Bash(code .)"
+      "Bash(code .)",
+      "Bash(git rm:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits",
