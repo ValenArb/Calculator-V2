@@ -30,7 +30,8 @@
       "Bash(node:*)",
       "Bash(code .)",
       "Bash(git rm:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(pkill:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits",

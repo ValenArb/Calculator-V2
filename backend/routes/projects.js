@@ -159,12 +159,32 @@ router.put('/:id', async (req, res) => {
     }
 
     // Check if project exists and user owns it
-    const existingProject = await query(`
+    let existingProject = await query(`
       SELECT * FROM projects WHERE id = ? AND owner_id = ?
     `, [id, userId]);
 
+    // If not found, check if it exists with different owner_id or "unknown"
     if (existingProject.rows.length === 0) {
-      return res.status(404).json({ error: 'Project not found or access denied' });
+      const orphanProject = await query(`
+        SELECT * FROM projects WHERE id = ?
+      `, [id]);
+      
+      if (orphanProject.rows.length > 0 && orphanProject.rows[0].owner_id === 'unknown') {
+        // Adopt the orphan project
+        console.log(`🏠 Adopting orphan project ${id} for user ${userId}`);
+        await execute(`
+          UPDATE projects SET owner_id = ? WHERE id = ?
+        `, [userId, id]);
+        
+        // Re-fetch the project
+        existingProject = await query(`
+          SELECT * FROM projects WHERE id = ? AND owner_id = ?
+        `, [id, userId]);
+      }
+      
+      if (existingProject.rows.length === 0) {
+        return res.status(404).json({ error: 'Project not found or access denied' });
+      }
     }
 
       // Build dynamic update query
