@@ -86,7 +86,11 @@ class ApiService {
 
   // Health check
   async healthCheck() {
-    return this.request('/health');
+    await this.ensureInitialized();
+    // Health check is at root level, not under /api
+    const url = `${this.baseURL.replace('/api', '')}/health`;
+    const response = await fetch(url);
+    return response.json();
   }
 }
 
@@ -95,13 +99,11 @@ const apiService = new ApiService();
 
 export default apiService;
 
-// Export individual methods for convenience
-export const {
-  getProjects,
-  getProject,
-  createProject,
-  updateProject,
-  deleteProject,
-  getProjectActivity,
-  healthCheck
-} = apiService;
+// Export individual methods for convenience (bound to maintain context)
+export const getProjects = (userId) => apiService.getProjects(userId);
+export const getProject = (projectId, userId) => apiService.getProject(projectId, userId);
+export const createProject = (projectData) => apiService.createProject(projectData);
+export const updateProject = (projectId, projectData) => apiService.updateProject(projectId, projectData);
+export const deleteProject = (projectId, userId) => apiService.deleteProject(projectId, userId);
+export const getProjectActivity = (projectId, userId, limit) => apiService.getProjectActivity(projectId, userId, limit);
+export const healthCheck = () => apiService.healthCheck();
