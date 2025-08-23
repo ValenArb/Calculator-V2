@@ -79,8 +79,13 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
                 type="number"
                 value={carga.potenciaInstalada}
                 onChange={(e) => {
-                  onUpdate(carga.id, 'potenciaInstalada', e.target.value);
-                  calcularPotenciaSimulada(carga.id);
+                  const newValue = e.target.value;
+                  onUpdate(carga.id, 'potenciaInstalada', newValue);
+                  
+                  // Calcular inmediatamente con el nuevo valor
+                  if (newValue && !isNaN(parseFloat(newValue))) {
+                    calcularPotenciaSimulada(carga.id, newValue);
+                  }
                 }}
                 onFocus={(e) => e.target.select()}
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -90,8 +95,13 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
               <select
                 value={carga.potenciaUnidad || 'W'}
                 onChange={(e) => {
-                  onUpdate(carga.id, 'potenciaUnidad', e.target.value);
-                  calcularPotenciaSimulada(carga.id);
+                  const newUnit = e.target.value;
+                  onUpdate(carga.id, 'potenciaUnidad', newUnit);
+                  
+                  // Recalcular con la nueva unidad si hay potencia instalada
+                  if (carga.potenciaInstalada) {
+                    calcularPotenciaSimulada(carga.id, null, newUnit);
+                  }
                 }}
                 className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                 disabled={readOnly}
@@ -117,8 +127,13 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
               max="1"
               value={carga.coefSimultaneidad}
               onChange={(e) => {
-                onUpdate(carga.id, 'coefSimultaneidad', e.target.value);
-                calcularPotenciaSimulada(carga.id);
+                const newCoefSim = e.target.value;
+                onUpdate(carga.id, 'coefSimultaneidad', newCoefSim);
+                
+                // Recalcular si hay potencia instalada
+                if (carga.potenciaInstalada) {
+                  calcularPotenciaSimulada(carga.id, null, null, newCoefSim);
+                }
               }}
               onFocus={(e) => e.target.select()}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -140,8 +155,9 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
               max="1"
               value={carga.cosoPhi}
               onChange={(e) => {
-                onUpdate(carga.id, 'cosoPhi', e.target.value);
-                calcularCorrienteNominal(carga.id);
+                const newCosPhi = e.target.value;
+                onUpdate(carga.id, 'cosoPhi', newCosPhi);
+                setTimeout(() => calcularCorrienteNominal(carga.id), 0);
               }}
               onFocus={(e) => e.target.select()}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -162,8 +178,13 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
               max="100"
               value={carga.eficiencia}
               onChange={(e) => {
-                onUpdate(carga.id, 'eficiencia', e.target.value);
-                calcularPotenciaSimulada(carga.id);
+                const newEficiencia = e.target.value;
+                onUpdate(carga.id, 'eficiencia', newEficiencia);
+                
+                // Recalcular si hay potencia instalada
+                if (carga.potenciaInstalada) {
+                  calcularPotenciaSimulada(carga.id, null, null, null, newEficiencia);
+                }
               }}
               onFocus={(e) => e.target.select()}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -951,15 +972,23 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
     });
   };
 
-  // Función para calcular potencia simulada
-  const calcularPotenciaSimulada = (id) => {
+  // Función para calcular potencia simulada (con valores específicos para evitar problemas de estado asíncrono)
+  const calcularPotenciaSimulada = (id, valorPotencia = null, valorUnidad = null, valorCoefSim = null, valorEficiencia = null) => {
     const carga = cortocircuitoData.cargas.find(c => c.id === id);
-    if (!carga || !carga.potenciaInstalada) return;
+    if (!carga) return;
 
-    const potenciaInst = parseFloat(carga.potenciaInstalada);
-    const unidad = carga.potenciaUnidad || 'W';
-    const coefSim = parseFloat(carga.coefSimultaneidad) || 1;
-    const eficiencia = parseFloat(carga.eficiencia) || 100;
+    // Usar valores pasados como parámetro o los del estado actual
+    const potenciaInst = parseFloat(valorPotencia !== null ? valorPotencia : carga.potenciaInstalada);
+    const unidad = valorUnidad !== null ? valorUnidad : (carga.potenciaUnidad || 'W');
+    const coefSim = parseFloat(valorCoefSim !== null ? valorCoefSim : carga.coefSimultaneidad) || 1;
+    const eficiencia = parseFloat(valorEficiencia !== null ? valorEficiencia : carga.eficiencia) || 100;
+
+    if (!potenciaInst || isNaN(potenciaInst) || potenciaInst <= 0) {
+      // Si no hay potencia válida, limpiar los campos calculados
+      actualizarCarga(id, 'potenciaSimulada', '');
+      actualizarCarga(id, 'corrienteNominal', '');
+      return;
+    }
 
     // Convertir a kW según la unidad
     let potenciaInstKW;
@@ -983,7 +1012,9 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
     const potenciaSimulada = (potenciaInstKW * coefSim * (eficiencia / 100)).toFixed(3);
     
     actualizarCarga(id, 'potenciaSimulada', potenciaSimulada);
-    calcularCorrienteNominal(id);
+    
+    // Calcular corriente nominal con los nuevos valores
+    setTimeout(() => calcularCorrienteNominal(id), 0);
   };
 
   // Función para calcular corriente nominal
