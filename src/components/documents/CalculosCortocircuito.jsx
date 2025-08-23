@@ -1022,20 +1022,33 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
     const carga = cortocircuitoData.cargas.find(c => c.id === id);
     const tensionNominal = parseFloat(cortocircuitoData.sistemaAlimentacion.tensionNominal) || 380;
     
-    if (!carga || !carga.potenciaSimulada || !carga.cosoPhi) return;
+    if (!carga || !carga.potenciaSimulada || !carga.cosoPhi) {
+      // Si no hay datos suficientes, limpiar el campo
+      actualizarCarga(id, 'corrienteNominal', '');
+      return;
+    }
 
     const potenciaSimKW = parseFloat(carga.potenciaSimulada);
     const cosPhi = parseFloat(carga.cosoPhi);
     const polos = parseInt(carga.interruptor.polos) || 3;
 
+    // Validar que los valores son válidos
+    if (!potenciaSimKW || potenciaSimKW <= 0 || !cosPhi || cosPhi <= 0) {
+      actualizarCarga(id, 'corrienteNominal', '');
+      return;
+    }
+
     let corrienteNominal;
     
-    if (polos === 3) {
+    if (polos === 3 || polos === 4) {
       // Trifásico: I = P / (√3 × V × cos φ)
+      // Usar tensión línea-línea (ej: 380V)
       corrienteNominal = (potenciaSimKW * 1000) / (Math.sqrt(3) * tensionNominal * cosPhi);
     } else {
-      // Monofásico: I = P / (V × cos φ)
-      corrienteNominal = (potenciaSimKW * 1000) / (tensionNominal * cosPhi);
+      // Monofásico: I = P / (V × cos φ)  
+      // Usar tensión fase-neutro = tensión línea-línea / √3
+      const tensionFaseNeutro = tensionNominal / Math.sqrt(3);
+      corrienteNominal = (potenciaSimKW * 1000) / (tensionFaseNeutro * cosPhi);
     }
 
     actualizarCarga(id, 'corrienteNominal', corrienteNominal.toFixed(2));
