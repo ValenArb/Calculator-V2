@@ -12,6 +12,12 @@ npm run build                  # Build for production (includes TypeScript compi
 npm run preview                # Preview production build
 npm run lint                   # Run ESLint with TypeScript support
 npm run typecheck              # Run TypeScript type checking without emit
+
+# Convenience scripts for full-stack development
+npm run dev:backend            # Start backend server only (cd backend && npm run dev)
+npm run dev:full               # Start both frontend and backend concurrently
+npm run setup:backend          # Install backend dependencies (cd backend && npm install)
+npm run db:setup               # Run database migrations (cd backend && npm run db:migrate)
 ```
 
 ### Backend Development (SQLite3 API)
@@ -19,7 +25,9 @@ npm run typecheck              # Run TypeScript type checking without emit
 cd backend
 npm install                    # Install backend dependencies
 npm run db:migrate             # Create database schema
-npm run dev                    # Start backend API server (port 3001)
+npm run db:seed                # Seed database with initial data
+npm run db:reset               # Reset database (drop and recreate)
+npm run dev                    # Start backend API server (port 3001) with auto-reload
 npm start                      # Start backend in production mode
 ```
 
@@ -217,6 +225,8 @@ This application implements professional electrical calculations following IEC a
 
 **Short Circuit**: IEC 60909 methodology with X/R ratio considerations for peak current calculations.
 
+**PDF Export**: Professional PDF report generation following IEC 60364-6 standards for electrical installation testing documentation using jsPDF and html2canvas libraries.
+
 ## Development Considerations
 
 **Calculation Accuracy**: All electrical formulas follow IEC and IEEE standards for professional electrical engineering calculations.
@@ -272,7 +282,7 @@ The Firebase config is in `firebaseconfig.js`. Current setup includes:
    
    Co-Authored-By: Claude <noreply@anthropic.com>"
    ```
-4. **Push to GitHub**: `git push origin master`
+4. **Push to GitHub**: `git push origin [current-branch]` (check current branch with `git branch`)
 
 **Example commit workflow:**
 ```bash
@@ -286,11 +296,12 @@ git commit -m "Add voltage drop calculation validation
 🤖 Generated with [Claude Code](https://claude.ai/code)
 
 Co-Authored-By: Claude <noreply@anthropic.com>"
-git push origin master
+git push origin [current-branch]
 ```
 
 **Repository Configuration:**
 - Main branch: `master`
+- Current working branch: `pdf-export-feature` (check with `git branch`)
 - Remote: `origin` (https://github.com/ValenArb/Calculator-V2.git)
 - Owner: ValenArb (valenarbert@gmail.com)
 

@@ -19,6 +19,35 @@ const Tooltip = ({ text, children, position = 'top' }) => (
 
 // Componente para el panel de detalles de cada carga
 const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPotenciaSimulada, calcularCorrienteNominal, calcularParametrosCable }) => {
+  
+  // Función para obtener secciones disponibles según tipo de cable (basado en catálogo Prysmian 2012)
+  const getSeccionesDisponibles = (tipoCable, configuracion = null) => {
+    switch(tipoCable) {
+      case 'IRAM NM 247-3': // Superastic Jet/Flex
+        return [1, 1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120];
+      case 'IRAM 62267': // Afumex 750
+        return [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120];
+      case 'IRAM 62266': // Afumex 1000 - Secciones del catálogo Prysmian páginas 24-25
+        return [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240, 300];
+      case 'IRAM 2178': // Sintenax Valio - Secciones según configuración del catálogo Prysmian
+        switch(configuracion) {
+          case 'unipolar':
+            return [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240, 300, 400, 500, 630];
+          case 'bipolar':
+            return [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240];
+          case 'tripolar':
+            return [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240, 300];
+          case 'tetrapolar':
+            return [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240];
+          default:
+            return [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240, 300];
+        }
+      default:
+        return [1, 1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240, 300];
+    }
+  };
+
+
   return (
     <div className="space-y-6">
       {/* Header de la carga */}
@@ -545,27 +574,72 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
       <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
         <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
           <FileText className="w-5 h-5 text-purple-500 mr-2" />
-          Características del Cable
+          Características del Conductor
         </h4>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <Tooltip text="Tipo de Aislamiento - PVC (Policloruro de Vinilo), XLPE (Polietileno Reticulado), EPR (Etileno Propileno)">
+            <Tooltip text="Tipo de Conductor - Selecciona el conductor según norma IRAM del catálogo Prysmian">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tipo de Aislamiento
+                Tipo de Conductor
               </label>
             </Tooltip>
             <select
               value={carga.cable.tipo}
-              onChange={(e) => onUpdate(carga.id, 'cable.tipo', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              onChange={(e) => {
+                const nuevoTipo = e.target.value;
+                onUpdate(carga.id, 'cable.tipo', nuevoTipo);
+                
+                // Verificar si la sección actual está disponible para el nuevo tipo
+                const seccionesDisponibles = getSeccionesDisponibles(
+                  nuevoTipo, 
+                  carga.cable.configuracionSintenax
+                );
+                const seccionActual = parseFloat(carga.cable.seccionFase);
+                
+                if (seccionActual && !seccionesDisponibles.includes(seccionActual)) {
+                  // Si la sección actual no está disponible, resetearla
+                  onUpdate(carga.id, 'cable.seccionFase', '');
+                }
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               disabled={readOnly}
             >
-              <option value="PVC">PVC - Policloruro de Vinilo</option>
-              <option value="XLPE">XLPE - Polietileno Reticulado</option>
-              <option value="EPR">EPR - Etileno Propileno</option>
+              <option value="IRAM NM 247-3">IRAM NM 247-3 - Unipolar Normalizado</option>
+              <option value="IRAM 62267">IRAM 62267 - Afumex 750 LS0H</option>
+              <option value="IRAM 2178">IRAM 2178 - Sintenax Valio</option>
+              <option value="IRAM 62266">IRAM 62266 - Afumex 1000 LS0H</option>
             </select>
           </div>
+
+          {/* Configuración específica para Sintenax Valio */}
+          {carga.cable.tipo === 'IRAM 2178' && (
+            <div>
+              <Tooltip text="Configuración Sintenax - Selecciona si el conductor es unipolar, bipolar, tripolar o tetrapolar">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Configuración Sintenax
+                </label>
+              </Tooltip>
+              <select
+                value={carga.cable.configuracionSintenax || 'tripolar'}
+                onChange={(e) => {
+                  const nuevaConfig = e.target.value;
+                  onUpdate(carga.id, 'cable.configuracionSintenax', nuevaConfig);
+                  
+                  // Resetear la sección cuando cambia la configuración
+                  onUpdate(carga.id, 'cable.seccionFase', '');
+                  calcularParametrosCable(carga.id);
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                disabled={readOnly}
+              >
+                <option value="unipolar">Unipolar (1 conductor)</option>
+                <option value="bipolar">Bipolar (2 conductores)</option>
+                <option value="tripolar">Tripolar (3 conductores)</option>
+                <option value="tetrapolar">Tetrapolar (4 conductores)</option>
+              </select>
+            </div>
+          )}
 
           <div>
             <Tooltip text="Sección de Fase - Área transversal del conductor de fase">
@@ -573,122 +647,29 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
                 Sección de Fase
               </label>
             </Tooltip>
-            <div className="flex space-x-2 w-full">
-              <select
-                value={carga.cable.seccionFase || ''}
-                onChange={(e) => {
-                  onUpdate(carga.id, 'cable.seccionFase', e.target.value);
-                  calcularParametrosCable(carga.id);
-                }}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                disabled={readOnly}
-              >
-                <option value="">Seleccionar sección</option>
-                <option value="1">1</option>
-                <option value="1.5">1.5</option>
-                <option value="2.5">2.5</option>
-                <option value="4">4</option>
-                <option value="6">6</option>
-                <option value="10">10</option>
-                <option value="16">16</option>
-                <option value="25">25</option>
-                <option value="35">35</option>
-                <option value="50">50</option>
-                <option value="70">70</option>
-                <option value="95">95</option>
-                <option value="120">120</option>
-                <option value="150">150</option>
-                <option value="185">185</option>
-                <option value="240">240</option>
-                <option value="300">300</option>
-                <option value="400">400</option>
-                <option value="500">500</option>
-              </select>
-              <select
-                value={carga.cable.seccionUnidad || 'mm²'}
-                onChange={(e) => onUpdate(carga.id, 'cable.seccionUnidad', e.target.value)}
-                className="w-16 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                disabled={readOnly}
-              >
-                <option value="mm²">mm²</option>
-                <option value="AWG">AWG</option>
-                <option value="MCM">MCM</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <Tooltip text="Sección de Neutro - Área transversal del conductor neutro">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Sección de Neutro
-              </label>
-            </Tooltip>
             <select
-              value={carga.cable.seccionNeutro || ''}
-              onChange={(e) => onUpdate(carga.id, 'cable.seccionNeutro', e.target.value)}
+              value={carga.cable.seccionFase || ''}
+              onChange={(e) => {
+                onUpdate(carga.id, 'cable.seccionFase', e.target.value);
+                calcularParametrosCable(carga.id);
+              }}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
               disabled={readOnly}
             >
-              <option value="">Seleccionar sección</option>
-              <option value="1">1</option>
-              <option value="1.5">1.5</option>
-              <option value="2.5">2.5</option>
-              <option value="4">4</option>
-              <option value="6">6</option>
-              <option value="10">10</option>
-              <option value="16">16</option>
-              <option value="25">25</option>
-              <option value="35">35</option>
-              <option value="50">50</option>
-              <option value="70">70</option>
-              <option value="95">95</option>
-              <option value="120">120</option>
-              <option value="150">150</option>
-              <option value="185">185</option>
-              <option value="240">240</option>
-              <option value="300">300</option>
-              <option value="400">400</option>
-              <option value="500">500</option>
+              {getSeccionesDisponibles(
+                carga.cable.tipo || 'IRAM NM 247-3', 
+                carga.cable.configuracionSintenax
+              ).map(seccion => (
+                <option key={seccion} value={seccion}>
+                  {seccion} mm²
+                </option>
+              ))}
             </select>
           </div>
 
-          <div>
-            <Tooltip text="Sección de Tierra - Área transversal del conductor de protección">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Sección de Tierra
-              </label>
-            </Tooltip>
-            <select
-              value={carga.cable.seccionTierra || ''}
-              onChange={(e) => onUpdate(carga.id, 'cable.seccionTierra', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-              disabled={readOnly}
-            >
-              <option value="">Seleccionar sección</option>
-              <option value="1">1</option>
-              <option value="1.5">1.5</option>
-              <option value="2.5">2.5</option>
-              <option value="4">4</option>
-              <option value="6">6</option>
-              <option value="10">10</option>
-              <option value="16">16</option>
-              <option value="25">25</option>
-              <option value="35">35</option>
-              <option value="50">50</option>
-              <option value="70">70</option>
-              <option value="95">95</option>
-              <option value="120">120</option>
-              <option value="150">150</option>
-              <option value="185">185</option>
-              <option value="240">240</option>
-              <option value="300">300</option>
-              <option value="400">400</option>
-              <option value="500">500</option>
-            </select>
-          </div>
 
           <div>
-            <Tooltip text="Longitud del Cable - Distancia total del cable">
+            <Tooltip text="Longitud del Conductor - Distancia total del conductor">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Longitud
               </label>
@@ -722,7 +703,31 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
           </div>
 
           <div>
-            <Tooltip text="Resistencia - Resistencia eléctrica total del cable calculada automáticamente">
+            <Tooltip text="Conductores en Paralelo - Número de conductores idénticos en paralelo por fase para aumentar capacidad de corriente">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Conductores en Paralelo
+              </label>
+            </Tooltip>
+            <select
+              value={carga.cable.paralelo || '1'}
+              onChange={(e) => {
+                onUpdate(carga.id, 'cable.paralelo', e.target.value);
+                calcularParametrosCable(carga.id);
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+              disabled={readOnly}
+            >
+              <option value="1">1 conductor (simple)</option>
+              <option value="2">2 conductores en paralelo</option>
+              <option value="3">3 conductores en paralelo</option>
+              <option value="4">4 conductores en paralelo</option>
+              <option value="5">5 conductores en paralelo</option>
+              <option value="6">6 conductores en paralelo</option>
+            </select>
+          </div>
+
+          <div>
+            <Tooltip text="Resistencia - Resistencia eléctrica total del cable calculada automáticamente (ajustada por cables en paralelo)">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Resistencia (Ω)
               </label>
@@ -732,25 +737,40 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
             </div>
           </div>
 
-          <div>
-            <Tooltip text="Reactancia Inductiva - Reactancia del cable calculada automáticamente">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Reactancia (Ω)
-              </label>
-            </Tooltip>
-            <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-900 font-mono">
-              {carga.cable.reactancia || '0.0000'}
+          {/* Reactancia solo para cables multipolares */}
+          {carga.cable.tipo && 
+           carga.cable.tipo !== 'IRAM NM 247-3' && 
+           !(carga.cable.tipo === 'IRAM 2178' && carga.cable.configuracionSintenax === 'unipolar') && (
+            <div>
+              <Tooltip text="Reactancia Inductiva - Reactancia del cable calculada automáticamente (solo cables multipolares)">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Reactancia (Ω)
+                </label>
+              </Tooltip>
+              <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-900 font-mono">
+                {carga.cable.reactancia || '0.0000'}
+              </div>
             </div>
-          </div>
+          )}
 
           <div>
-            <Tooltip text="Corriente Admisible - Máxima corriente que puede circular sin superar temperatura límite">
+            <Tooltip text="Corriente Admisible - Máxima corriente que puede circular sin superar temperatura límite (total para todos los cables en paralelo)">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Corriente Admisible (A)
+                Corriente Admisible Total (A)
+                {parseInt(carga.cable.paralelo || 1) > 1 && (
+                  <span className="text-xs text-blue-600 ml-1">
+                    ({parseInt(carga.cable.paralelo || 1)} × {Math.round((carga.cable.capacidadAdmisible || 0) / parseInt(carga.cable.paralelo || 1))}A)
+                  </span>
+                )}
               </label>
             </Tooltip>
             <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-900 font-mono">
               {carga.cable.capacidadAdmisible || '0'}
+              {parseInt(carga.cable.paralelo || 1) > 1 && (
+                <span className="text-xs text-blue-600 ml-2">
+                  (×{carga.cable.paralelo})
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -1035,13 +1055,10 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
       
       // Datos de cableado
       cable: {
-        tipo: 'XLPE',
+        tipo: 'IRAM NM 247-3',
         disposicion: 'bandeja',
         cantidadTernas: '1',
         seccionFase: '',
-        seccionNeutro: '',
-        seccionTierra: '',
-        seccionUnidad: 'mm²',
         longitud: '',
         longitudUnidad: 'm',
         resistencia: '',
@@ -1326,7 +1343,7 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
     actualizarCarga(id, 'interruptor.polos', polosSeleccionados);
   };
 
-  // Función para calcular parámetros del cable (R, X, Iz)
+  // Función para calcular parámetros del cable según catálogo Prysmian 2012
   const calcularParametrosCable = (id) => {
     const carga = cortocircuitoData.cargas.find(c => c.id === id);
     if (!carga || !carga.cable.seccionFase || !carga.cable.longitud) return;
@@ -1334,50 +1351,143 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
     const seccion = parseFloat(carga.cable.seccionFase);
     const longitud = parseFloat(carga.cable.longitud);
     const tipoCable = carga.cable.tipo;
+    const numeroParalelo = parseInt(carga.cable.paralelo || 1);
 
-    // Resistividad del cobre a 20°C (Ω·mm²/m)
-    const rho_cu = 0.0175;
-    
-    // Factor de temperatura (simplificado para 70°C)
-    const factorTemp = 1.2;
+    // Datos del catálogo Prysmian por tipo de cable
+    const datosCatalogo = {
+      'IRAM NM 247-3': { // Superastic Jet/Flex - Página 5 del catálogo
+        resistencias: { // ohm/km a 70°C
+          1: 19.5, 1.5: 13.3, 2.5: 7.98, 4: 4.95, 6: 3.3, 10: 1.91, 
+          16: 1.21, 25: 0.78, 35: 0.554, 50: 0.386, 70: 0.272, 95: 0.206, 120: 0.161
+        },
+        corrientes: { // Amperes en cañería embutida
+          1: 10.5, 1.5: 14, 2.5: 18, 4: 25, 6: 32, 10: 44, 
+          16: 59, 25: 77, 35: 96, 50: 117, 70: 149, 95: 180, 120: 208
+        }
+      },
+      'IRAM 62267': { // Afumex 750 - Página 7 del catálogo
+        resistencias: { // ohm/km a 70°C
+          1.5: 13.3, 2.5: 7.98, 4: 4.95, 6: 3.3, 10: 1.91, 16: 1.21, 
+          25: 0.78, 35: 0.554, 50: 0.386, 70: 0.272, 95: 0.206, 120: 0.161
+        },
+        corrientes: { // Amperes en cañería embutida
+          1.5: 15.5, 2.5: 21, 4: 28, 6: 36, 10: 50, 16: 68, 
+          25: 89, 35: 111, 50: 134, 70: 171, 95: 207, 120: 239
+        }
+      },
+      'IRAM 2178': { // Sintenax Valio - Páginas 14-17 del catálogo
+        unipolar: {
+          resistencias: { // ohm/km a 70°C
+            1.5: 15.9, 2.5: 9.55, 4: 5.92, 6: 3.95, 10: 2.29, 16: 1.45, 25: 0.933, 
+            35: 0.663, 50: 0.462, 70: 0.326, 95: 0.248, 120: 0.194, 150: 0.156, 
+            185: 0.129, 240: 0.0987, 300: 0.0754, 400: 0.0606, 500: 0.0493, 630: 0.0407
+          },
+          corrientes: { // Amperes - Método C (en cañería)
+            1.5: 18, 2.5: 25, 4: 32, 6: 41, 10: 57, 16: 76, 25: 101, 35: 125,
+            50: 151, 70: 192, 95: 232, 120: 269, 150: 309, 185: 353, 240: 415, 
+            300: 473, 400: 555, 500: 641, 630: 738
+          }
+        },
+        bipolar: {
+          resistencias: { // ohm/km a 70°C
+            1.5: 15.9, 2.5: 9.55, 4: 5.92, 6: 3.95, 10: 2.29, 16: 1.45, 25: 0.933, 
+            35: 0.663, 50: 0.462, 70: 0.326, 95: 0.248, 120: 0.194, 150: 0.156, 
+            185: 0.129, 240: 0.0987
+          },
+          reactancias: { // ohm/km a 50 Hz
+            1.5: 0.108, 2.5: 0.0995, 4: 0.0991, 6: 0.0901, 10: 0.0860, 16: 0.0813, 25: 0.0780,
+            35: 0.0760, 50: 0.0777, 70: 0.0736, 95: 0.0733, 120: 0.0729, 150: 0.0720,
+            185: 0.0720, 240: 0.0716
+          },
+          corrientes: { // Amperes - Método B2 (cañería embutida)
+            1.5: 17, 2.5: 23, 4: 31, 6: 39, 10: 53, 16: 70, 25: 91, 35: 113,
+            50: 136, 70: 173, 95: 207, 120: 238, 150: 269, 185: 302, 240: 349
+          }
+        },
+        tripolar: {
+          resistencias: { // ohm/km a 70°C  
+            1.5: 15.9, 2.5: 9.55, 4: 5.92, 6: 3.95, 10: 2.29, 16: 1.45, 25: 0.933, 
+            35: 0.663, 50: 0.462, 70: 0.326, 95: 0.248, 120: 0.194, 150: 0.156, 
+            185: 0.129, 240: 0.0987, 300: 0.0754
+          },
+          reactancias: { // ohm/km a 50 Hz
+            1.5: 0.108, 2.5: 0.0995, 4: 0.0991, 6: 0.0901, 10: 0.0860, 16: 0.0813, 25: 0.0780,
+            35: 0.0760, 50: 0.0777, 70: 0.0736, 95: 0.0733, 120: 0.0729, 150: 0.0720,
+            185: 0.0720, 240: 0.0716, 300: 0.0714
+          },
+          corrientes: { // Amperes - Método B2 (cañería embutida)
+            1.5: 15, 2.5: 21, 4: 28, 6: 36, 10: 49, 16: 66, 25: 85, 35: 106,
+            50: 127, 70: 162, 95: 194, 120: 223, 150: 252, 185: 284, 240: 328, 300: 371
+          }
+        },
+        tetrapolar: {
+          resistencias: { // ohm/km a 70°C
+            1.5: 15.9, 2.5: 9.55, 4: 5.92, 6: 3.95, 10: 2.29, 16: 1.45, 25: 0.933, 
+            35: 0.663, 50: 0.462, 70: 0.326, 95: 0.248, 120: 0.194, 150: 0.156, 
+            185: 0.129, 240: 0.0987
+          },
+          reactancias: { // ohm/km a 50 Hz
+            1.5: 0.108, 2.5: 0.0995, 4: 0.0991, 6: 0.0901, 10: 0.0860, 16: 0.0813, 25: 0.0780,
+            35: 0.0760, 50: 0.0777, 70: 0.0736, 95: 0.0733, 120: 0.0729, 150: 0.0720,
+            185: 0.0720, 240: 0.0716
+          },
+          corrientes: { // Amperes - Método B2 (cañería embutida)
+            1.5: 13, 2.5: 19, 4: 24, 6: 31, 10: 42, 16: 57, 25: 74, 35: 92,
+            50: 103, 70: 130, 95: 156, 120: 179, 150: 196, 185: 222, 240: 258
+          }
+        }
+      },
+      'IRAM 62266': { // Afumex 1000 - Páginas 24-25 del catálogo
+        resistencias: { // ohm/km a 90°C
+          1.5: 17.0, 2.5: 10.2, 4: 6.31, 6: 4.21, 10: 2.44, 16: 1.54, 25: 0.995,
+          35: 0.669, 50: 0.494, 70: 0.342, 95: 0.247, 120: 0.196, 150: 0.159,
+          185: 0.127, 240: 0.0974, 300: 0.0783
+        },
+        reactancias: { // ohm/km a 50 Hz
+          1.5: 0.103, 2.5: 0.0957, 4: 0.0896, 6: 0.0851, 10: 0.0803, 16: 0.0768,
+          25: 0.0770, 35: 0.0746, 50: 0.0741, 70: 0.0731, 95: 0.0712, 120: 0.0709,
+          150: 0.0713, 185: 0.0715, 240: 0.0707, 300: 0.0707
+        },
+        corrientes: { // Amperes - Método B2 (cañería embutida)
+          1.5: 19, 2.5: 25, 4: 34, 6: 43, 10: 59, 16: 78, 25: 102, 35: 133,
+          50: 140, 70: 0, 95: 0, 120: 0, 150: 0, 185: 0, 240: 0, 300: 0
+        }
+      }
+    };
 
-    // Resistencia: R = ρ × L / S × factor_temp
-    const resistencia = (rho_cu * longitud / seccion * factorTemp).toFixed(4);
+    // Para Sintenax, obtener datos según configuración específica
+    let datosActuales;
+    if (tipoCable === 'IRAM 2178') {
+      const configuracion = carga.cable.configuracionSintenax || 'tripolar';
+      datosActuales = datosCatalogo[tipoCable][configuracion];
+    } else {
+      datosActuales = datosCatalogo[tipoCable];
+    }
 
-    // Reactancia inductiva aproximada (Ω/m típica para cables de potencia)
-    let reactanciaPorMetro;
-    if (seccion <= 10) reactanciaPorMetro = 0.00015;
-    else if (seccion <= 50) reactanciaPorMetro = 0.00012;
-    else if (seccion <= 120) reactanciaPorMetro = 0.0001;
-    else reactanciaPorMetro = 0.00008;
+    if (!datosActuales || !datosActuales.resistencias[seccion]) {
+      const config = tipoCable === 'IRAM 2178' ? ` configuración ${carga.cable.configuracionSintenax || 'tripolar'}` : '';
+      console.warn(`Datos no encontrados para ${tipoCable}${config} sección ${seccion}mm²`);
+      return;
+    }
 
-    const reactancia = (reactanciaPorMetro * longitud).toFixed(4);
+    // Resistencia por km del catálogo convertida a Ω total considerando longitud y cables en paralelo
+    const resistenciaPorKm = datosActuales.resistencias[seccion];
+    const resistenciaTotal = (resistenciaPorKm * longitud / 1000 / numeroParalelo).toFixed(4);
 
-    // Capacidad admisible aproximada según sección y tipo de cable
-    let capacidadAdmisible;
-    const factoresTipo = { 'PVC': 0.8, 'XLPE': 1.0, 'EPR': 0.95 };
-    const factorTipo = factoresTipo[tipoCable] || 1.0;
+    // Reactancia (solo para cables multipolares como Sintenax y Afumex 1000)
+    let reactanciaTotal = '0.0000';
+    if (datosActuales.reactancias && datosActuales.reactancias[seccion]) {
+      const reactanciaPorKm = datosActuales.reactancias[seccion];
+      reactanciaTotal = (reactanciaPorKm * longitud / 1000 / numeroParalelo).toFixed(4);
+    }
 
-    // Tabla aproximada de capacidades (A) para cables en bandeja
-    if (seccion <= 1.5) capacidadAdmisible = 15;
-    else if (seccion <= 2.5) capacidadAdmisible = 21;
-    else if (seccion <= 4) capacidadAdmisible = 28;
-    else if (seccion <= 6) capacidadAdmisible = 36;
-    else if (seccion <= 10) capacidadAdmisible = 50;
-    else if (seccion <= 16) capacidadAdmisible = 68;
-    else if (seccion <= 25) capacidadAdmisible = 89;
-    else if (seccion <= 35) capacidadAdmisible = 110;
-    else if (seccion <= 50) capacidadAdmisible = 134;
-    else if (seccion <= 70) capacidadAdmisible = 171;
-    else if (seccion <= 95) capacidadAdmisible = 207;
-    else if (seccion <= 120) capacidadAdmisible = 239;
-    else capacidadAdmisible = Math.round(seccion * 2); // Aproximación lineal para secciones grandes
+    // Corriente admisible total considerando cables en paralelo
+    const corrientePorCable = datosActuales.corrientes[seccion] || 0;
+    const corrienteTotal = Math.round(corrientePorCable * numeroParalelo);
 
-    capacidadAdmisible = Math.round(capacidadAdmisible * factorTipo);
-
-    actualizarCarga(id, 'cable.resistencia', resistencia);
-    actualizarCarga(id, 'cable.reactancia', reactancia);
-    actualizarCarga(id, 'cable.capacidadAdmisible', capacidadAdmisible.toString());
+    actualizarCarga(id, 'cable.resistencia', resistenciaTotal);
+    actualizarCarga(id, 'cable.reactancia', reactanciaTotal);
+    actualizarCarga(id, 'cable.capacidadAdmisible', corrienteTotal.toString());
 
     // Recalcular ICC después de actualizar parámetros del cable
     calcularICC(id);
@@ -1536,8 +1646,6 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
           // Cable
           carga.cable.tipo,
           carga.cable.seccionFase,
-          carga.cable.seccionNeutro,
-          carga.cable.seccionTierra,
           carga.cable.longitud,
           carga.cable.resistencia,
           carga.cable.reactancia,
