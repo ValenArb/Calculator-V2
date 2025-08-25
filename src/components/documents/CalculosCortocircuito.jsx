@@ -639,7 +639,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
                   
                   // Resetear la sección cuando cambia la configuración
                   onUpdate(carga.id, 'cable.seccionFase', '');
-                  setTimeout(() => calcularParametrosCable(carga.id), 0);
+                  calcularParametrosCable(carga.id, { configuracionSintenax: nuevaConfig, seccionFase: '' });
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                 disabled={readOnly}
@@ -668,7 +668,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
                   
                   // Resetear la sección cuando cambia la configuración
                   onUpdate(carga.id, 'cable.seccionFase', '');
-                  setTimeout(() => calcularParametrosCable(carga.id), 0);
+                  calcularParametrosCable(carga.id, { configuracionAfumex: nuevaConfig, seccionFase: '' });
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                 disabled={readOnly}
@@ -692,8 +692,8 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
               onChange={(e) => {
                 const nuevaSeccion = e.target.value;
                 onUpdate(carga.id, 'cable.seccionFase', nuevaSeccion);
-                // Usar setTimeout para esperar a que se actualice el estado
-                setTimeout(() => calcularParametrosCable(carga.id), 0);
+                // Pasar el nuevo valor directamente para evitar problemas de sincronización
+                calcularParametrosCable(carga.id, { seccionFase: nuevaSeccion });
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
               disabled={readOnly}
@@ -722,8 +722,9 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
                 step="0.1"
                 value={carga.cable.longitud}
                 onChange={(e) => {
-                  onUpdate(carga.id, 'cable.longitud', e.target.value);
-                  setTimeout(() => calcularParametrosCable(carga.id), 0);
+                  const nuevaLongitud = e.target.value;
+                  onUpdate(carga.id, 'cable.longitud', nuevaLongitud);
+                  calcularParametrosCable(carga.id, { longitud: nuevaLongitud });
                 }}
                 onFocus={(e) => e.target.select()}
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -753,8 +754,9 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
             <select
               value={carga.cable.paralelo || '1'}
               onChange={(e) => {
-                onUpdate(carga.id, 'cable.paralelo', e.target.value);
-                setTimeout(() => calcularParametrosCable(carga.id), 0);
+                const nuevoParalelo = e.target.value;
+                onUpdate(carga.id, 'cable.paralelo', nuevoParalelo);
+                calcularParametrosCable(carga.id, { paralelo: nuevoParalelo });
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
               disabled={readOnly}
@@ -779,8 +781,9 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
               <select
                 value={carga.cable.metodoInstalacion || 'B2'}
                 onChange={(e) => {
-                  onUpdate(carga.id, 'cable.metodoInstalacion', e.target.value);
-                  setTimeout(() => calcularParametrosCable(carga.id), 0);
+                  const nuevoMetodo = e.target.value;
+                  onUpdate(carga.id, 'cable.metodoInstalacion', nuevoMetodo);
+                  calcularParametrosCable(carga.id, { metodoInstalacion: nuevoMetodo });
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                 disabled={readOnly}
@@ -1412,14 +1415,21 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
   };
 
   // Función para calcular parámetros del cable según catálogo Prysmian 2012
-  const calcularParametrosCable = (id) => {
+  const calcularParametrosCable = (id, overrideValues = {}) => {
     const carga = cortocircuitoData.cargas.find(c => c.id === id);
-    if (!carga || !carga.cable.seccionFase || !carga.cable.longitud) return;
+    if (!carga) return;
 
-    const seccion = parseFloat(carga.cable.seccionFase);
-    const longitud = parseFloat(carga.cable.longitud);
-    const tipoCable = carga.cable.tipo;
-    const numeroParalelo = parseInt(carga.cable.paralelo || 1);
+    // Usar valores override si se proporcionan, sino usar valores del estado
+    const seccion = parseFloat(overrideValues.seccionFase || carga.cable.seccionFase);
+    const longitud = parseFloat(overrideValues.longitud || carga.cable.longitud);
+    const tipoCable = overrideValues.tipo || carga.cable.tipo;
+    const numeroParalelo = parseInt(overrideValues.paralelo || carga.cable.paralelo || 1);
+    const metodoInstalacion = overrideValues.metodoInstalacion || carga.cable.metodoInstalacion || 'B2';
+    const configuracionSintenax = overrideValues.configuracionSintenax || carga.cable.configuracionSintenax;
+    const configuracionAfumex = overrideValues.configuracionAfumex || carga.cable.configuracionAfumex;
+
+    // Validar que tengamos los valores mínimos necesarios
+    if (!seccion || !longitud || !tipoCable) return;
 
     // Datos del catálogo Prysmian por tipo de cable
     const datosCatalogo = {
@@ -1614,10 +1624,10 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
     // Para cables con configuraciones específicas, obtener datos según configuración
     let datosActuales;
     if (tipoCable === 'IRAM 2178') {
-      const configuracion = carga.cable.configuracionSintenax || 'tripolar';
+      const configuracion = configuracionSintenax || 'tripolar';
       datosActuales = datosCatalogo[tipoCable][configuracion];
     } else if (tipoCable === 'IRAM 62266') {
-      const configuracion = carga.cable.configuracionAfumex || 'tripolar';
+      const configuracion = configuracionAfumex || 'tripolar';
       datosActuales = datosCatalogo[tipoCable][configuracion];
     } else {
       datosActuales = datosCatalogo[tipoCable];
@@ -1626,9 +1636,9 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
     if (!datosActuales || !datosActuales.resistencias[seccion]) {
       let config = '';
       if (tipoCable === 'IRAM 2178') {
-        config = ` configuración ${carga.cable.configuracionSintenax || 'tripolar'}`;
+        config = ` configuración ${configuracionSintenax || 'tripolar'}`;
       } else if (tipoCable === 'IRAM 62266') {
-        config = ` configuración ${carga.cable.configuracionAfumex || 'tripolar'}`;
+        config = ` configuración ${configuracionAfumex || 'tripolar'}`;
       }
       console.warn(`Datos no encontrados para ${tipoCable}${config} sección ${seccion}mm²`);
       return;
@@ -1649,7 +1659,6 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
     let corrientePorCable = 0;
     if (tipoCable === 'IRAM 2178' || tipoCable === 'IRAM 62266') {
       // Para cables con métodos de instalación específicos
-      const metodoInstalacion = carga.cable.metodoInstalacion || 'B2';
       corrientePorCable = datosActuales.corrientes[metodoInstalacion] ? 
                          datosActuales.corrientes[metodoInstalacion][seccion] || 0 : 0;
     } else {
