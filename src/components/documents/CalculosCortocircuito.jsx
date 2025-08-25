@@ -68,7 +68,8 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
           Datos de Carga
         </h4>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+        {/* Primera fila - Configuración principal */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
           <div>
             <Tooltip text="Potencia Instalada - Potencia nominal del equipo">
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -90,7 +91,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
                 }}
                 onFocus={(e) => e.target.select()}
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="1000"
+                placeholder="2200"
                 disabled={readOnly}
               />
               <select
@@ -115,7 +116,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
             </div>
           </div>
 
-          <div className="ml-8">
+          <div>
             <Tooltip text="Coeficiente de Simultaneidad - Factor que indica qué porcentaje de la carga opera simultáneamente">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Coef. Simultaneidad
@@ -137,14 +138,14 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
                 }
               }}
               onFocus={(e) => e.target.select()}
-              className="w-20 px-2 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="1.0"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="1"
               disabled={readOnly}
             />
           </div>
 
           <div>
-            <Tooltip text="Tipo de Carga - Configuración de fases de la carga eléctrica (R=Monofásico R, RST=Trifásico, RN=Monofásico R-N, RSTN=Trifásico con neutro, DC=Corriente continua)">
+            <Tooltip text="Tipo de Carga - Configuración de fases de la carga eléctrica">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Tipo de Carga
               </label>
@@ -163,18 +164,21 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
               disabled={readOnly}
             >
-              <option value="R">R - Monofásico (fase R)</option>
-              <option value="S">S - Monofásico (fase S)</option>
-              <option value="T">T - Monofásico (fase T)</option>
-              <option value="RN">RN - Monofásico R-Neutro</option>
-              <option value="SN">SN - Monofásico S-Neutro</option>
-              <option value="TN">TN - Monofásico T-Neutro</option>
+              <option value="R">R - Monofásico</option>
+              <option value="S">S - Monofásico</option>
+              <option value="T">T - Monofásico</option>
+              <option value="RN">RN - Monofásico R-N</option>
+              <option value="SN">SN - Monofásico S-N</option>
+              <option value="TN">TN - Monofásico T-N</option>
               <option value="RST">RST - Trifásico</option>
               <option value="RSTN">RSTN - Trifásico con Neutro</option>
               <option value="DC">DC - Corriente Continua</option>
             </select>
           </div>
+        </div>
 
+        {/* Segunda fila - Parámetros eléctricos */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
           <div>
             <Tooltip text="Tensión Nominal - Tensión de funcionamiento de la carga en voltios">
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -219,7 +223,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
               className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                 carga.tipoCarga === 'DC' ? 'bg-gray-100 text-gray-500' : ''
               }`}
-              placeholder="0.8"
+              placeholder="1"
               disabled={readOnly || carga.tipoCarga === 'DC'}
             />
           </div>
@@ -250,7 +254,10 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
               disabled={readOnly}
             />
           </div>
+        </div>
 
+        {/* Tercera fila - Resultados calculados */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <Tooltip text="Potencia Simultánea - Potencia real considerando simultaneidad y eficiencia">
               <label className="block text-sm font-medium text-gray-700 mb-2">
