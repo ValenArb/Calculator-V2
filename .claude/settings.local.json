@@ -31,7 +31,10 @@
       "Bash(code .)",
       "Bash(git rm:*)",
       "Bash(grep:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(timeout:*)",
+      "Bash(npm run:*)",
+      "Bash(sqlite3:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits",

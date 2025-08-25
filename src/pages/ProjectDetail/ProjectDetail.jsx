@@ -5,6 +5,7 @@ import { ArrowLeft, Building2, User, Users, Mail, Phone, MapPin, Calendar, Calcu
 import toast from 'react-hot-toast';
 import projectsService from '../../services/firebase/projects';
 import calculationService from '../../services/calculations';
+import protocolService from '../../services/protocolos';
 import notificationsService from '../../services/firebase/notifications';
 import usersService, { USER_ROLES } from '../../services/firebase/users';
 import EditProjectModal from '../../components/projects/EditProjectModal';
@@ -237,23 +238,20 @@ const ProjectDetail = () => {
   const forceReloadProtocols = async () => {
     if (!projectId || !user?.uid) return;
     
-    console.log('🔄 Forzando recarga específica de protocolos...');
     try {
       // Reset protocols state first
       setProtocolsLoadedFromBackend(false);
       
-      // Force reload calculation data from backend
-      const calculations = await calculationService.getCalculations(projectId, user.uid);
-      console.log('🔄 Datos de cálculo recargados:', calculations);
+      // Force reload protocol data from backend
+      const protocols = await protocolService.getProtocols(projectId, user.uid);
       
-      if (calculations && calculations.protocolosPorTablero && Object.keys(calculations.protocolosPorTablero).length > 0) {
+      if (protocols && protocols.protocolosPorTablero && Object.keys(protocols.protocolosPorTablero).length > 0) {
         // Normalize each loaded protocol
         const normalizedProtocols = {};
-        Object.keys(calculations.protocolosPorTablero).forEach(tableroId => {
-          normalizedProtocols[tableroId] = normalizeProtocolData(calculations.protocolosPorTablero[tableroId]);
+        Object.keys(protocols.protocolosPorTablero).forEach(tableroId => {
+          normalizedProtocols[tableroId] = normalizeProtocolData(protocols.protocolosPorTablero[tableroId]);
         });
         
-        console.log('🔄 Protocolos normalizados y forzando actualización:', normalizedProtocols);
         
         // Force update protocols state
         setProtocolosPorTablero(normalizedProtocols);
@@ -295,24 +293,23 @@ const ProjectDetail = () => {
       const tablerosData = projectData.tableros || [];
       setTableros(tablerosData);
       
-      // Load calculation data from backend
+      // Load protocol data from new dedicated endpoint
       try {
-        const calculations = await calculationService.getCalculations(projectId, user.uid);
-        console.log('Loaded calculation data:', calculations);
+        const protocols = await protocolService.getProtocols(projectId, user.uid);
+        console.log('Loaded protocol data:', protocols);
         
-        if (calculations && calculations.protocolosPorTablero && Object.keys(calculations.protocolosPorTablero).length > 0) {
+        if (protocols && protocols.protocolosPorTablero && Object.keys(protocols.protocolosPorTablero).length > 0) {
           // Normalizar cada protocolo cargado
           const normalizedProtocols = {};
-          Object.keys(calculations.protocolosPorTablero).forEach(tableroId => {
-            normalizedProtocols[tableroId] = normalizeProtocolData(calculations.protocolosPorTablero[tableroId]);
+          Object.keys(protocols.protocolosPorTablero).forEach(tableroId => {
+            normalizedProtocols[tableroId] = normalizeProtocolData(protocols.protocolosPorTablero[tableroId]);
           });
           
-          console.log('🔄 Setting protocols from backend:', normalizedProtocols);
           setProtocolosPorTablero(normalizedProtocols);
           setProtocolsLoadedFromBackend(true);
           console.log('✅ Marked protocols as loaded from backend');
         } else {
-          console.log('No calculation data found, starting with empty protocols:', calculations);
+          console.log('No protocol data found, starting with empty protocols:', protocols);
           setProtocolsLoadedFromBackend(false);
           // Don't reset to empty - let the useEffect handle initial state
         }
@@ -507,9 +504,7 @@ const ProjectDetail = () => {
       
       // Guardar los protocolos actualizados en la base de datos
       try {
-        await calculationService.saveCalculations(projectId, user.uid, {
-          protocolosPorTablero: nuevosProtocolos
-        });
+        await protocolService.saveProtocols(projectId, user.uid, nuevosProtocolos);
         console.log('✅ Datos del tablero eliminado de la base de datos');
       } catch (dbError) {
         console.error('Error cleaning up database after tablero deletion:', dbError);
@@ -582,13 +577,6 @@ const ProjectDetail = () => {
         firmasDigitales: cleanSignatures
       };
       
-      console.log('🔄 PDF Export data:', {
-        tableroProtocolData,
-        signatureFields,
-        firmasDigitales: protocolData.firmasDigitales,
-        completeProtocolData
-      });
-      
       await pdfExportService.exportProtocolPDF(project, completeProtocolData, tableroName);
       toast.success('PDF generado exitosamente', { id: 'pdf-export' });
     } catch (error) {
@@ -648,9 +636,9 @@ const ProjectDetail = () => {
 
   // Función con debouncing para guardar FAT protocols en SQLite3
   const debouncedSave = useCallback(() => {
+    
     // IMPORTANTE: Cancelar el timeout anterior SIEMPRE que hay un nuevo cambio
     if (saveTimeoutRef.current) {
-      console.log('🔄 Nuevo cambio detectado - reiniciando timer de 1s');
       clearTimeout(saveTimeoutRef.current);
     }
     
@@ -687,14 +675,21 @@ const ProjectDetail = () => {
       }, 15000); // 15 segundos timeout de emergencia
       
       try {
-        console.log('💾 Guardando protocolos para proyecto:', projectId, 'Usuario:', user.uid);
-        console.log('📊 Datos a guardar:', Object.keys(protocolosPorTableroRef.current));
+        console.log('🔍 Datos completos a guardar:', JSON.stringify(protocolosPorTableroRef.current, null, 2));
+        console.log('✅ Usuario autenticado:', !!user, 'UID:', user?.uid);
+        console.log('✅ Proyecto ID:', projectId);
         
-        // Save only FAT protocols to SQLite3
+        if (!user?.uid) {
+          throw new Error('Usuario no autenticado');
+        }
+        
+        if (!projectId) {
+          throw new Error('ID de proyecto no válido');
+        }
+        
+        // Save protocols using dedicated endpoint
         const startTime = Date.now();
-        await calculationService.saveCalculations(projectId, user.uid, {
-          protocolosPorTablero: protocolosPorTableroRef.current
-        });
+        await protocolService.saveProtocols(projectId, user.uid, protocolosPorTableroRef.current);
         const endTime = Date.now();
         
         console.log(`✅ Protocolos guardados exitosamente en ${endTime - startTime}ms`);
@@ -742,12 +737,9 @@ const ProjectDetail = () => {
     setIsSaving(true);
     
     try {
-      console.log('💾 ForceSave - Guardando para proyecto:', projectId, 'Usuario:', user.uid);
       
       const startTime = Date.now();
-      await calculationService.saveCalculations(projectId, user.uid, {
-        protocolosPorTablero: protocolosPorTableroRef.current
-      });
+      await protocolService.saveProtocols(projectId, user.uid, protocolosPorTableroRef.current);
       const endTime = Date.now();
       
       console.log(`✅ Guardado forzado completado en ${endTime - startTime}ms`);
@@ -865,7 +857,6 @@ const ProjectDetail = () => {
     if (currentValue === valor) {
       // Si el usuario clickea el mismo botón, limpiar la selección
       valorFinal = '';
-      console.log('🔄 Limpiando selección - mismo valor clickeado:', { seccion, item, campo, currentValue, valor });
     } else {
       // Asignar el nuevo valor
       valorFinal = valor === null || valor === undefined ? '' : valor;
@@ -894,12 +885,6 @@ const ProjectDetail = () => {
         }
       }
     };
-    
-    console.log('🔧 newData after update:', {
-      oldValue: protocolData[seccion][item]?.[campo],
-      newValue: newData[seccion][item][campo],
-      itemData: newData[seccion][item]
-    });
     
     // Calcular estado general con los nuevos datos (excluyendo aislamiento que no tiene estados SI/NO/NA)
     const allItems = {
@@ -933,11 +918,11 @@ const ProjectDetail = () => {
         ...prev,
         [selectedTablero.id]: finalData
       };
-      console.log('📊 Updated protocols state (updateProtocolItem):', updatedState);
       return updatedState;
     });
     
     // Guardar en la base de datos con debouncing
+    console.log('🚀 Llamando a debouncedSave() desde updateProtocolItem');
     debouncedSave();
   };
 
@@ -961,8 +946,6 @@ const ProjectDetail = () => {
       firmasDigitales: signatures 
     };
     
-    console.log('🔧 Signature change - individual fields:', signatureFields);
-    console.log('🔧 Signature change - complete signatures:', signatures);
     
     // Update local state
     setProtocolosPorTablero(prev => ({
@@ -1076,7 +1059,6 @@ const ProjectDetail = () => {
                     {hasPendingChanges && !isSaving && (
                       <button
                         onClick={() => {
-                          console.log('🔄 Guardado manual iniciado por usuario');
                           forceSave();
                         }}
                         className="text-xs px-2 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors"
@@ -1128,11 +1110,9 @@ const ProjectDetail = () => {
                         value={selectedTablero?.id || ''}
                         onChange={async (e) => {
                           const tablero = tableros.find(t => t.id === e.target.value);
-                          console.log('🔄 Cambiando tablero seleccionado:', tablero);
                           
                           // Guardar cambios pendientes antes de cambiar de tablero
                           if (hasPendingChanges) {
-                            console.log('💾 Guardando cambios antes de cambiar tablero');
                             await forceSave();
                           }
                           
@@ -1140,7 +1120,6 @@ const ProjectDetail = () => {
                           
                           // Forzar recarga de protocolos cuando cambie el tablero
                           if (tablero) {
-                            console.log('🔄 Forzando recarga por cambio de tablero');
                             setTimeout(() => forceReloadProtocols(), 100);
                           }
                         }}

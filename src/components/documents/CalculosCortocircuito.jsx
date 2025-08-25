@@ -3,6 +3,7 @@ import { Calculator, Plus, Minus, Save, Download, AlertTriangle, Zap, FileText, 
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { updateProject } from '../../services/api.js';
+import cortocircuitoService from '../../services/cortocircuito.js';
 import { useSelector } from 'react-redux';
 
 // Componente de Tooltip para los encabezados
@@ -114,10 +115,10 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
             </div>
           </div>
 
-          <div>
+          <div className="ml-8">
             <Tooltip text="Coeficiente de Simultaneidad - Factor que indica qué porcentaje de la carga opera simultáneamente">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Coeficiente de Simultaneidad
+                Coef. Simultaneidad
               </label>
             </Tooltip>
             <input
@@ -136,14 +137,68 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
                 }
               }}
               onFocus={(e) => e.target.select()}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-20 px-2 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="1.0"
               disabled={readOnly}
             />
           </div>
 
           <div>
-            <Tooltip text="Factor de Potencia - Coseno del ángulo entre tensión y corriente">
+            <Tooltip text="Tipo de Carga - Configuración de fases de la carga eléctrica (R=Monofásico R, RST=Trifásico, RN=Monofásico R-N, RSTN=Trifásico con neutro, DC=Corriente continua)">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tipo de Carga
+              </label>
+            </Tooltip>
+            <select
+              value={carga.tipoCarga || 'RSTN'}
+              onChange={(e) => {
+                const newTipoCarga = e.target.value;
+                onUpdate(carga.id, 'tipoCarga', newTipoCarga);
+                // Recalcular inmediatamente con el nuevo valor
+                calcularCorrienteNominal(carga.id, { tipoCarga: newTipoCarga });
+                // Chain the other calculations immediately
+                calcularParametrosCable(carga.id);
+                calcularICC(carga.id);
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+              disabled={readOnly}
+            >
+              <option value="R">R - Monofásico (fase R)</option>
+              <option value="S">S - Monofásico (fase S)</option>
+              <option value="T">T - Monofásico (fase T)</option>
+              <option value="RN">RN - Monofásico R-Neutro</option>
+              <option value="SN">SN - Monofásico S-Neutro</option>
+              <option value="TN">TN - Monofásico T-Neutro</option>
+              <option value="RST">RST - Trifásico</option>
+              <option value="RSTN">RSTN - Trifásico con Neutro</option>
+              <option value="DC">DC - Corriente Continua</option>
+            </select>
+          </div>
+
+          <div>
+            <Tooltip text="Tensión Nominal - Tensión de funcionamiento de la carga en voltios">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Tensión Nominal (V)
+              </label>
+            </Tooltip>
+            <input
+              type="number"
+              value={carga.tension || ''}
+              onChange={(e) => {
+                const newTension = e.target.value;
+                onUpdate(carga.id, 'tension', newTension);
+                // Recalcular inmediatamente con el nuevo valor
+                calcularCorrienteNominal(carga.id, { tension: newTension });
+              }}
+              onFocus={(e) => e.target.select()}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="380"
+              disabled={readOnly}
+            />
+          </div>
+
+          <div>
+            <Tooltip text="Factor de Potencia - Coseno del ángulo entre tensión y corriente (No aplica para DC)">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Factor de Potencia (cos φ)
               </label>
@@ -153,16 +208,19 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
               step="0.01"
               min="0"
               max="1"
-              value={carga.cosoPhi}
+              value={carga.tipoCarga === 'DC' ? '1.0' : carga.cosoPhi}
               onChange={(e) => {
                 const newCosPhi = e.target.value;
                 onUpdate(carga.id, 'cosoPhi', newCosPhi);
-                setTimeout(() => calcularCorrienteNominal(carga.id), 0);
+                // Recalcular inmediatamente con el nuevo valor
+                calcularCorrienteNominal(carga.id, { cosoPhi: newCosPhi });
               }}
               onFocus={(e) => e.target.select()}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                carga.tipoCarga === 'DC' ? 'bg-gray-100 text-gray-500' : ''
+              }`}
               placeholder="0.8"
-              disabled={readOnly}
+              disabled={readOnly || carga.tipoCarga === 'DC'}
             />
           </div>
 
@@ -212,6 +270,23 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
             </Tooltip>
             <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-900 font-mono">
               {carga.corrienteNominal || '0.00'}
+            </div>
+            {/* Debug: Mostrar fórmula utilizada */}
+            <div className="mt-1 text-xs text-gray-500 font-mono space-y-1">
+              <div>
+                {(carga._debugTipoCarga || carga.tipoCarga) === 'RST' || (carga._debugTipoCarga || carga.tipoCarga) === 'RSTN' 
+                  ? 'I = P(kW) × 1000 / (√3 × V × cos φ)' 
+                  : (carga._debugTipoCarga || carga.tipoCarga) === 'DC' 
+                  ? 'I = P(kW) × 1000 / V' 
+                  : 'I = P(kW) × 1000 / (V × cos φ)'}
+              </div>
+              <div className="text-blue-600">
+                {(carga._debugTipoCarga || carga.tipoCarga) === 'RST' || (carga._debugTipoCarga || carga.tipoCarga) === 'RSTN' 
+                  ? `P=${carga._debugPotencia || carga.potenciaSimulada || 0}kW, V=${carga._debugTension || carga.tension || 380}V, cos φ=${carga._debugCosPhi || carga.cosoPhi || 0.8}` 
+                  : (carga._debugTipoCarga || carga.tipoCarga) === 'DC' 
+                  ? `P=${carga._debugPotencia || carga.potenciaSimulada || 0}kW, V=${carga._debugTension || carga.tension || 380}V` 
+                  : `P=${carga._debugPotencia || carga.potenciaSimulada || 0}kW, V=${carga._debugTension || carga.tension || 380}V, cos φ=${carga._debugCosPhi || carga.cosoPhi || 0.8}`}
+              </div>
             </div>
           </div>
         </div>
@@ -705,24 +780,6 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
 const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) => {
   const user = useSelector(state => state.auth.user);
   const [cortocircuitoData, setCortocircuitoData] = useState({
-    // Datos del sistema de alimentación
-    sistemaAlimentacion: {
-      tensionNominal: '',
-      tensionUnidad: 'V',
-      frecuencia: 50,
-      tipoConexion: 'TN',
-      numeroFases: 'trifasico',
-      iccPunto: '', // ICC en punto de conexión (kA)
-      impedanciaRed: '' // Alternativa al ICC punto
-    },
-    // Datos del transformador (si aplica)
-    transformador: {
-      aplica: false,
-      potenciaNominal: '',
-      tensionCortocircuito: '',
-      relacionTransformacion: '',
-      conexion: 'Dy11'
-    },
     // Planilla de cargas integrada con datos de ICC
     cargas: []
   });
@@ -738,16 +795,32 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
 
   // Initialize data from project
   useEffect(() => {
-    if (projectData && !isInitialized) {
-      if (projectData.calculation_data?.cortocircuito) {
-        setCortocircuitoData(prev => ({
-          ...prev,
-          ...projectData.calculation_data.cortocircuito
-        }));
+    const loadCortocircuitoData = async () => {
+      if (projectData && !isInitialized && user?.uid) {
+        try {
+          console.log('🔄 Loading cortocircuito data for project:', projectData.id);
+          const cortocircuitoResponse = await cortocircuitoService.getCortocircuito(projectData.id, user.uid);
+          
+          if (cortocircuitoResponse?.calculosData && Object.keys(cortocircuitoResponse.calculosData).length > 0) {
+            console.log('✅ Cortocircuito data loaded from backend:', cortocircuitoResponse.calculosData);
+            setCortocircuitoData(prev => ({
+              ...prev,
+              ...cortocircuitoResponse.calculosData
+            }));
+          } else {
+            console.log('ℹ️ No cortocircuito data found, using default state');
+          }
+        } catch (error) {
+          console.error('❌ Error loading cortocircuito data:', error);
+          // Continue with default state if loading fails
+        } finally {
+          setIsInitialized(true);
+        }
       }
-      setIsInitialized(true);
-    }
-  }, [projectData, isInitialized]);
+    };
+    
+    loadCortocircuitoData();
+  }, [projectData, isInitialized, user?.uid]);
 
   // Auto-save function with debouncing
   const autoSave = useCallback(async (data) => {
@@ -768,15 +841,8 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
         setSaveStatus('saving');
         setIsSaving(true);
 
-        const updateData = {
-          userId: user.uid,
-          calculationData: {
-            ...(projectData.calculation_data || {}),
-            cortocircuito: data
-          }
-        };
-
-        await updateProject(projectData.id, updateData);
+        // Use new cortocircuito service to save directly to calculos_cortocircuito field
+        await cortocircuitoService.saveCortocircuito(projectData.id, user.uid, data);
         
         console.log('✅ Auto-save: Datos guardados exitosamente');
         setSaveStatus('saved');
@@ -806,9 +872,7 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
     // Only notify and save if data actually changed
     if (lastDataRef.current !== currentDataString) {
       console.log('🔍 Cambio detectado en cortocircuitoData:', {
-        cargas: cortocircuitoData.cargas.length,
-        sistemaAlimentacion: cortocircuitoData.sistemaAlimentacion.tensionNominal,
-        transformador: cortocircuitoData.transformador.aplica
+        cargas: cortocircuitoData.cargas.length
       });
       
       lastDataRef.current = currentDataString;
@@ -846,31 +910,14 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
   }, []);
 
 
-  const handleSistemaChange = (campo, valor) => {
-    setCortocircuitoData(prev => ({
-      ...prev,
-      sistemaAlimentacion: {
-        ...prev.sistemaAlimentacion,
-        [campo]: valor
-      }
-    }));
-  };
-
-  const handleTransformadorChange = (campo, valor) => {
-    setCortocircuitoData(prev => ({
-      ...prev,
-      transformador: {
-        ...prev.transformador,
-        [campo]: valor
-      }
-    }));
-  };
 
   const agregarCarga = () => {
     const nuevaCarga = {
       id: Date.now(),
       // Datos básicos de la carga
       denominacion: '',
+      tipoCarga: 'RSTN', // Default to RSTN (trifásico con neutro)
+      tension: '', // Tensión nominal de la carga en V
       potenciaInstalada: '',
       potenciaUnidad: 'W',
       coefSimultaneidad: '1.0',
@@ -1013,24 +1060,29 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
     
     actualizarCarga(id, 'potenciaSimulada', potenciaSimulada);
     
-    // Calcular corriente nominal con los nuevos valores
-    setTimeout(() => calcularCorrienteNominal(id), 0);
+    // Calcular corriente nominal con los nuevos valores calculados inmediatamente
+    calcularCorrienteNominal(id, { potenciaSimulada: potenciaSimulada });
   };
 
   // Función para calcular corriente nominal
-  const calcularCorrienteNominal = (id) => {
+  const calcularCorrienteNominal = (id, nuevaData = {}) => {
     const carga = cortocircuitoData.cargas.find(c => c.id === id);
-    const tensionNominal = parseFloat(cortocircuitoData.sistemaAlimentacion.tensionNominal) || 380;
+    if (!carga) return;
     
-    if (!carga || !carga.potenciaSimulada || !carga.cosoPhi) {
+    // Usar nuevos valores si se pasan, sino usar los del estado
+    const tensionNominal = parseFloat(nuevaData.tension !== undefined ? nuevaData.tension : carga?.tension) || 380;
+    const tipoCarga = nuevaData.tipoCarga !== undefined ? nuevaData.tipoCarga : (carga.tipoCarga || 'RSTN');
+    const potenciaSimulada = nuevaData.potenciaSimulada !== undefined ? nuevaData.potenciaSimulada : carga.potenciaSimulada;
+    const cosoPhi = nuevaData.cosoPhi !== undefined ? nuevaData.cosoPhi : carga.cosoPhi;
+    
+    if (!potenciaSimulada || !cosoPhi) {
       // Si no hay datos suficientes, limpiar el campo
       actualizarCarga(id, 'corrienteNominal', '');
       return;
     }
 
-    const potenciaSimKW = parseFloat(carga.potenciaSimulada);
-    const cosPhi = parseFloat(carga.cosoPhi);
-    const polos = parseInt(carga.interruptor.polos) || 3;
+    const potenciaSimKW = parseFloat(potenciaSimulada);
+    const cosPhi = parseFloat(cosoPhi);
 
     // Validar que los valores son válidos
     if (!potenciaSimKW || potenciaSimKW <= 0 || !cosPhi || cosPhi <= 0) {
@@ -1040,18 +1092,24 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
 
     let corrienteNominal;
     
-    if (polos === 3 || polos === 4) {
-      // Trifásico: I = P / (√3 × V × cos φ)
-      // Usar tensión línea-línea (ej: 380V)
+    // Calcular según el tipo de carga
+    if (tipoCarga === 'RST' || tipoCarga === 'RSTN') {
+      // TRIFÁSICO: I = P(kW) × 1000 / (√3 × V × cos φ)
       corrienteNominal = (potenciaSimKW * 1000) / (Math.sqrt(3) * tensionNominal * cosPhi);
+    } else if (tipoCarga === 'DC') {
+      // CORRIENTE CONTINUA: I = P(kW) × 1000 / V (sin cos φ)
+      corrienteNominal = (potenciaSimKW * 1000) / tensionNominal;
     } else {
-      // Monofásico: I = P / (V × cos φ)  
-      // Usar tensión fase-neutro = tensión línea-línea / √3
-      const tensionFaseNeutro = tensionNominal / Math.sqrt(3);
-      corrienteNominal = (potenciaSimKW * 1000) / (tensionFaseNeutro * cosPhi);
+      // MONOFÁSICO (R, S, T, RN, SN, TN): I = P(kW) × 1000 / (V × cos φ)
+      corrienteNominal = (potenciaSimKW * 1000) / (tensionNominal * cosPhi);
     }
 
+    // Guardar también los valores usados en el cálculo para debug
     actualizarCarga(id, 'corrienteNominal', corrienteNominal.toFixed(2));
+    actualizarCarga(id, '_debugTension', tensionNominal.toString());
+    actualizarCarga(id, '_debugTipoCarga', tipoCarga);
+    actualizarCarga(id, '_debugPotencia', potenciaSimKW.toString());
+    actualizarCarga(id, '_debugCosPhi', cosPhi.toString());
   };
 
   // Función para calcular parámetros del cable (R, X, Iz)
@@ -1114,39 +1172,20 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
   // Función principal de cálculo de ICC según IEC 60909
   const calcularICC = (id) => {
     const carga = cortocircuitoData.cargas.find(c => c.id === id);
-    const tensionNominal = parseFloat(cortocircuitoData.sistemaAlimentacion.tensionNominal) || 380;
-    const iccPunto = parseFloat(cortocircuitoData.sistemaAlimentacion.iccPunto);
+    if (!carga) return;
     
-    if (!carga || (!iccPunto && !cortocircuitoData.sistemaAlimentacion.impedanciaRed)) return;
+    const tensionNominal = parseFloat(carga.tension) || 380;
 
-    // 1. Impedancia de la red (fuente)
-    let zRed = 0;
-    if (iccPunto) {
-      // Z_red = V / (√3 × Icc_punto × 1000)
-      zRed = tensionNominal / (Math.sqrt(3) * iccPunto * 1000);
-    } else if (cortocircuitoData.sistemaAlimentacion.impedanciaRed) {
-      zRed = parseFloat(cortocircuitoData.sistemaAlimentacion.impedanciaRed);
-    }
+    // Impedancia de la red simplificada (valor por defecto conservador)
+    const zRed = 0.01; // Ohms - valor típico para red de distribución
 
-    // 2. Impedancia del transformador (si aplica)
-    let zTrafo = 0;
-    if (cortocircuitoData.transformador.aplica) {
-      const potenciaTrafoKVA = parseFloat(cortocircuitoData.transformador.potenciaNominal);
-      const ukPorcentaje = parseFloat(cortocircuitoData.transformador.tensionCortocircuito);
-      
-      if (potenciaTrafoKVA && ukPorcentaje) {
-        // Z_trafo = (uk/100) × (V²/S)
-        zTrafo = (ukPorcentaje / 100) * (tensionNominal * tensionNominal) / (potenciaTrafoKVA * 1000);
-      }
-    }
-
-    // 3. Impedancia del cable
+    // Impedancia del cable
     const rCable = parseFloat(carga.cable.resistencia) || 0;
     const xCable = parseFloat(carga.cable.reactancia) || 0;
     const zCable = Math.sqrt(rCable * rCable + xCable * xCable);
 
-    // 4. Impedancia equivalente total
-    const zEquivalente = zRed + zTrafo + zCable;
+    // Impedancia equivalente total
+    const zEquivalente = zRed + zCable;
 
     // 5. Cálculos de corrientes de cortocircuito
     
@@ -1353,14 +1392,6 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
         doc.text(`Cliente: ${projectData.client_name}`, 20, 35);
       }
 
-      // Datos del sistema
-      doc.setFontSize(12);
-      doc.text('DATOS DEL SISTEMA', 20, 45);
-      doc.setFontSize(9);
-      doc.text(`Tensión: ${cortocircuitoData.sistemaAlimentacion.tensionNominal}V | ` +
-               `Frecuencia: ${cortocircuitoData.sistemaAlimentacion.frecuencia}Hz | ` +
-               `Tipo: ${cortocircuitoData.sistemaAlimentacion.tipoConexion} | ` +
-               `ICC Punto: ${cortocircuitoData.sistemaAlimentacion.iccPunto}kA`, 20, 50);
 
       // Tabla de cargas
       const tableData = cortocircuitoData.cargas.map(carga => [
@@ -1481,15 +1512,8 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
       setSaveStatus('saving');
       setIsSaving(true);
 
-      const updateData = {
-        userId: user.uid,
-        calculationData: {
-          ...(projectData.calculation_data || {}),
-          cortocircuito: cortocircuitoData
-        }
-      };
-
-      await updateProject(projectData.id, updateData);
+      // Use new cortocircuito service to save directly to calculos_cortocircuito field
+      await cortocircuitoService.saveCortocircuito(projectData.id, user.uid, cortocircuitoData);
       
       console.log('✅ Guardado manual: Datos guardados exitosamente');
       setSaveStatus('saved');
@@ -1557,177 +1581,6 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
               <Download className="w-4 h-4" />
               <span className="hidden sm:inline">Exportar PDF</span>
             </button>
-          </div>
-        )}
-      </div>
-
-      {/* Datos del Sistema de Alimentación */}
-      <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-          <Settings className="w-5 h-5 text-blue-500 mr-2" />
-          Sistema de Alimentación
-        </h2>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tensión Nominal
-            </label>
-            <div className="flex space-x-2">
-              <input
-                type="number"
-                value={cortocircuitoData.sistemaAlimentacion.tensionNominal}
-                onChange={(e) => handleSistemaChange('tensionNominal', e.target.value)}
-                onFocus={(e) => e.target.select()}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                placeholder="380"
-                disabled={readOnly}
-              />
-              <select
-                value={cortocircuitoData.sistemaAlimentacion.tensionUnidad || 'V'}
-                onChange={(e) => handleSistemaChange('tensionUnidad', e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 bg-white"
-                disabled={readOnly}
-              >
-                <option value="V">V</option>
-                <option value="kV">kV</option>
-                <option value="mV">mV</option>
-              </select>
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Frecuencia (Hz)
-            </label>
-            <input
-              type="number"
-              value={cortocircuitoData.sistemaAlimentacion.frecuencia}
-              onChange={(e) => handleSistemaChange('frecuencia', e.target.value)}
-              onFocus={(e) => e.target.select()}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-              disabled={readOnly}
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tipo de Conexión
-            </label>
-            <select
-              value={cortocircuitoData.sistemaAlimentacion.tipoConexion}
-              onChange={(e) => handleSistemaChange('tipoConexion', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-              disabled={readOnly}
-            >
-              <option value="TN">TN</option>
-              <option value="TT">TT</option>
-              <option value="IT">IT</option>
-            </select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              ICC en Punto de Conexión (kA)
-            </label>
-            <input
-              type="number"
-              step="0.1"
-              value={cortocircuitoData.sistemaAlimentacion.iccPunto}
-              onChange={(e) => handleSistemaChange('iccPunto', e.target.value)}
-              onFocus={(e) => e.target.select()}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-              placeholder="25"
-              disabled={readOnly}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Datos del Transformador */}
-      <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-          <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-            <AlertTriangle className="w-5 h-5 text-yellow-500 mr-2" />
-            Transformador
-          </h2>
-          {!readOnly && (
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={cortocircuitoData.transformador.aplica}
-                onChange={(e) => handleTransformadorChange('aplica', e.target.checked)}
-                className="mr-2"
-              />
-              <span className="text-sm text-gray-600">Incluir transformador</span>
-            </label>
-          )}
-        </div>
-        
-        {cortocircuitoData.transformador.aplica && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Potencia Nominal (kVA)
-              </label>
-              <input
-                type="number"
-                value={cortocircuitoData.transformador.potenciaNominal}
-                onChange={(e) => handleTransformadorChange('potenciaNominal', e.target.value)}
-                onFocus={(e) => e.target.select()}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                placeholder="1000"
-                disabled={readOnly}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tensión de Cortocircuito (%)
-              </label>
-              <input
-                type="number"
-                step="0.1"
-                value={cortocircuitoData.transformador.tensionCortocircuito}
-                onChange={(e) => handleTransformadorChange('tensionCortocircuito', e.target.value)}
-                onFocus={(e) => e.target.select()}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                placeholder="6"
-                disabled={readOnly}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Relación de Transformación
-              </label>
-              <input
-                type="text"
-                value={cortocircuitoData.transformador.relacionTransformacion}
-                onChange={(e) => handleTransformadorChange('relacionTransformacion', e.target.value)}
-                onFocus={(e) => e.target.select()}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                placeholder="13200/380"
-                disabled={readOnly}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Conexión
-              </label>
-              <select
-                value={cortocircuitoData.transformador.conexion}
-                onChange={(e) => handleTransformadorChange('conexion', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                disabled={readOnly}
-              >
-                <option value="Dy11">Dy11</option>
-                <option value="Yy0">Yy0</option>
-                <option value="Dd0">Dd0</option>
-                <option value="Yd11">Yd11</option>
-              </select>
-            </div>
           </div>
         )}
       </div>

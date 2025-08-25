@@ -8,6 +8,8 @@ import { testConnection } from './config/database.js';
 // Import routes
 import projectRoutes from './routes/projects.js';
 import calculationRoutes from './routes/calculations.js';
+import protocoloRoutes from './routes/protocolos.js';
+import cortocircuitoRoutes from './routes/cortocircuito.js';
 import templateRoutes from './routes/templates.js';
 import statsRoutes from './routes/stats.js';
 import emailRoutes from './routes/email.js';
@@ -55,6 +57,8 @@ app.get('/health', async (req, res) => {
 // API routes
 app.use('/api/projects', projectRoutes);
 app.use('/api/calculations', calculationRoutes);
+app.use('/api/protocolos', protocoloRoutes);
+app.use('/api/cortocircuito', cortocircuitoRoutes);
 app.use('/api/templates', templateRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/email', emailRoutes);
