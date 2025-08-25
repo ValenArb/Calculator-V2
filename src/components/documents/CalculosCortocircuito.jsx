@@ -27,8 +27,19 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
         return [1, 1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120];
       case 'IRAM 62267': // Afumex 750
         return [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120];
-      case 'IRAM 62266': // Afumex 1000 - Secciones del catálogo Prysmian páginas 24-25
-        return [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240, 300];
+      case 'IRAM 62266': // Afumex 1000 - Secciones según configuración del catálogo Prysmian páginas 24-25
+        switch(configuracion) {
+          case 'unipolar':
+            return [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240, 300, 400, 500, 630];
+          case 'bipolar':
+            return [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240];
+          case 'tripolar':
+            return [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240, 300];
+          case 'tetrapolar':
+            return [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240];
+          default:
+            return [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70, 95, 120, 150, 185, 240, 300];
+        }
       case 'IRAM 2178': // Sintenax Valio - Secciones según configuración del catálogo Prysmian
         switch(configuracion) {
           case 'unipolar':
@@ -593,7 +604,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
                 // Verificar si la sección actual está disponible para el nuevo tipo
                 const seccionesDisponibles = getSeccionesDisponibles(
                   nuevoTipo, 
-                  carga.cable.configuracionSintenax
+                  carga.cable.configuracionSintenax || carga.cable.configuracionAfumex
                 );
                 const seccionActual = parseFloat(carga.cable.seccionFase);
                 
@@ -641,6 +652,35 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
             </div>
           )}
 
+          {/* Configuración específica para Afumex 1000 */}
+          {carga.cable.tipo === 'IRAM 62266' && (
+            <div>
+              <Tooltip text="Configuración Afumex 1000 - Selecciona si el conductor es unipolar, bipolar, tripolar o tetrapolar">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Configuración Afumex 1000
+                </label>
+              </Tooltip>
+              <select
+                value={carga.cable.configuracionAfumex || 'tripolar'}
+                onChange={(e) => {
+                  const nuevaConfig = e.target.value;
+                  onUpdate(carga.id, 'cable.configuracionAfumex', nuevaConfig);
+                  
+                  // Resetear la sección cuando cambia la configuración
+                  onUpdate(carga.id, 'cable.seccionFase', '');
+                  calcularParametrosCable(carga.id);
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                disabled={readOnly}
+              >
+                <option value="unipolar">Unipolar (1 conductor)</option>
+                <option value="bipolar">Bipolar (2 conductores)</option>
+                <option value="tripolar">Tripolar (3 conductores)</option>
+                <option value="tetrapolar">Tetrapolar (4 conductores)</option>
+              </select>
+            </div>
+          )}
+
           <div>
             <Tooltip text="Sección de Fase - Área transversal del conductor de fase">
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -658,7 +698,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
             >
               {getSeccionesDisponibles(
                 carga.cable.tipo || 'IRAM NM 247-3', 
-                carga.cable.configuracionSintenax
+                carga.cable.configuracionSintenax || carga.cable.configuracionAfumex
               ).map(seccion => (
                 <option key={seccion} value={seccion}>
                   {seccion} mm²
@@ -726,6 +766,30 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
             </select>
           </div>
 
+          {/* Método de instalación solo para cables que tienen diferentes valores según instalación */}
+          {(carga.cable.tipo === 'IRAM 2178' || carga.cable.tipo === 'IRAM 62266') && (
+            <div>
+              <Tooltip text="Método de Instalación - Método de instalación del conductor según normas IEC que afecta la capacidad de corriente">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Método de Instalación
+                </label>
+              </Tooltip>
+              <select
+                value={carga.cable.metodoInstalacion || 'B2'}
+                onChange={(e) => {
+                  onUpdate(carga.id, 'cable.metodoInstalacion', e.target.value);
+                  calcularParametrosCable(carga.id);
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                disabled={readOnly}
+              >
+                <option value="B2">Método B2 - Cañería embutida</option>
+                <option value="C">Método C - Cañería al aire</option>
+                <option value="E">Método E - Bandeja perforada</option>
+              </select>
+            </div>
+          )}
+
           <div>
             <Tooltip text="Resistencia - Resistencia eléctrica total del cable calculada automáticamente (ajustada por cables en paralelo)">
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -740,7 +804,8 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
           {/* Reactancia solo para cables multipolares */}
           {carga.cable.tipo && 
            carga.cable.tipo !== 'IRAM NM 247-3' && 
-           !(carga.cable.tipo === 'IRAM 2178' && carga.cable.configuracionSintenax === 'unipolar') && (
+           !(carga.cable.tipo === 'IRAM 2178' && carga.cable.configuracionSintenax === 'unipolar') &&
+           !(carga.cable.tipo === 'IRAM 62266' && carga.cable.configuracionAfumex === 'unipolar') && (
             <div>
               <Tooltip text="Reactancia Inductiva - Reactancia del cable calculada automáticamente (solo cables multipolares)">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1382,10 +1447,22 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
             35: 0.663, 50: 0.462, 70: 0.326, 95: 0.248, 120: 0.194, 150: 0.156, 
             185: 0.129, 240: 0.0987, 300: 0.0754, 400: 0.0606, 500: 0.0493, 630: 0.0407
           },
-          corrientes: { // Amperes - Método C (en cañería)
-            1.5: 18, 2.5: 25, 4: 32, 6: 41, 10: 57, 16: 76, 25: 101, 35: 125,
-            50: 151, 70: 192, 95: 232, 120: 269, 150: 309, 185: 353, 240: 415, 
-            300: 473, 400: 555, 500: 641, 630: 738
+          corrientes: { 
+            B2: { // Método B2 - Cañería embutida
+              1.5: 15, 2.5: 21, 4: 28, 6: 36, 10: 49, 16: 66, 25: 85, 35: 106,
+              50: 127, 70: 162, 95: 194, 120: 223, 150: 252, 185: 284, 240: 328, 
+              300: 371, 400: 435, 500: 502, 630: 578
+            },
+            C: { // Método C - Cañería al aire
+              1.5: 18, 2.5: 25, 4: 32, 6: 41, 10: 57, 16: 76, 25: 101, 35: 125,
+              50: 151, 70: 192, 95: 232, 120: 269, 150: 309, 185: 353, 240: 415, 
+              300: 473, 400: 555, 500: 641, 630: 738
+            },
+            E: { // Método E - Bandeja perforada
+              1.5: 16, 2.5: 22, 4: 30, 6: 38, 10: 53, 16: 71, 25: 94, 35: 117,
+              50: 141, 70: 179, 95: 216, 120: 251, 150: 288, 185: 329, 240: 387, 
+              300: 441, 400: 518, 500: 598, 630: 689
+            }
           }
         },
         bipolar: {
@@ -1399,9 +1476,19 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
             35: 0.0760, 50: 0.0777, 70: 0.0736, 95: 0.0733, 120: 0.0729, 150: 0.0720,
             185: 0.0720, 240: 0.0716
           },
-          corrientes: { // Amperes - Método B2 (cañería embutida)
-            1.5: 17, 2.5: 23, 4: 31, 6: 39, 10: 53, 16: 70, 25: 91, 35: 113,
-            50: 136, 70: 173, 95: 207, 120: 238, 150: 269, 185: 302, 240: 349
+          corrientes: { 
+            B2: { // Método B2 - Cañería embutida
+              1.5: 17, 2.5: 23, 4: 31, 6: 39, 10: 53, 16: 70, 25: 91, 35: 113,
+              50: 136, 70: 173, 95: 207, 120: 238, 150: 269, 185: 302, 240: 349
+            },
+            C: { // Método C - Cañería al aire
+              1.5: 19, 2.5: 26, 4: 35, 6: 44, 10: 60, 16: 79, 25: 103, 35: 128,
+              50: 154, 70: 196, 95: 235, 120: 271, 150: 306, 185: 344, 240: 397
+            },
+            E: { // Método E - Bandeja perforada
+              1.5: 18, 2.5: 24, 4: 33, 6: 41, 10: 56, 16: 74, 25: 96, 35: 119,
+              50: 143, 70: 182, 95: 219, 120: 252, 150: 285, 185: 320, 240: 370
+            }
           }
         },
         tripolar: {
@@ -1415,9 +1502,19 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
             35: 0.0760, 50: 0.0777, 70: 0.0736, 95: 0.0733, 120: 0.0729, 150: 0.0720,
             185: 0.0720, 240: 0.0716, 300: 0.0714
           },
-          corrientes: { // Amperes - Método B2 (cañería embutida)
-            1.5: 15, 2.5: 21, 4: 28, 6: 36, 10: 49, 16: 66, 25: 85, 35: 106,
-            50: 127, 70: 162, 95: 194, 120: 223, 150: 252, 185: 284, 240: 328, 300: 371
+          corrientes: { 
+            B2: { // Método B2 - Cañería embutida
+              1.5: 15, 2.5: 21, 4: 28, 6: 36, 10: 49, 16: 66, 25: 85, 35: 106,
+              50: 127, 70: 162, 95: 194, 120: 223, 150: 252, 185: 284, 240: 328, 300: 371
+            },
+            C: { // Método C - Cañería al aire
+              1.5: 17, 2.5: 24, 4: 32, 6: 41, 10: 56, 16: 75, 25: 97, 35: 121,
+              50: 145, 70: 185, 95: 222, 120: 256, 150: 289, 185: 326, 240: 376, 300: 425
+            },
+            E: { // Método E - Bandeja perforada
+              1.5: 16, 2.5: 22, 4: 29, 6: 37, 10: 51, 16: 68, 25: 88, 35: 110,
+              50: 132, 70: 168, 95: 202, 120: 233, 150: 263, 185: 297, 240: 342, 300: 387
+            }
           }
         },
         tetrapolar: {
@@ -1431,41 +1528,105 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
             35: 0.0760, 50: 0.0777, 70: 0.0736, 95: 0.0733, 120: 0.0729, 150: 0.0720,
             185: 0.0720, 240: 0.0716
           },
-          corrientes: { // Amperes - Método B2 (cañería embutida)
-            1.5: 13, 2.5: 19, 4: 24, 6: 31, 10: 42, 16: 57, 25: 74, 35: 92,
-            50: 103, 70: 130, 95: 156, 120: 179, 150: 196, 185: 222, 240: 258
+          corrientes: { 
+            B2: { // Método B2 - Cañería embutida
+              1.5: 13, 2.5: 19, 4: 24, 6: 31, 10: 42, 16: 57, 25: 74, 35: 92,
+              50: 103, 70: 130, 95: 156, 120: 179, 150: 196, 185: 222, 240: 258
+            },
+            C: { // Método C - Cañería al aire
+              1.5: 15, 2.5: 22, 4: 28, 6: 36, 10: 49, 16: 66, 25: 85, 35: 106,
+              50: 127, 70: 162, 95: 194, 120: 223, 150: 252, 185: 284, 240: 328
+            },
+            E: { // Método E - Bandeja perforada
+              1.5: 14, 2.5: 20, 4: 26, 6: 33, 10: 45, 16: 61, 25: 78, 35: 97,
+              50: 116, 70: 148, 95: 178, 120: 205, 150: 231, 185: 261, 240: 301
+            }
           }
         }
       },
       'IRAM 62266': { // Afumex 1000 - Páginas 24-25 del catálogo
-        resistencias: { // ohm/km a 90°C
-          1.5: 17.0, 2.5: 10.2, 4: 6.31, 6: 4.21, 10: 2.44, 16: 1.54, 25: 0.995,
-          35: 0.669, 50: 0.494, 70: 0.342, 95: 0.247, 120: 0.196, 150: 0.159,
-          185: 0.127, 240: 0.0974, 300: 0.0783
+        unipolar: {
+          resistencias: { // ohm/km a 90°C
+            1.5: 17.0, 2.5: 10.2, 4: 6.31, 6: 4.21, 10: 2.44, 16: 1.54, 25: 0.995,
+            35: 0.669, 50: 0.494, 70: 0.342, 95: 0.247, 120: 0.196, 150: 0.159,
+            185: 0.127, 240: 0.0974, 300: 0.0783, 400: 0.0647, 500: 0.0524, 630: 0.0432
+          },
+          corrientes: { // Amperes - Método C (en cañería)
+            1.5: 20, 2.5: 27, 4: 36, 6: 46, 10: 64, 16: 85, 25: 112, 35: 138,
+            50: 167, 70: 213, 95: 258, 120: 299, 150: 344, 185: 392, 240: 461,
+            300: 526, 400: 618, 500: 712, 630: 820
+          }
         },
-        reactancias: { // ohm/km a 50 Hz
-          1.5: 0.103, 2.5: 0.0957, 4: 0.0896, 6: 0.0851, 10: 0.0803, 16: 0.0768,
-          25: 0.0770, 35: 0.0746, 50: 0.0741, 70: 0.0731, 95: 0.0712, 120: 0.0709,
-          150: 0.0713, 185: 0.0715, 240: 0.0707, 300: 0.0707
+        bipolar: {
+          resistencias: { // ohm/km a 90°C
+            1.5: 17.0, 2.5: 10.2, 4: 6.31, 6: 4.21, 10: 2.44, 16: 1.54, 25: 0.995,
+            35: 0.669, 50: 0.494, 70: 0.342, 95: 0.247, 120: 0.196, 150: 0.159,
+            185: 0.127, 240: 0.0974
+          },
+          reactancias: { // ohm/km a 50 Hz
+            1.5: 0.103, 2.5: 0.0957, 4: 0.0896, 6: 0.0851, 10: 0.0803, 16: 0.0768,
+            25: 0.0770, 35: 0.0746, 50: 0.0741, 70: 0.0731, 95: 0.0712, 120: 0.0709,
+            150: 0.0713, 185: 0.0715, 240: 0.0707
+          },
+          corrientes: { // Amperes - Método B2 (cañería embutida)
+            1.5: 18, 2.5: 25, 4: 34, 6: 43, 10: 59, 16: 78, 25: 102, 35: 126,
+            50: 152, 70: 193, 95: 232, 120: 268, 150: 303, 185: 341, 240: 394
+          }
         },
-        corrientes: { // Amperes - Método B2 (cañería embutida)
-          1.5: 19, 2.5: 25, 4: 34, 6: 43, 10: 59, 16: 78, 25: 102, 35: 133,
-          50: 140, 70: 0, 95: 0, 120: 0, 150: 0, 185: 0, 240: 0, 300: 0
+        tripolar: {
+          resistencias: { // ohm/km a 90°C
+            1.5: 17.0, 2.5: 10.2, 4: 6.31, 6: 4.21, 10: 2.44, 16: 1.54, 25: 0.995,
+            35: 0.669, 50: 0.494, 70: 0.342, 95: 0.247, 120: 0.196, 150: 0.159,
+            185: 0.127, 240: 0.0974, 300: 0.0783
+          },
+          reactancias: { // ohm/km a 50 Hz
+            1.5: 0.103, 2.5: 0.0957, 4: 0.0896, 6: 0.0851, 10: 0.0803, 16: 0.0768,
+            25: 0.0770, 35: 0.0746, 50: 0.0741, 70: 0.0731, 95: 0.0712, 120: 0.0709,
+            150: 0.0713, 185: 0.0715, 240: 0.0707, 300: 0.0707
+          },
+          corrientes: { // Amperes - Método B2 (cañería embutida)
+            1.5: 16, 2.5: 23, 4: 31, 6: 39, 10: 54, 16: 72, 25: 94, 35: 117,
+            50: 140, 70: 178, 95: 214, 120: 247, 150: 279, 185: 314, 240: 363, 300: 410
+          }
+        },
+        tetrapolar: {
+          resistencias: { // ohm/km a 90°C
+            1.5: 17.0, 2.5: 10.2, 4: 6.31, 6: 4.21, 10: 2.44, 16: 1.54, 25: 0.995,
+            35: 0.669, 50: 0.494, 70: 0.342, 95: 0.247, 120: 0.196, 150: 0.159,
+            185: 0.127, 240: 0.0974
+          },
+          reactancias: { // ohm/km a 50 Hz
+            1.5: 0.103, 2.5: 0.0957, 4: 0.0896, 6: 0.0851, 10: 0.0803, 16: 0.0768,
+            25: 0.0770, 35: 0.0746, 50: 0.0741, 70: 0.0731, 95: 0.0712, 120: 0.0709,
+            150: 0.0713, 185: 0.0715, 240: 0.0707
+          },
+          corrientes: { // Amperes - Método B2 (cañería embutida)
+            1.5: 14, 2.5: 20, 4: 27, 6: 35, 10: 48, 16: 64, 25: 84, 35: 104,
+            50: 125, 70: 159, 95: 191, 120: 220, 150: 248, 185: 279, 240: 322
+          }
         }
       }
     };
 
-    // Para Sintenax, obtener datos según configuración específica
+    // Para cables con configuraciones específicas, obtener datos según configuración
     let datosActuales;
     if (tipoCable === 'IRAM 2178') {
       const configuracion = carga.cable.configuracionSintenax || 'tripolar';
+      datosActuales = datosCatalogo[tipoCable][configuracion];
+    } else if (tipoCable === 'IRAM 62266') {
+      const configuracion = carga.cable.configuracionAfumex || 'tripolar';
       datosActuales = datosCatalogo[tipoCable][configuracion];
     } else {
       datosActuales = datosCatalogo[tipoCable];
     }
 
     if (!datosActuales || !datosActuales.resistencias[seccion]) {
-      const config = tipoCable === 'IRAM 2178' ? ` configuración ${carga.cable.configuracionSintenax || 'tripolar'}` : '';
+      let config = '';
+      if (tipoCable === 'IRAM 2178') {
+        config = ` configuración ${carga.cable.configuracionSintenax || 'tripolar'}`;
+      } else if (tipoCable === 'IRAM 62266') {
+        config = ` configuración ${carga.cable.configuracionAfumex || 'tripolar'}`;
+      }
       console.warn(`Datos no encontrados para ${tipoCable}${config} sección ${seccion}mm²`);
       return;
     }
@@ -1481,8 +1642,17 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
       reactanciaTotal = (reactanciaPorKm * longitud / 1000 / numeroParalelo).toFixed(4);
     }
 
-    // Corriente admisible total considerando cables en paralelo
-    const corrientePorCable = datosActuales.corrientes[seccion] || 0;
+    // Corriente admisible total considerando cables en paralelo e instalación
+    let corrientePorCable = 0;
+    if (tipoCable === 'IRAM 2178' || tipoCable === 'IRAM 62266') {
+      // Para cables con métodos de instalación específicos
+      const metodoInstalacion = carga.cable.metodoInstalacion || 'B2';
+      corrientePorCable = datosActuales.corrientes[metodoInstalacion] ? 
+                         datosActuales.corrientes[metodoInstalacion][seccion] || 0 : 0;
+    } else {
+      // Para cables sin métodos específicos (IRAM NM 247-3, IRAM 62267)
+      corrientePorCable = datosActuales.corrientes[seccion] || 0;
+    }
     const corrienteTotal = Math.round(corrientePorCable * numeroParalelo);
 
     actualizarCarga(id, 'cable.resistencia', resistenciaTotal);
