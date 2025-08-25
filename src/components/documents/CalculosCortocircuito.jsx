@@ -321,13 +321,19 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
             </div>
 
             <div>
-              <Tooltip text="Corriente Nominal - Corriente total calculada según la potencia, tensión y tipo de carga">
+              <Tooltip text="Corriente Nominal - Corriente total con reserva aplicada para dimensionamiento">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Corriente Nominal (A)
                 </label>
               </Tooltip>
               <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-900 font-mono">
-                {carga.corrienteNominal || '0.00'}
+                {(() => {
+                  const corrienteBase = parseFloat(carga.corrienteNominal || 0);
+                  const porcentajeReserva = parseFloat(carga.porcentajeReserva || 20);
+                  const factorReserva = 1 + (porcentajeReserva / 100);
+                  const corrienteConReserva = corrienteBase * factorReserva;
+                  return corrienteConReserva.toFixed(2);
+                })()}
               </div>
             </div>
           </div>
@@ -336,9 +342,9 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
           {carga.corrientesPorFase && !carga.corrientesPorFase.DC && (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <div>
-                <Tooltip text="Corriente Fase R - Corriente en la fase R">
+                <Tooltip text="Corriente Base Fase R - Corriente calculada sin reserva en la fase R">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Corriente Fase R (A)
+                    Corriente Base R (A)
                   </label>
                 </Tooltip>
                 <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-900 font-mono">
@@ -347,9 +353,9 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
               </div>
 
               <div>
-                <Tooltip text="Corriente Fase S - Corriente en la fase S">
+                <Tooltip text="Corriente Base Fase S - Corriente calculada sin reserva en la fase S">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Corriente Fase S (A)
+                    Corriente Base S (A)
                   </label>
                 </Tooltip>
                 <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-900 font-mono">
@@ -358,9 +364,9 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
               </div>
 
               <div>
-                <Tooltip text="Corriente Fase T - Corriente en la fase T">
+                <Tooltip text="Corriente Base Fase T - Corriente calculada sin reserva en la fase T">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Corriente Fase T (A)
+                    Corriente Base T (A)
                   </label>
                 </Tooltip>
                 <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-900 font-mono">
@@ -374,9 +380,9 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
           {carga.corrientesPorFase?.DC && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <Tooltip text="Corriente DC - Corriente en circuito de corriente continua">
+                <Tooltip text="Corriente Base DC - Corriente calculada sin reserva en circuito DC">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Corriente DC (A)
+                    Corriente Base DC (A)
                   </label>
                 </Tooltip>
                 <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-900 font-mono">
