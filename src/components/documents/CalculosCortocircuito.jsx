@@ -711,12 +711,12 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
 
 
           <div>
-            <Tooltip text="Longitud del Conductor - Distancia total del conductor">
+            <Tooltip text="Longitud del Conductor - Distancia total del conductor en metros (m)">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Longitud
+                Longitud (m)
               </label>
             </Tooltip>
-            <div className="flex space-x-2 w-full">
+            <div className="relative">
               <input
                 type="number"
                 step="0.1"
@@ -727,21 +727,13 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
                   calcularParametrosCable(carga.id, { longitud: nuevaLongitud });
                 }}
                 onFocus={(e) => e.target.select()}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 pr-8 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="50"
                 disabled={readOnly}
               />
-              <select
-                value={carga.cable.longitudUnidad || 'm'}
-                onChange={(e) => onUpdate(carga.id, 'cable.longitudUnidad', e.target.value)}
-                className="w-16 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                disabled={readOnly}
-              >
-                <option value="m">m</option>
-                <option value="km">km</option>
-                <option value="ft">ft</option>
-                <option value="in">in</option>
-              </select>
+              <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm text-gray-500">
+                m
+              </span>
             </div>
           </div>
 
@@ -1131,7 +1123,6 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
         cantidadTernas: '1',
         seccionFase: '',
         longitud: '',
-        longitudUnidad: 'm',
         resistencia: '',
         reactancia: '',
         capacidadAdmisible: ''
