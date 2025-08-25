@@ -34,7 +34,8 @@
       "Bash(pkill:*)",
       "Bash(timeout:*)",
       "Bash(npm run:*)",
-      "Bash(sqlite3:*)"
+      "Bash(sqlite3:*)",
+      "Bash(git revert:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits",
