@@ -493,52 +493,40 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
           </div>
 
           <div>
-            <Tooltip text="Calibre - Corriente nominal del interruptor (seleccionado automáticamente)">
+            <Tooltip text="Calibre - Corriente nominal del interruptor en amperios (seleccionado automáticamente)">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Calibre <span className="text-green-600 text-xs">(Auto)</span>
               </label>
             </Tooltip>
-            <div className="flex space-x-2 w-full">
-              <select
-                value={carga.interruptor.calibre || ''}
-                onChange={(e) => onUpdate(carga.id, 'interruptor.calibre', e.target.value)}
-                className="flex-1 px-3 py-2 border border-green-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-green-50"
-                disabled={readOnly}
-              >
-                <option value="">Seleccionar calibre</option>
-                <option value="6">6</option>
-                <option value="10">10</option>
-                <option value="16">16</option>
-                <option value="20">20</option>
-                <option value="25">25</option>
-                <option value="32">32</option>
-                <option value="40">40</option>
-                <option value="50">50</option>
-                <option value="63">63</option>
-                <option value="80">80</option>
-                <option value="100">100</option>
-                <option value="125">125</option>
-                <option value="160">160</option>
-                <option value="200">200</option>
-                <option value="250">250</option>
-                <option value="315">315</option>
-                <option value="400">400</option>
-                <option value="500">500</option>
-                <option value="630">630</option>
-                <option value="800">800</option>
-                <option value="1000">1000</option>
-              </select>
-              <select
-                value={carga.interruptor.calibreUnidad || 'A'}
-                onChange={(e) => onUpdate(carga.id, 'interruptor.calibreUnidad', e.target.value)}
-                className="w-16 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                disabled={readOnly}
-              >
-                <option value="A">A</option>
-                <option value="mA">mA</option>
-                <option value="kA">kA</option>
-              </select>
-            </div>
+            <select
+              value={carga.interruptor.calibre || ''}
+              onChange={(e) => onUpdate(carga.id, 'interruptor.calibre', e.target.value)}
+              className="w-full px-3 py-2 border border-green-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-green-50"
+              disabled={readOnly}
+            >
+              <option value="">Seleccionar calibre</option>
+              <option value="6">6 A</option>
+              <option value="10">10 A</option>
+              <option value="16">16 A</option>
+              <option value="20">20 A</option>
+              <option value="25">25 A</option>
+              <option value="32">32 A</option>
+              <option value="40">40 A</option>
+              <option value="50">50 A</option>
+              <option value="63">63 A</option>
+              <option value="80">80 A</option>
+              <option value="100">100 A</option>
+              <option value="125">125 A</option>
+              <option value="160">160 A</option>
+              <option value="200">200 A</option>
+              <option value="250">250 A</option>
+              <option value="315">315 A</option>
+              <option value="400">400 A</option>
+              <option value="500">500 A</option>
+              <option value="630">630 A</option>
+              <option value="800">800 A</option>
+              <option value="1000">1000 A</option>
+            </select>
           </div>
 
           <div>
@@ -1402,7 +1390,6 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
       actualizarCarga(id, 'interruptor.calibre', calibreSeleccionado.toString());
     }
     actualizarCarga(id, 'interruptor.polos', polosSeleccionados);
-    actualizarCarga(id, 'interruptor.calibreUnidad', 'A');
   };
 
   // Función para calcular parámetros del cable (R, X, Iz)
