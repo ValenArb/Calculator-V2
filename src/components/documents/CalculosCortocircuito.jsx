@@ -68,251 +68,234 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
           Datos de Carga
         </h4>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <Tooltip text="Potencia Instalada - Potencia nominal del equipo">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Potencia Instalada
-              </label>
-            </Tooltip>
-            <div className="flex space-x-2 w-full">
+        <div className="space-y-4">
+          {/* Primera fila */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Tooltip text="Potencia Instalada - Potencia nominal del equipo">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Potencia Instalada
+                </label>
+              </Tooltip>
+              <div className="flex space-x-2 w-full">
+                <input
+                  type="number"
+                  value={carga.potenciaInstalada}
+                  onChange={(e) => {
+                    const newValue = e.target.value;
+                    onUpdate(carga.id, 'potenciaInstalada', newValue);
+                    
+                    // Calcular inmediatamente con el nuevo valor
+                    if (newValue && !isNaN(parseFloat(newValue))) {
+                      calcularPotenciaSimulada(carga.id, newValue);
+                    }
+                  }}
+                  onFocus={(e) => e.target.select()}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="2200"
+                  disabled={readOnly}
+                />
+                <select
+                  value={carga.potenciaUnidad || 'W'}
+                  onChange={(e) => {
+                    const newUnit = e.target.value;
+                    onUpdate(carga.id, 'potenciaUnidad', newUnit);
+                    
+                    // Recalcular con la nueva unidad si hay potencia instalada
+                    if (carga.potenciaInstalada) {
+                      calcularPotenciaSimulada(carga.id, null, newUnit);
+                    }
+                  }}
+                  className="w-16 px-2 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                  disabled={readOnly}
+                >
+                  <option value="W">W</option>
+                  <option value="kW">kW</option>
+                  <option value="HP">HP</option>
+                  <option value="CV">CV</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <Tooltip text="Coeficiente de Simultaneidad - Factor que indica qué porcentaje de la carga opera simultáneamente">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Coef. Simultaneidad
+                </label>
+              </Tooltip>
               <input
                 type="number"
-                value={carga.potenciaInstalada}
+                step="0.1"
+                min="0"
+                max="1"
+                value={carga.coefSimultaneidad}
                 onChange={(e) => {
-                  const newValue = e.target.value;
-                  onUpdate(carga.id, 'potenciaInstalada', newValue);
+                  const newCoefSim = e.target.value;
+                  onUpdate(carga.id, 'coefSimultaneidad', newCoefSim);
                   
-                  // Calcular inmediatamente con el nuevo valor
-                  if (newValue && !isNaN(parseFloat(newValue))) {
-                    calcularPotenciaSimulada(carga.id, newValue);
+                  // Recalcular si hay potencia instalada
+                  if (carga.potenciaInstalada) {
+                    calcularPotenciaSimulada(carga.id, null, null, newCoefSim);
                   }
                 }}
                 onFocus={(e) => e.target.select()}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="1000"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="1"
                 disabled={readOnly}
               />
+            </div>
+          </div>
+
+          {/* Segunda fila */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Tooltip text="Tipo de Carga - Configuración de fases de la carga eléctrica">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tipo de Carga
+                </label>
+              </Tooltip>
               <select
-                value={carga.potenciaUnidad || 'W'}
+                value={carga.tipoCarga || 'RSTN'}
                 onChange={(e) => {
-                  const newUnit = e.target.value;
-                  onUpdate(carga.id, 'potenciaUnidad', newUnit);
+                  const newTipoCarga = e.target.value;
+                  onUpdate(carga.id, 'tipoCarga', newTipoCarga);
                   
-                  // Recalcular con la nueva unidad si hay potencia instalada
-                  if (carga.potenciaInstalada) {
-                    calcularPotenciaSimulada(carga.id, null, newUnit);
+                  // Cambiar tensión automáticamente según tipo de carga
+                  let nuevaTension;
+                  if (newTipoCarga === 'RST' || newTipoCarga === 'RSTN') {
+                    // Trifásicas → 380V
+                    nuevaTension = '380';
+                  } else if (newTipoCarga === 'DC') {
+                    // DC → 12V
+                    nuevaTension = '12';
+                  } else {
+                    // Monofásicas (R, S, T, RN, SN, TN) → 220V
+                    nuevaTension = '220';
                   }
+                  
+                  onUpdate(carga.id, 'tension', nuevaTension);
+                  
+                  // Recalcular inmediatamente con los nuevos valores
+                  calcularCorrienteNominal(carga.id, { 
+                    tipoCarga: newTipoCarga, 
+                    tension: nuevaTension 
+                  });
+                  // Chain the other calculations immediately
+                  calcularParametrosCable(carga.id);
+                  calcularICC(carga.id);
                 }}
-                className="w-20 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                 disabled={readOnly}
               >
-                <option value="W">W</option>
-                <option value="kW">kW</option>
-                <option value="HP">HP</option>
-                <option value="CV">CV</option>
+                <option value="R">R - Monofásico</option>
+                <option value="S">S - Monofásico</option>
+                <option value="T">T - Monofásico</option>
+                <option value="RN">RN - Monofásico R-N</option>
+                <option value="SN">SN - Monofásico S-N</option>
+                <option value="TN">TN - Monofásico T-N</option>
+                <option value="RST">RST - Trifásico</option>
+                <option value="RSTN">RSTN - Trifásico con Neutro</option>
+                <option value="DC">DC - Corriente Continua</option>
               </select>
             </div>
-          </div>
 
-          <div>
-            <Tooltip text="Coeficiente de Simultaneidad - Factor que indica qué porcentaje de la carga opera simultáneamente">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Coef. Simultaneidad
-              </label>
-            </Tooltip>
-            <input
-              type="number"
-              step="0.1"
-              min="0"
-              max="1"
-              value={carga.coefSimultaneidad}
-              onChange={(e) => {
-                const newCoefSim = e.target.value;
-                onUpdate(carga.id, 'coefSimultaneidad', newCoefSim);
-                
-                // Recalcular si hay potencia instalada
-                if (carga.potenciaInstalada) {
-                  calcularPotenciaSimulada(carga.id, null, null, newCoefSim);
-                }
-              }}
-              onFocus={(e) => e.target.select()}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="1.0"
-              disabled={readOnly}
-            />
-          </div>
-
-          <div>
-            <Tooltip text="Tipo de Carga - Configuración de fases de la carga eléctrica (R=Monofásico R, RST=Trifásico, RN=Monofásico R-N, RSTN=Trifásico con neutro, DC=Corriente continua)">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tipo de Carga
-              </label>
-            </Tooltip>
-            <select
-              value={carga.tipoCarga || 'RSTN'}
-              onChange={(e) => {
-                const newTipoCarga = e.target.value;
-                onUpdate(carga.id, 'tipoCarga', newTipoCarga);
-                
-                // Cambiar tensión automáticamente según tipo de carga
-                let nuevaTension;
-                if (newTipoCarga === 'RST' || newTipoCarga === 'RSTN') {
-                  // Trifásicas → 380V
-                  nuevaTension = '380';
-                } else if (newTipoCarga === 'DC') {
-                  // DC → 12V
-                  nuevaTension = '12';
-                } else {
-                  // Monofásicas (R, S, T, RN, SN, TN) → 220V
-                  nuevaTension = '220';
-                }
-                
-                onUpdate(carga.id, 'tension', nuevaTension);
-                
-                // Recalcular inmediatamente con los nuevos valores
-                calcularCorrienteNominal(carga.id, { 
-                  tipoCarga: newTipoCarga, 
-                  tension: nuevaTension 
-                });
-                // Chain the other calculations immediately
-                calcularParametrosCable(carga.id);
-                calcularICC(carga.id);
-              }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-              disabled={readOnly}
-            >
-              <option value="R">R - Monofásico (fase R)</option>
-              <option value="S">S - Monofásico (fase S)</option>
-              <option value="T">T - Monofásico (fase T)</option>
-              <option value="RN">RN - Monofásico R-Neutro</option>
-              <option value="SN">SN - Monofásico S-Neutro</option>
-              <option value="TN">TN - Monofásico T-Neutro</option>
-              <option value="RST">RST - Trifásico</option>
-              <option value="RSTN">RSTN - Trifásico con Neutro</option>
-              <option value="DC">DC - Corriente Continua</option>
-            </select>
-          </div>
-
-          <div>
-            <Tooltip text="Tensión Nominal - Tensión de funcionamiento de la carga en voltios">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tensión Nominal (V)
-              </label>
-            </Tooltip>
-            <input
-              type="number"
-              value={carga.tension || ''}
-              onChange={(e) => {
-                const newTension = e.target.value;
-                onUpdate(carga.id, 'tension', newTension);
-                // Recalcular inmediatamente con el nuevo valor
-                calcularCorrienteNominal(carga.id, { tension: newTension });
-              }}
-              onFocus={(e) => e.target.select()}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="380"
-              disabled={readOnly}
-            />
-          </div>
-
-          <div>
-            <Tooltip text="Factor de Potencia - Coseno del ángulo entre tensión y corriente (No aplica para DC)">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Factor de Potencia (cos φ)
-              </label>
-            </Tooltip>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              max="1"
-              value={carga.tipoCarga === 'DC' ? '1.0' : carga.cosoPhi}
-              onChange={(e) => {
-                const newCosPhi = e.target.value;
-                onUpdate(carga.id, 'cosoPhi', newCosPhi);
-                // Recalcular inmediatamente con el nuevo valor
-                calcularCorrienteNominal(carga.id, { cosoPhi: newCosPhi });
-              }}
-              onFocus={(e) => e.target.select()}
-              className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                carga.tipoCarga === 'DC' ? 'bg-gray-100 text-gray-500' : ''
-              }`}
-              placeholder="0.8"
-              disabled={readOnly || carga.tipoCarga === 'DC'}
-            />
-          </div>
-
-          <div>
-            <Tooltip text="Eficiencia - Rendimiento del equipo en porcentaje">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Eficiencia (%)
-              </label>
-            </Tooltip>
-            <input
-              type="number"
-              min="0"
-              max="100"
-              value={carga.eficiencia}
-              onChange={(e) => {
-                const newEficiencia = e.target.value;
-                onUpdate(carga.id, 'eficiencia', newEficiencia);
-                
-                // Recalcular si hay potencia instalada
-                if (carga.potenciaInstalada) {
-                  calcularPotenciaSimulada(carga.id, null, null, null, newEficiencia);
-                }
-              }}
-              onFocus={(e) => e.target.select()}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="100"
-              disabled={readOnly}
-            />
-          </div>
-
-          <div>
-            <Tooltip text="Potencia Simultánea - Potencia real considerando simultaneidad y eficiencia">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Potencia Simultánea (kW)
-              </label>
-            </Tooltip>
-            <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-900 font-mono">
-              {carga.potenciaSimulada || '0.000'}
+            <div>
+              <Tooltip text="Tensión Nominal - Tensión de funcionamiento de la carga en voltios">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tensión Nominal (V)
+                </label>
+              </Tooltip>
+              <input
+                type="number"
+                value={carga.tension || ''}
+                onChange={(e) => {
+                  const newTension = e.target.value;
+                  onUpdate(carga.id, 'tension', newTension);
+                  // Recalcular inmediatamente con el nuevo valor
+                  calcularCorrienteNominal(carga.id, { tension: newTension });
+                }}
+                onFocus={(e) => e.target.select()}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="380"
+                disabled={readOnly}
+              />
             </div>
           </div>
 
-          <div>
-            <Tooltip text="Corriente Nominal - Corriente de operación calculada según la potencia y tensión">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Corriente Nominal (A)
-              </label>
-            </Tooltip>
-            <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-900 font-mono">
-              {carga.corrienteNominal || '0.00'}
+          {/* Tercera fila */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Tooltip text="Factor de Potencia - Coseno del ángulo entre tensión y corriente (No aplica para DC)">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Factor de Potencia (cos φ)
+                </label>
+              </Tooltip>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                max="1"
+                value={carga.tipoCarga === 'DC' ? '1.0' : carga.cosoPhi}
+                onChange={(e) => {
+                  const newCosPhi = e.target.value;
+                  onUpdate(carga.id, 'cosoPhi', newCosPhi);
+                  // Recalcular inmediatamente con el nuevo valor
+                  calcularCorrienteNominal(carga.id, { cosoPhi: newCosPhi });
+                }}
+                onFocus={(e) => e.target.select()}
+                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  carga.tipoCarga === 'DC' ? 'bg-gray-100 text-gray-500' : ''
+                }`}
+                placeholder="1"
+                disabled={readOnly || carga.tipoCarga === 'DC'}
+              />
             </div>
-            
-            {/* Debug: Mostrar fórmula utilizada */}
-            <div className="mt-1 text-xs text-gray-500 font-mono space-y-1">
-              <div>
-                {(carga._debugTipoCarga || carga.tipoCarga) === 'RST' || (carga._debugTipoCarga || carga.tipoCarga) === 'RSTN' 
-                  ? 'I = P(kW) × 1000 / (√3 × V × cos φ)' 
-                  : (carga._debugTipoCarga || carga.tipoCarga) === 'DC' 
-                  ? 'I = P(kW) × 1000 / V' 
-                  : 'I = P(kW) × 1000 / (V × cos φ)'}
-              </div>
-              <div className="text-blue-600">
-                {(carga._debugTipoCarga || carga.tipoCarga) === 'RST' || (carga._debugTipoCarga || carga.tipoCarga) === 'RSTN' 
-                  ? `P=${carga._debugPotencia || carga.potenciaSimulada || 0}kW, V=${carga._debugTension || carga.tension || 380}V, cos φ=${carga._debugCosPhi || carga.cosoPhi || 0.8}` 
-                  : (carga._debugTipoCarga || carga.tipoCarga) === 'DC' 
-                  ? `P=${carga._debugPotencia || carga.potenciaSimulada || 0}kW, V=${carga._debugTension || carga.tension || 380}V` 
-                  : `P=${carga._debugPotencia || carga.potenciaSimulada || 0}kW, V=${carga._debugTension || carga.tension || 380}V, cos φ=${carga._debugCosPhi || carga.cosoPhi || 0.8}`}
+
+            <div>
+              <Tooltip text="Eficiencia - Rendimiento del equipo en porcentaje">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Eficiencia (%)
+                </label>
+              </Tooltip>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={carga.eficiencia}
+                onChange={(e) => {
+                  const newEficiencia = e.target.value;
+                  onUpdate(carga.id, 'eficiencia', newEficiencia);
+                  
+                  // Recalcular si hay potencia instalada
+                  if (carga.potenciaInstalada) {
+                    calcularPotenciaSimulada(carga.id, null, null, null, newEficiencia);
+                  }
+                }}
+                onFocus={(e) => e.target.select()}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="100"
+                disabled={readOnly}
+              />
+            </div>
+          </div>
+
+          {/* Cuarta fila - Resultados principales */}
+          <div className="grid grid-cols-1 sm:grid-cols-1 gap-4">
+            <div>
+              <Tooltip text="Potencia Simultánea - Potencia real considerando simultaneidad y eficiencia">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Potencia Simultánea (kW)
+                </label>
+              </Tooltip>
+              <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-900 font-mono">
+                {carga.potenciaSimulada || '0.000'}
               </div>
             </div>
           </div>
 
-          {/* Corrientes por fase - campos separados */}
+          {/* Quinta fila - Corrientes por fase */}
           {carga.corrientesPorFase && !carga.corrientesPorFase.DC && (
-            <>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <div>
                 <Tooltip text="Corriente Fase R - Corriente en la fase R">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -345,32 +328,21 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
                   {carga.corrientesPorFase?.T || '0.00'}
                 </div>
               </div>
-
-              {carga.corrientesPorFase?.N !== null && (
-                <div>
-                  <Tooltip text="Corriente Neutro - Corriente en el conductor neutro">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Corriente Neutro (A)
-                    </label>
-                  </Tooltip>
-                  <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-900 font-mono">
-                    {carga.corrientesPorFase?.N || '0.00'}
-                  </div>
-                </div>
-              )}
-            </>
+            </div>
           )}
 
           {/* Para DC, mostrar campo separado */}
           {carga.corrientesPorFase?.DC && (
-            <div>
-              <Tooltip text="Corriente DC - Corriente en circuito de corriente continua">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Corriente DC (A)
-                </label>
-              </Tooltip>
-              <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-900 font-mono">
-                {carga.corrientesPorFase.DC}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Tooltip text="Corriente DC - Corriente en circuito de corriente continua">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Corriente DC (A)
+                  </label>
+                </Tooltip>
+                <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-900 font-mono">
+                  {carga.corrientesPorFase.DC}
+                </div>
               </div>
             </div>
           )}
