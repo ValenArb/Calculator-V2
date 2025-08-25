@@ -213,6 +213,9 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
                   // Chain the other calculations immediately
                   calcularParametrosCable(carga.id);
                   calcularICC(carga.id);
+                  
+                  // Actualizar automáticamente el interruptor después del recálculo
+                  setTimeout(() => seleccionarInterruptorAutomatico(carga.id), 100);
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                 disabled={readOnly}
@@ -490,16 +493,16 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
           </div>
 
           <div>
-            <Tooltip text="Calibre - Corriente nominal del interruptor">
+            <Tooltip text="Calibre - Corriente nominal del interruptor (seleccionado automáticamente)">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Calibre
+                Calibre <span className="text-green-600 text-xs">(Auto)</span>
               </label>
             </Tooltip>
             <div className="flex space-x-2 w-full">
               <select
                 value={carga.interruptor.calibre || ''}
                 onChange={(e) => onUpdate(carga.id, 'interruptor.calibre', e.target.value)}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                className="flex-1 px-3 py-2 border border-green-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-green-50"
                 disabled={readOnly}
               >
                 <option value="">Seleccionar calibre</option>
@@ -560,15 +563,15 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
           </div>
 
           <div>
-            <Tooltip text="Número de Polos - Cantidad de fases que interrumpe el dispositivo">
+            <Tooltip text="Número de Polos - Cantidad de fases que interrumpe el dispositivo (seleccionado automáticamente según tipo de carga)">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Número de Polos
+                Número de Polos <span className="text-green-600 text-xs">(Auto)</span>
               </label>
             </Tooltip>
             <select
               value={carga.interruptor.polos}
               onChange={(e) => onUpdate(carga.id, 'interruptor.polos', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-green-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-green-50"
               disabled={readOnly}
             >
               <option value="1">1P - Monofásico</option>
@@ -1353,6 +1356,53 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
     }
 
     actualizarCarga(id, 'corrientesConReserva', corrientesConReserva);
+    
+    // Seleccionar automáticamente calibre y polos del interruptor
+    seleccionarInterruptorAutomatico(id);
+  };
+
+  // Función para seleccionar automáticamente calibre y polos del interruptor
+  const seleccionarInterruptorAutomatico = (id) => {
+    const carga = cortocircuitoData.cargas.find(c => c.id === id);
+    if (!carga || !carga.corrienteNominal) return;
+
+    // Calcular corriente nominal con reserva
+    const corrienteBase = parseFloat(carga.corrienteNominal || 0);
+    const porcentajeReserva = parseFloat(carga.porcentajeReserva || 20);
+    const factorReserva = 1 + (porcentajeReserva / 100);
+    const corrienteNominalConReserva = corrienteBase * factorReserva;
+
+    // Seleccionar calibre (debe ser mayor a la corriente nominal)
+    const calibresDisponibles = [6, 10, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630, 800, 1000];
+    const calibreSeleccionado = calibresDisponibles.find(calibre => calibre >= corrienteNominalConReserva);
+
+    // Seleccionar número de polos según tipo de carga
+    let polosSeleccionados;
+    const tipoCarga = carga.tipoCarga || 'RSTN';
+    
+    if (tipoCarga === 'R' || tipoCarga === 'S' || tipoCarga === 'T' || tipoCarga === 'DC') {
+      // Monofásico o DC → 1 polo
+      polosSeleccionados = '1';
+    } else if (tipoCarga === 'RN' || tipoCarga === 'SN' || tipoCarga === 'TN') {
+      // Monofásico con neutro → 2 polos
+      polosSeleccionados = '2';
+    } else if (tipoCarga === 'RST') {
+      // Trifásico → 3 polos
+      polosSeleccionados = '3';
+    } else if (tipoCarga === 'RSTN') {
+      // Trifásico con neutro → 4 polos
+      polosSeleccionados = '4';
+    } else {
+      // Default para casos no especificados
+      polosSeleccionados = '1';
+    }
+
+    // Actualizar los valores del interruptor
+    if (calibreSeleccionado) {
+      actualizarCarga(id, 'interruptor.calibre', calibreSeleccionado.toString());
+    }
+    actualizarCarga(id, 'interruptor.polos', polosSeleccionados);
+    actualizarCarga(id, 'interruptor.calibreUnidad', 'A');
   };
 
   // Función para calcular parámetros del cable (R, X, Iz)
