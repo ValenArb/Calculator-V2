@@ -154,8 +154,27 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
               onChange={(e) => {
                 const newTipoCarga = e.target.value;
                 onUpdate(carga.id, 'tipoCarga', newTipoCarga);
-                // Recalcular inmediatamente con el nuevo valor
-                calcularCorrienteNominal(carga.id, { tipoCarga: newTipoCarga });
+                
+                // Cambiar tensión automáticamente según tipo de carga
+                let nuevaTension;
+                if (newTipoCarga === 'RST' || newTipoCarga === 'RSTN') {
+                  // Trifásicas → 380V
+                  nuevaTension = '380';
+                } else if (newTipoCarga === 'DC') {
+                  // DC → 12V
+                  nuevaTension = '12';
+                } else {
+                  // Monofásicas (R, S, T, RN, SN, TN) → 220V
+                  nuevaTension = '220';
+                }
+                
+                onUpdate(carga.id, 'tension', nuevaTension);
+                
+                // Recalcular inmediatamente con los nuevos valores
+                calcularCorrienteNominal(carga.id, { 
+                  tipoCarga: newTipoCarga, 
+                  tension: nuevaTension 
+                });
                 // Chain the other calculations immediately
                 calcularParametrosCable(carga.id);
                 calcularICC(carga.id);
@@ -917,7 +936,7 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
       // Datos básicos de la carga
       denominacion: '',
       tipoCarga: 'RSTN', // Default to RSTN (trifásico con neutro)
-      tension: '', // Tensión nominal de la carga en V
+      tension: '380', // Tensión nominal por defecto para trifásico
       potenciaInstalada: '',
       potenciaUnidad: 'W',
       coefSimultaneidad: '1.0',
