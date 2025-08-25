@@ -35,7 +35,8 @@
       "Bash(timeout:*)",
       "Bash(npm run:*)",
       "Bash(sqlite3:*)",
-      "Bash(git revert:*)"
+      "Bash(git revert:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits",
