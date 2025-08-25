@@ -69,8 +69,8 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
         </h4>
         
         <div className="space-y-4">
-          {/* Primera fila */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Primera fila - Potencia Instalada (ancho completo) */}
+          <div className="grid grid-cols-1 gap-4">
             <div>
               <Tooltip text="Potencia Instalada - Potencia nominal del equipo">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -116,7 +116,10 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
                 </select>
               </div>
             </div>
+          </div>
 
+          {/* Segunda fila - Coef. Simultaneidad y Eficiencia */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Tooltip text="Coeficiente de Simultaneidad - Factor que indica qué porcentaje de la carga opera simultáneamente">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -144,9 +147,36 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
                 disabled={readOnly}
               />
             </div>
+
+            <div>
+              <Tooltip text="Eficiencia - Rendimiento del equipo en porcentaje">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Eficiencia (%)
+                </label>
+              </Tooltip>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={carga.eficiencia}
+                onChange={(e) => {
+                  const newEficiencia = e.target.value;
+                  onUpdate(carga.id, 'eficiencia', newEficiencia);
+                  
+                  // Recalcular si hay potencia instalada
+                  if (carga.potenciaInstalada) {
+                    calcularPotenciaSimulada(carga.id, null, null, null, newEficiencia);
+                  }
+                }}
+                onFocus={(e) => e.target.select()}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="100"
+                disabled={readOnly}
+              />
+            </div>
           </div>
 
-          {/* Segunda fila */}
+          {/* Tercera fila - Tipo de Carga y Tensión Nominal */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Tooltip text="Tipo de Carga - Configuración de fases de la carga eléctrica">
@@ -222,7 +252,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
             </div>
           </div>
 
-          {/* Tercera fila */}
+          {/* Cuarta fila - Factor de Potencia y % de Reserva */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Tooltip text="Factor de Potencia - Coseno del ángulo entre tensión y corriente (No aplica para DC)">
@@ -251,36 +281,6 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
               />
             </div>
 
-            <div>
-              <Tooltip text="Eficiencia - Rendimiento del equipo en porcentaje">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Eficiencia (%)
-                </label>
-              </Tooltip>
-              <input
-                type="number"
-                min="0"
-                max="100"
-                value={carga.eficiencia}
-                onChange={(e) => {
-                  const newEficiencia = e.target.value;
-                  onUpdate(carga.id, 'eficiencia', newEficiencia);
-                  
-                  // Recalcular si hay potencia instalada
-                  if (carga.potenciaInstalada) {
-                    calcularPotenciaSimulada(carga.id, null, null, null, newEficiencia);
-                  }
-                }}
-                onFocus={(e) => e.target.select()}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="100"
-                disabled={readOnly}
-              />
-            </div>
-          </div>
-
-          {/* Cuarta fila - Reserva */}
-          <div className="grid grid-cols-1 sm:grid-cols-1 gap-4">
             <div>
               <Tooltip text="Porcentaje de Reserva - Porcentaje adicional de corriente para reserva de seguridad">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
