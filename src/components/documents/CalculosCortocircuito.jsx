@@ -308,7 +308,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
           </div>
 
           {/* Quinta fila - Resultados principales */}
-          <div className="grid grid-cols-1 sm:grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Tooltip text="Potencia Simultánea - Potencia real considerando simultaneidad y eficiencia">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -317,6 +317,17 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
               </Tooltip>
               <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-900 font-mono">
                 {carga.potenciaSimulada || '0.000'}
+              </div>
+            </div>
+
+            <div>
+              <Tooltip text="Corriente Nominal - Corriente total calculada según la potencia, tensión y tipo de carga">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Corriente Nominal (A)
+                </label>
+              </Tooltip>
+              <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-900 font-mono">
+                {carga.corrienteNominal || '0.00'}
               </div>
             </div>
           </div>
