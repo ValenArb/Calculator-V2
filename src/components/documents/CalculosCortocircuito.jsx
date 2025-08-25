@@ -20,6 +20,44 @@ const Tooltip = ({ text, children, position = 'top' }) => (
 // Componente para el panel de detalles de cada carga
 const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPotenciaSimulada, calcularCorrienteNominal, calcularParametrosCable }) => {
   
+  // Función para obtener métodos de instalación disponibles según tipo de cable
+  const getMetodosDisponibles = (tipoCable, configuracion = null) => {
+    switch(tipoCable) {
+      case 'IRAM NM 247-3': // Superastic Jet/Flex - Solo método B2
+        return [
+          { value: 'B2', label: 'Método B2 - Cañería embutida' }
+        ];
+      case 'IRAM 62267': // Afumex 750 - Solo método B2  
+        return [
+          { value: 'B2', label: 'Método B2 - Cañería embutida' }
+        ];
+      case 'IRAM 2178': // Sintenax Valio - Todos los métodos disponibles
+        return [
+          { value: 'B2', label: 'Método B2 - Cañería embutida' },
+          { value: 'C', label: 'Método C - Cañería al aire' },
+          { value: 'D1', label: 'Método D1 - Enterrado directo' },
+          { value: 'D2', label: 'Método D2 - En ducto enterrado' },
+          { value: 'E', label: 'Método E - Bandeja perforada' },
+          { value: 'F', label: 'Método F - Bandeja sólida' },
+          { value: 'G', label: 'Método G - Bandeja vertical' }
+        ];
+      case 'IRAM 62266': // Afumex 1000 - Todos los métodos disponibles
+        return [
+          { value: 'B2', label: 'Método B2 - Cañería embutida' },
+          { value: 'C', label: 'Método C - Cañería al aire' },
+          { value: 'D1', label: 'Método D1 - Enterrado directo' },
+          { value: 'D2', label: 'Método D2 - En ducto enterrado' },
+          { value: 'E', label: 'Método E - Bandeja perforada' },
+          { value: 'F', label: 'Método F - Bandeja sólida' },
+          { value: 'G', label: 'Método G - Bandeja vertical' }
+        ];
+      default:
+        return [
+          { value: 'B2', label: 'Método B2 - Cañería embutida' }
+        ];
+    }
+  };
+
   // Función para obtener secciones disponibles según tipo de cable (basado en catálogo Prysmian 2012)
   const getSeccionesDisponibles = (tipoCable, configuracion = null) => {
     switch(tipoCable) {
@@ -612,6 +650,17 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
                   // Si la sección actual no está disponible, resetearla
                   onUpdate(carga.id, 'cable.seccionFase', '');
                 }
+
+                // Verificar si el método de instalación actual está disponible para el nuevo tipo
+                const metodosDisponibles = getMetodosDisponibles(nuevoTipo);
+                const metodoActual = carga.cable.metodoInstalacion || 'B2';
+                const metodoValido = metodosDisponibles.find(m => m.value === metodoActual);
+                
+                if (!metodoValido) {
+                  // Si el método actual no está disponible, usar el primero disponible
+                  const primerMetodo = metodosDisponibles[0]?.value || 'B2';
+                  onUpdate(carga.id, 'cable.metodoInstalacion', primerMetodo);
+                }
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
               disabled={readOnly}
@@ -762,8 +811,11 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
             </select>
           </div>
 
-          {/* Método de instalación solo para cables que tienen diferentes valores según instalación */}
-          {(carga.cable.tipo === 'IRAM 2178' || carga.cable.tipo === 'IRAM 62266') && (
+          {/* Método de instalación - mostrar solo si hay múltiples métodos disponibles o si es necesario */}
+          {carga.cable.tipo && (() => {
+            const metodosDisponibles = getMetodosDisponibles(carga.cable.tipo, carga.cable.configuracionSintenax || carga.cable.configuracionAfumex);
+            return metodosDisponibles.length > 1 || (carga.cable.tipo !== 'IRAM NM 247-3' && carga.cable.tipo !== 'IRAM 62267');
+          })() && (
             <div>
               <Tooltip text="Método de Instalación - Método de instalación del conductor según normas IEC que afecta la capacidad de corriente">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -774,19 +826,28 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
                 value={carga.cable.metodoInstalacion || 'B2'}
                 onChange={(e) => {
                   const nuevoMetodo = e.target.value;
-                  onUpdate(carga.id, 'cable.metodoInstalacion', nuevoMetodo);
-                  calcularParametrosCable(carga.id, { metodoInstalacion: nuevoMetodo });
+                  const metodosDisponibles = getMetodosDisponibles(carga.cable.tipo, carga.cable.configuracionSintenax || carga.cable.configuracionAfumex);
+                  
+                  // Verificar si el método seleccionado está disponible para este tipo de cable
+                  const metodoValido = metodosDisponibles.find(m => m.value === nuevoMetodo);
+                  if (!metodoValido) {
+                    // Si el método no está disponible, usar el primero disponible
+                    const primerMetodo = metodosDisponibles[0]?.value || 'B2';
+                    onUpdate(carga.id, 'cable.metodoInstalacion', primerMetodo);
+                    calcularParametrosCable(carga.id, { metodoInstalacion: primerMetodo });
+                  } else {
+                    onUpdate(carga.id, 'cable.metodoInstalacion', nuevoMetodo);
+                    calcularParametrosCable(carga.id, { metodoInstalacion: nuevoMetodo });
+                  }
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                 disabled={readOnly}
               >
-                <option value="B2">Método B2 - Cañería embutida</option>
-                <option value="C">Método C - Cañería al aire</option>
-                <option value="D1">Método D1 - Enterrado directo</option>
-                <option value="D2">Método D2 - En ducto enterrado</option>
-                <option value="E">Método E - Bandeja perforada</option>
-                <option value="F">Método F - Bandeja sólida</option>
-                <option value="G">Método G - Bandeja vertical</option>
+                {getMetodosDisponibles(carga.cable.tipo, carga.cable.configuracionSintenax || carga.cable.configuracionAfumex).map(metodo => (
+                  <option key={metodo.value} value={metodo.value}>
+                    {metodo.label}
+                  </option>
+                ))}
               </select>
             </div>
           )}
