@@ -115,7 +115,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
             </div>
           </div>
 
-          <div className="ml-8">
+          <div>
             <Tooltip text="Coeficiente de Simultaneidad - Factor que indica qué porcentaje de la carga opera simultáneamente">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Coef. Simultaneidad
@@ -137,7 +137,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
                 }
               }}
               onFocus={(e) => e.target.select()}
-              className="w-20 px-2 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="1.0"
               disabled={readOnly}
             />
