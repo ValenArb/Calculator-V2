@@ -291,27 +291,6 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
               {carga.corrienteNominal || '0.00'}
             </div>
             
-            {/* Mostrar corrientes por fase */}
-            {carga.corrientesPorFase && (
-              <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
-                <div className="text-xs font-medium text-blue-800 mb-1">Corrientes por fase:</div>
-                <div className="text-xs font-mono text-blue-700 space-y-1">
-                  {carga.corrientesPorFase.DC ? (
-                    <div>DC: {carga.corrientesPorFase.DC} A</div>
-                  ) : (
-                    <>
-                      <div>R: {carga.corrientesPorFase.R} A</div>
-                      <div>S: {carga.corrientesPorFase.S} A</div>
-                      <div>T: {carga.corrientesPorFase.T} A</div>
-                      {carga.corrientesPorFase.N !== null && (
-                        <div>N: {carga.corrientesPorFase.N} A</div>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-            
             {/* Debug: Mostrar fórmula utilizada */}
             <div className="mt-1 text-xs text-gray-500 font-mono space-y-1">
               <div>
@@ -330,6 +309,71 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
               </div>
             </div>
           </div>
+
+          {/* Corrientes por fase - campos separados */}
+          {carga.corrientesPorFase && !carga.corrientesPorFase.DC && (
+            <>
+              <div>
+                <Tooltip text="Corriente Fase R - Corriente en la fase R">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Corriente Fase R (A)
+                  </label>
+                </Tooltip>
+                <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-900 font-mono">
+                  {carga.corrientesPorFase?.R || '0.00'}
+                </div>
+              </div>
+
+              <div>
+                <Tooltip text="Corriente Fase S - Corriente en la fase S">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Corriente Fase S (A)
+                  </label>
+                </Tooltip>
+                <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-900 font-mono">
+                  {carga.corrientesPorFase?.S || '0.00'}
+                </div>
+              </div>
+
+              <div>
+                <Tooltip text="Corriente Fase T - Corriente en la fase T">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Corriente Fase T (A)
+                  </label>
+                </Tooltip>
+                <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-900 font-mono">
+                  {carga.corrientesPorFase?.T || '0.00'}
+                </div>
+              </div>
+
+              {carga.corrientesPorFase?.N !== null && (
+                <div>
+                  <Tooltip text="Corriente Neutro - Corriente en el conductor neutro">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Corriente Neutro (A)
+                    </label>
+                  </Tooltip>
+                  <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-900 font-mono">
+                    {carga.corrientesPorFase?.N || '0.00'}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Para DC, mostrar campo separado */}
+          {carga.corrientesPorFase?.DC && (
+            <div>
+              <Tooltip text="Corriente DC - Corriente en circuito de corriente continua">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Corriente DC (A)
+                </label>
+              </Tooltip>
+              <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-900 font-mono">
+                {carga.corrientesPorFase.DC}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
