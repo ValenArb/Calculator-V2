@@ -75,7 +75,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
                 Potencia Instalada
               </label>
             </Tooltip>
-            <div className="flex space-x-2">
+            <div className="flex space-x-2 w-full">
               <input
                 type="number"
                 value={carga.potenciaInstalada}
@@ -104,7 +104,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
                     calcularPotenciaSimulada(carga.id, null, newUnit);
                   }
                 }}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                className="w-20 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                 disabled={readOnly}
               >
                 <option value="W">W</option>
@@ -290,6 +290,28 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
             <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-900 font-mono">
               {carga.corrienteNominal || '0.00'}
             </div>
+            
+            {/* Mostrar corrientes por fase */}
+            {carga.corrientesPorFase && (
+              <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
+                <div className="text-xs font-medium text-blue-800 mb-1">Corrientes por fase:</div>
+                <div className="text-xs font-mono text-blue-700 space-y-1">
+                  {carga.corrientesPorFase.DC ? (
+                    <div>DC: {carga.corrientesPorFase.DC} A</div>
+                  ) : (
+                    <>
+                      <div>R: {carga.corrientesPorFase.R} A</div>
+                      <div>S: {carga.corrientesPorFase.S} A</div>
+                      <div>T: {carga.corrientesPorFase.T} A</div>
+                      {carga.corrientesPorFase.N !== null && (
+                        <div>N: {carga.corrientesPorFase.N} A</div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+            
             {/* Debug: Mostrar fórmula utilizada */}
             <div className="mt-1 text-xs text-gray-500 font-mono space-y-1">
               <div>
@@ -345,7 +367,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
                 Calibre
               </label>
             </Tooltip>
-            <div className="flex space-x-2">
+            <div className="flex space-x-2 w-full">
               <select
                 value={carga.interruptor.calibre || ''}
                 onChange={(e) => onUpdate(carga.id, 'interruptor.calibre', e.target.value)}
@@ -378,7 +400,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
               <select
                 value={carga.interruptor.calibreUnidad || 'A'}
                 onChange={(e) => onUpdate(carga.id, 'interruptor.calibreUnidad', e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                className="w-16 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                 disabled={readOnly}
               >
                 <option value="A">A</option>
@@ -498,7 +520,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
                 Sección de Fase
               </label>
             </Tooltip>
-            <div className="flex space-x-2">
+            <div className="flex space-x-2 w-full">
               <select
                 value={carga.cable.seccionFase || ''}
                 onChange={(e) => {
@@ -532,7 +554,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
               <select
                 value={carga.cable.seccionUnidad || 'mm²'}
                 onChange={(e) => onUpdate(carga.id, 'cable.seccionUnidad', e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                className="w-16 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                 disabled={readOnly}
               >
                 <option value="mm²">mm²</option>
@@ -618,7 +640,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
                 Longitud
               </label>
             </Tooltip>
-            <div className="flex space-x-2">
+            <div className="flex space-x-2 w-full">
               <input
                 type="number"
                 step="0.1"
@@ -635,7 +657,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
               <select
                 value={carga.cable.longitudUnidad || 'm'}
                 onChange={(e) => onUpdate(carga.id, 'cable.longitudUnidad', e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                className="w-16 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                 disabled={readOnly}
               >
                 <option value="m">m</option>
@@ -1123,8 +1145,47 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
       corrienteNominal = (potenciaSimKW * 1000) / (tensionNominal * cosPhi);
     }
 
+    // Calcular corrientes por fase según el tipo de carga
+    let corrientesPorFase = {};
+    
+    if (tipoCarga === 'RST' || tipoCarga === 'RSTN') {
+      // Trifásico: corriente igual en las 3 fases
+      corrientesPorFase = {
+        R: corrienteNominal.toFixed(2),
+        S: corrienteNominal.toFixed(2),
+        T: corrienteNominal.toFixed(2),
+        N: tipoCarga === 'RSTN' ? '0.00' : null // Neutro solo en RSTN
+      };
+    } else if (tipoCarga === 'R' || tipoCarga === 'RN') {
+      corrientesPorFase = {
+        R: corrienteNominal.toFixed(2),
+        S: '0.00',
+        T: '0.00',
+        N: tipoCarga === 'RN' ? corrienteNominal.toFixed(2) : null
+      };
+    } else if (tipoCarga === 'S' || tipoCarga === 'SN') {
+      corrientesPorFase = {
+        R: '0.00',
+        S: corrienteNominal.toFixed(2),
+        T: '0.00',
+        N: tipoCarga === 'SN' ? corrienteNominal.toFixed(2) : null
+      };
+    } else if (tipoCarga === 'T' || tipoCarga === 'TN') {
+      corrientesPorFase = {
+        R: '0.00',
+        S: '0.00',
+        T: corrienteNominal.toFixed(2),
+        N: tipoCarga === 'TN' ? corrienteNominal.toFixed(2) : null
+      };
+    } else if (tipoCarga === 'DC') {
+      corrientesPorFase = {
+        DC: corrienteNominal.toFixed(2)
+      };
+    }
+
     // Guardar también los valores usados en el cálculo para debug
     actualizarCarga(id, 'corrienteNominal', corrienteNominal.toFixed(2));
+    actualizarCarga(id, 'corrientesPorFase', corrientesPorFase);
     actualizarCarga(id, '_debugTension', tensionNominal.toString());
     actualizarCarga(id, '_debugTipoCarga', tipoCarga);
     actualizarCarga(id, '_debugPotencia', potenciaSimKW.toString());
