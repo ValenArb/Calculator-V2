@@ -279,7 +279,35 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
             </div>
           </div>
 
-          {/* Cuarta fila - Resultados principales */}
+          {/* Cuarta fila - Reserva */}
+          <div className="grid grid-cols-1 sm:grid-cols-1 gap-4">
+            <div>
+              <Tooltip text="Porcentaje de Reserva - Porcentaje adicional de corriente para reserva de seguridad">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  % de Reserva
+                </label>
+              </Tooltip>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="1"
+                value={carga.porcentajeReserva || '20'}
+                onChange={(e) => {
+                  const newPorcentajeReserva = e.target.value;
+                  onUpdate(carga.id, 'porcentajeReserva', newPorcentajeReserva);
+                  // Recalcular corrientes con reserva
+                  calcularCorrienteConReserva(carga.id, newPorcentajeReserva);
+                }}
+                onFocus={(e) => e.target.select()}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="20"
+                disabled={readOnly}
+              />
+            </div>
+          </div>
+
+          {/* Quinta fila - Resultados principales */}
           <div className="grid grid-cols-1 sm:grid-cols-1 gap-4">
             <div>
               <Tooltip text="Potencia Simultánea - Potencia real considerando simultaneidad y eficiencia">
@@ -293,7 +321,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
             </div>
           </div>
 
-          {/* Quinta fila - Corrientes por fase */}
+          {/* Sexta fila - Corrientes por fase */}
           {carga.corrientesPorFase && !carga.corrientesPorFase.DC && (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <div>
@@ -342,6 +370,73 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
                 </Tooltip>
                 <div className="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-900 font-mono">
                   {carga.corrientesPorFase.DC}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Séptima fila - Corrientes con reserva */}
+          {carga.corrientesConReserva && !carga.corrientesConReserva.DC && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div>
+                <Tooltip text="Corriente con Reserva Fase R - Corriente en la fase R más porcentaje de reserva">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    I Reserva Fase R (A)
+                  </label>
+                </Tooltip>
+                <div className="w-full px-3 py-2 bg-orange-50 border border-orange-300 rounded-md text-gray-900 font-mono">
+                  {carga.corrientesConReserva?.R || '0.00'}
+                </div>
+              </div>
+
+              <div>
+                <Tooltip text="Corriente con Reserva Fase S - Corriente en la fase S más porcentaje de reserva">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    I Reserva Fase S (A)
+                  </label>
+                </Tooltip>
+                <div className="w-full px-3 py-2 bg-orange-50 border border-orange-300 rounded-md text-gray-900 font-mono">
+                  {carga.corrientesConReserva?.S || '0.00'}
+                </div>
+              </div>
+
+              <div>
+                <Tooltip text="Corriente con Reserva Fase T - Corriente en la fase T más porcentaje de reserva">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    I Reserva Fase T (A)
+                  </label>
+                </Tooltip>
+                <div className="w-full px-3 py-2 bg-orange-50 border border-orange-300 rounded-md text-gray-900 font-mono">
+                  {carga.corrientesConReserva?.T || '0.00'}
+                </div>
+              </div>
+
+              {carga.corrientesConReserva?.N !== null && (
+                <div>
+                  <Tooltip text="Corriente con Reserva Neutro - Corriente en el conductor neutro más porcentaje de reserva">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      I Reserva Neutro (A)
+                    </label>
+                  </Tooltip>
+                  <div className="w-full px-3 py-2 bg-orange-50 border border-orange-300 rounded-md text-gray-900 font-mono">
+                    {carga.corrientesConReserva?.N || '0.00'}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Para DC con reserva, mostrar campo separado */}
+          {carga.corrientesConReserva?.DC && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Tooltip text="Corriente DC con Reserva - Corriente DC más porcentaje de reserva">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    I Reserva DC (A)
+                  </label>
+                </Tooltip>
+                <div className="w-full px-3 py-2 bg-orange-50 border border-orange-300 rounded-md text-gray-900 font-mono">
+                  {carga.corrientesConReserva.DC}
                 </div>
               </div>
             </div>
@@ -980,6 +1075,7 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
       coefSimultaneidad: '1.0',
       cosoPhi: '0.8',
       eficiencia: '100',
+      porcentajeReserva: '20', // Porcentaje de reserva por defecto
       potenciaSimulada: '',
       corrienteNominal: '',
       corrienteRegulacion: '',
@@ -1206,6 +1302,40 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
     actualizarCarga(id, '_debugTipoCarga', tipoCarga);
     actualizarCarga(id, '_debugPotencia', potenciaSimKW.toString());
     actualizarCarga(id, '_debugCosPhi', cosPhi.toString());
+    
+    // Calcular corrientes con reserva automáticamente
+    calcularCorrienteConReserva(id);
+  };
+
+  // Función para calcular corrientes con reserva
+  const calcularCorrienteConReserva = (id, nuevoPorcentajeReserva = null) => {
+    const carga = cortocircuitoData.cargas.find(c => c.id === id);
+    if (!carga || !carga.corrientesPorFase) return;
+
+    const porcentajeReserva = parseFloat(nuevoPorcentajeReserva !== null ? nuevoPorcentajeReserva : (carga.porcentajeReserva || '20'));
+    const factorReserva = 1 + (porcentajeReserva / 100);
+
+    let corrientesConReserva = {};
+
+    if (carga.corrientesPorFase.DC) {
+      // DC
+      const corrienteDC = parseFloat(carga.corrientesPorFase.DC);
+      corrientesConReserva = {
+        DC: (corrienteDC * factorReserva).toFixed(2)
+      };
+    } else {
+      // AC (R, S, T, N)
+      corrientesConReserva = {
+        R: (parseFloat(carga.corrientesPorFase.R || 0) * factorReserva).toFixed(2),
+        S: (parseFloat(carga.corrientesPorFase.S || 0) * factorReserva).toFixed(2),
+        T: (parseFloat(carga.corrientesPorFase.T || 0) * factorReserva).toFixed(2),
+        N: carga.corrientesPorFase.N !== null 
+          ? (parseFloat(carga.corrientesPorFase.N || 0) * factorReserva).toFixed(2)
+          : null
+      };
+    }
+
+    actualizarCarga(id, 'corrientesConReserva', corrientesConReserva);
   };
 
   // Función para calcular parámetros del cable (R, X, Iz)
