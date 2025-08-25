@@ -639,7 +639,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
                   
                   // Resetear la sección cuando cambia la configuración
                   onUpdate(carga.id, 'cable.seccionFase', '');
-                  calcularParametrosCable(carga.id);
+                  setTimeout(() => calcularParametrosCable(carga.id), 0);
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                 disabled={readOnly}
@@ -668,7 +668,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
                   
                   // Resetear la sección cuando cambia la configuración
                   onUpdate(carga.id, 'cable.seccionFase', '');
-                  calcularParametrosCable(carga.id);
+                  setTimeout(() => calcularParametrosCable(carga.id), 0);
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                 disabled={readOnly}
@@ -690,8 +690,10 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
             <select
               value={carga.cable.seccionFase || ''}
               onChange={(e) => {
-                onUpdate(carga.id, 'cable.seccionFase', e.target.value);
-                calcularParametrosCable(carga.id);
+                const nuevaSeccion = e.target.value;
+                onUpdate(carga.id, 'cable.seccionFase', nuevaSeccion);
+                // Usar setTimeout para esperar a que se actualice el estado
+                setTimeout(() => calcularParametrosCable(carga.id), 0);
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
               disabled={readOnly}
@@ -721,7 +723,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
                 value={carga.cable.longitud}
                 onChange={(e) => {
                   onUpdate(carga.id, 'cable.longitud', e.target.value);
-                  calcularParametrosCable(carga.id);
+                  setTimeout(() => calcularParametrosCable(carga.id), 0);
                 }}
                 onFocus={(e) => e.target.select()}
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -752,7 +754,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
               value={carga.cable.paralelo || '1'}
               onChange={(e) => {
                 onUpdate(carga.id, 'cable.paralelo', e.target.value);
-                calcularParametrosCable(carga.id);
+                setTimeout(() => calcularParametrosCable(carga.id), 0);
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
               disabled={readOnly}
@@ -778,7 +780,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
                 value={carga.cable.metodoInstalacion || 'B2'}
                 onChange={(e) => {
                   onUpdate(carga.id, 'cable.metodoInstalacion', e.target.value);
-                  calcularParametrosCable(carga.id);
+                  setTimeout(() => calcularParametrosCable(carga.id), 0);
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                 disabled={readOnly}
