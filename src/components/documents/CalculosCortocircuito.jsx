@@ -804,6 +804,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
           {/* Reactancia solo para cables multipolares */}
           {carga.cable.tipo && 
            carga.cable.tipo !== 'IRAM NM 247-3' && 
+           carga.cable.tipo !== 'IRAM 62267' &&
            !(carga.cable.tipo === 'IRAM 2178' && carga.cable.configuracionSintenax === 'unipolar') &&
            !(carga.cable.tipo === 'IRAM 62266' && carga.cable.configuracionAfumex === 'unipolar') && (
             <div>
@@ -1420,32 +1421,32 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
 
     // Datos del catálogo Prysmian por tipo de cable
     const datosCatalogo = {
-      'IRAM NM 247-3': { // Superastic Jet/Flex - Página 5 del catálogo
-        resistencias: { // ohm/km a 70°C
-          1: 19.5, 1.5: 13.3, 2.5: 7.98, 4: 4.95, 6: 3.3, 10: 1.91, 
-          16: 1.21, 25: 0.78, 35: 0.554, 50: 0.386, 70: 0.272, 95: 0.206, 120: 0.161
+      'IRAM NM 247-3': { // Superastic Jet/Flex - Página 5 del catálogo Prysmian
+        resistencias: { // ohm/km a 70°C - Valores exactos del catálogo
+          1: 19.5, 1.5: 13.3, 2.5: 7.98, 4: 4.95, 6: 3.30, 10: 1.91, 
+          16: 1.21, 25: 0.780, 35: 0.554, 50: 0.386, 70: 0.272, 95: 0.206, 120: 0.161
         },
-        corrientes: { // Amperes en cañería embutida
+        corrientes: { // Amperes en cañería embutida - Método B2
           1: 10.5, 1.5: 14, 2.5: 18, 4: 25, 6: 32, 10: 44, 
           16: 59, 25: 77, 35: 96, 50: 117, 70: 149, 95: 180, 120: 208
         }
       },
-      'IRAM 62267': { // Afumex 750 - Página 7 del catálogo
-        resistencias: { // ohm/km a 70°C
-          1.5: 13.3, 2.5: 7.98, 4: 4.95, 6: 3.3, 10: 1.91, 16: 1.21, 
-          25: 0.78, 35: 0.554, 50: 0.386, 70: 0.272, 95: 0.206, 120: 0.161
+      'IRAM 62267': { // Afumex 750 LS0H - Página 7 del catálogo Prysmian - Cable unipolar
+        resistencias: { // ohm/km a 70°C - Valores exactos del catálogo
+          1.5: 13.3, 2.5: 7.98, 4: 4.95, 6: 3.30, 10: 1.91, 16: 1.21, 
+          25: 0.780, 35: 0.554, 50: 0.386, 70: 0.272, 95: 0.206, 120: 0.161
         },
-        corrientes: { // Amperes en cañería embutida
+        corrientes: { // Amperes - Método B2 (cañería embutida) - Valores exactos del catálogo
           1.5: 15.5, 2.5: 21, 4: 28, 6: 36, 10: 50, 16: 68, 
           25: 89, 35: 111, 50: 134, 70: 171, 95: 207, 120: 239
         }
       },
       'IRAM 2178': { // Sintenax Valio - Páginas 14-17 del catálogo
         unipolar: {
-          resistencias: { // ohm/km a 70°C
-            1.5: 15.9, 2.5: 9.55, 4: 5.92, 6: 3.95, 10: 2.29, 16: 1.45, 25: 0.933, 
-            35: 0.663, 50: 0.462, 70: 0.326, 95: 0.248, 120: 0.194, 150: 0.156, 
-            185: 0.129, 240: 0.0987, 300: 0.0754, 400: 0.0606, 500: 0.0493, 630: 0.0407
+          resistencias: { // ohm/km a 70°C - Valores exactos del catálogo Prysmian páginas 14-17
+            1.5: 13.3, 2.5: 7.98, 4: 4.95, 6: 3.30, 10: 1.91, 16: 1.21, 25: 0.780, 
+            35: 0.554, 50: 0.386, 70: 0.272, 95: 0.206, 120: 0.161, 150: 0.129, 
+            185: 0.106, 240: 0.0817, 300: 0.0654, 400: 0.0495, 500: 0.0396, 630: 0.0318
           },
           corrientes: { 
             B2: { // Método B2 - Cañería embutida
@@ -1466,14 +1467,14 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
           }
         },
         bipolar: {
-          resistencias: { // ohm/km a 70°C
-            1.5: 15.9, 2.5: 9.55, 4: 5.92, 6: 3.95, 10: 2.29, 16: 1.45, 25: 0.933, 
-            35: 0.663, 50: 0.462, 70: 0.326, 95: 0.248, 120: 0.194, 150: 0.156, 
-            185: 0.129, 240: 0.0987
+          resistencias: { // ohm/km a 70°C - Valores exactos del catálogo Prysmian
+            1.5: 13.3, 2.5: 7.98, 4: 4.95, 6: 3.30, 10: 1.91, 16: 1.21, 25: 0.780, 
+            35: 0.554, 50: 0.386, 70: 0.272, 95: 0.206, 120: 0.161, 150: 0.129, 
+            185: 0.106, 240: 0.0817
           },
-          reactancias: { // ohm/km a 50 Hz
-            1.5: 0.108, 2.5: 0.0995, 4: 0.0991, 6: 0.0901, 10: 0.0860, 16: 0.0813, 25: 0.0780,
-            35: 0.0760, 50: 0.0777, 70: 0.0736, 95: 0.0733, 120: 0.0729, 150: 0.0720,
+          reactancias: { // ohm/km a 50 Hz - Valores exactos del catálogo Prysmian
+            1.5: 0.108, 2.5: 0.100, 4: 0.0949, 6: 0.0901, 10: 0.0860, 16: 0.0813, 25: 0.0780,
+            35: 0.0760, 50: 0.0734, 70: 0.0736, 95: 0.0733, 120: 0.0729, 150: 0.0720,
             185: 0.0720, 240: 0.0716
           },
           corrientes: { 
@@ -1492,14 +1493,14 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
           }
         },
         tripolar: {
-          resistencias: { // ohm/km a 70°C  
-            1.5: 15.9, 2.5: 9.55, 4: 5.92, 6: 3.95, 10: 2.29, 16: 1.45, 25: 0.933, 
-            35: 0.663, 50: 0.462, 70: 0.326, 95: 0.248, 120: 0.194, 150: 0.156, 
-            185: 0.129, 240: 0.0987, 300: 0.0754
+          resistencias: { // ohm/km a 70°C - Valores exactos del catálogo Prysmian
+            1.5: 13.3, 2.5: 7.98, 4: 4.95, 6: 3.30, 10: 1.91, 16: 1.21, 25: 0.780, 
+            35: 0.554, 50: 0.386, 70: 0.272, 95: 0.206, 120: 0.161, 150: 0.129, 
+            185: 0.106, 240: 0.0817, 300: 0.0654
           },
-          reactancias: { // ohm/km a 50 Hz
-            1.5: 0.108, 2.5: 0.0995, 4: 0.0991, 6: 0.0901, 10: 0.0860, 16: 0.0813, 25: 0.0780,
-            35: 0.0760, 50: 0.0777, 70: 0.0736, 95: 0.0733, 120: 0.0729, 150: 0.0720,
+          reactancias: { // ohm/km a 50 Hz - Valores exactos del catálogo Prysmian
+            1.5: 0.108, 2.5: 0.100, 4: 0.0949, 6: 0.0901, 10: 0.0860, 16: 0.0813, 25: 0.0780,
+            35: 0.0760, 50: 0.0734, 70: 0.0736, 95: 0.0733, 120: 0.0729, 150: 0.0720,
             185: 0.0720, 240: 0.0716, 300: 0.0714
           },
           corrientes: { 
@@ -1518,14 +1519,14 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
           }
         },
         tetrapolar: {
-          resistencias: { // ohm/km a 70°C
-            1.5: 15.9, 2.5: 9.55, 4: 5.92, 6: 3.95, 10: 2.29, 16: 1.45, 25: 0.933, 
-            35: 0.663, 50: 0.462, 70: 0.326, 95: 0.248, 120: 0.194, 150: 0.156, 
-            185: 0.129, 240: 0.0987
+          resistencias: { // ohm/km a 70°C - Valores exactos del catálogo Prysmian
+            1.5: 13.3, 2.5: 7.98, 4: 4.95, 6: 3.30, 10: 1.91, 16: 1.21, 25: 0.780, 
+            35: 0.554, 50: 0.386, 70: 0.272, 95: 0.206, 120: 0.161, 150: 0.129, 
+            185: 0.106, 240: 0.0817
           },
-          reactancias: { // ohm/km a 50 Hz
-            1.5: 0.108, 2.5: 0.0995, 4: 0.0991, 6: 0.0901, 10: 0.0860, 16: 0.0813, 25: 0.0780,
-            35: 0.0760, 50: 0.0777, 70: 0.0736, 95: 0.0733, 120: 0.0729, 150: 0.0720,
+          reactancias: { // ohm/km a 50 Hz - Valores exactos del catálogo Prysmian
+            1.5: 0.108, 2.5: 0.100, 4: 0.0949, 6: 0.0901, 10: 0.0860, 16: 0.0813, 25: 0.0780,
+            35: 0.0760, 50: 0.0734, 70: 0.0736, 95: 0.0733, 120: 0.0729, 150: 0.0720,
             185: 0.0720, 240: 0.0716
           },
           corrientes: { 
@@ -1546,10 +1547,10 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
       },
       'IRAM 62266': { // Afumex 1000 - Páginas 24-25 del catálogo
         unipolar: {
-          resistencias: { // ohm/km a 90°C
-            1.5: 17.0, 2.5: 10.2, 4: 6.31, 6: 4.21, 10: 2.44, 16: 1.54, 25: 0.995,
-            35: 0.669, 50: 0.494, 70: 0.342, 95: 0.247, 120: 0.196, 150: 0.159,
-            185: 0.127, 240: 0.0974, 300: 0.0783, 400: 0.0647, 500: 0.0524, 630: 0.0432
+          resistencias: { // ohm/km a 90°C - Valores exactos del catálogo Prysmian páginas 24-25
+            1.5: 15.1, 2.5: 9.08, 4: 5.64, 6: 3.76, 10: 2.18, 16: 1.38, 25: 0.889,
+            35: 0.631, 50: 0.439, 70: 0.309, 95: 0.234, 120: 0.183, 150: 0.148,
+            185: 0.118, 240: 0.0907, 300: 0.0728, 400: 0.0601, 500: 0.0487, 630: 0.0402
           },
           corrientes: { // Amperes - Método C (en cañería)
             1.5: 20, 2.5: 27, 4: 36, 6: 46, 10: 64, 16: 85, 25: 112, 35: 138,
@@ -1558,12 +1559,12 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
           }
         },
         bipolar: {
-          resistencias: { // ohm/km a 90°C
-            1.5: 17.0, 2.5: 10.2, 4: 6.31, 6: 4.21, 10: 2.44, 16: 1.54, 25: 0.995,
-            35: 0.669, 50: 0.494, 70: 0.342, 95: 0.247, 120: 0.196, 150: 0.159,
-            185: 0.127, 240: 0.0974
+          resistencias: { // ohm/km a 90°C - Valores exactos del catálogo Prysmian
+            1.5: 15.1, 2.5: 9.08, 4: 5.64, 6: 3.76, 10: 2.18, 16: 1.38, 25: 0.889,
+            35: 0.631, 50: 0.439, 70: 0.309, 95: 0.234, 120: 0.183, 150: 0.148,
+            185: 0.118, 240: 0.0907
           },
-          reactancias: { // ohm/km a 50 Hz
+          reactancias: { // ohm/km a 50 Hz - Valores exactos del catálogo Prysmian
             1.5: 0.103, 2.5: 0.0957, 4: 0.0896, 6: 0.0851, 10: 0.0803, 16: 0.0768,
             25: 0.0770, 35: 0.0746, 50: 0.0741, 70: 0.0731, 95: 0.0712, 120: 0.0709,
             150: 0.0713, 185: 0.0715, 240: 0.0707
@@ -1574,12 +1575,12 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
           }
         },
         tripolar: {
-          resistencias: { // ohm/km a 90°C
-            1.5: 17.0, 2.5: 10.2, 4: 6.31, 6: 4.21, 10: 2.44, 16: 1.54, 25: 0.995,
-            35: 0.669, 50: 0.494, 70: 0.342, 95: 0.247, 120: 0.196, 150: 0.159,
-            185: 0.127, 240: 0.0974, 300: 0.0783
+          resistencias: { // ohm/km a 90°C - Valores exactos del catálogo Prysmian
+            1.5: 15.1, 2.5: 9.08, 4: 5.64, 6: 3.76, 10: 2.18, 16: 1.38, 25: 0.889,
+            35: 0.631, 50: 0.439, 70: 0.309, 95: 0.234, 120: 0.183, 150: 0.148,
+            185: 0.118, 240: 0.0907, 300: 0.0728
           },
-          reactancias: { // ohm/km a 50 Hz
+          reactancias: { // ohm/km a 50 Hz - Valores exactos del catálogo Prysmian
             1.5: 0.103, 2.5: 0.0957, 4: 0.0896, 6: 0.0851, 10: 0.0803, 16: 0.0768,
             25: 0.0770, 35: 0.0746, 50: 0.0741, 70: 0.0731, 95: 0.0712, 120: 0.0709,
             150: 0.0713, 185: 0.0715, 240: 0.0707, 300: 0.0707
@@ -1590,12 +1591,12 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
           }
         },
         tetrapolar: {
-          resistencias: { // ohm/km a 90°C
-            1.5: 17.0, 2.5: 10.2, 4: 6.31, 6: 4.21, 10: 2.44, 16: 1.54, 25: 0.995,
-            35: 0.669, 50: 0.494, 70: 0.342, 95: 0.247, 120: 0.196, 150: 0.159,
-            185: 0.127, 240: 0.0974
+          resistencias: { // ohm/km a 90°C - Valores exactos del catálogo Prysmian
+            1.5: 15.1, 2.5: 9.08, 4: 5.64, 6: 3.76, 10: 2.18, 16: 1.38, 25: 0.889,
+            35: 0.631, 50: 0.439, 70: 0.309, 95: 0.234, 120: 0.183, 150: 0.148,
+            185: 0.118, 240: 0.0907
           },
-          reactancias: { // ohm/km a 50 Hz
+          reactancias: { // ohm/km a 50 Hz - Valores exactos del catálogo Prysmian
             1.5: 0.103, 2.5: 0.0957, 4: 0.0896, 6: 0.0851, 10: 0.0803, 16: 0.0768,
             25: 0.0770, 35: 0.0746, 50: 0.0741, 70: 0.0731, 95: 0.0712, 120: 0.0709,
             150: 0.0713, 185: 0.0715, 240: 0.0707
