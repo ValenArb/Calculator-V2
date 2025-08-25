@@ -68,7 +68,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
           Datos de Carga
         </h4>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <Tooltip text="Potencia Instalada - Potencia nominal del equipo">
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -318,7 +318,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
           Interruptor Asociado
         </h4>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <Tooltip text="Tipo de Interruptor - MCB (Magnetotérmico), MCCB (Caja Moldeada), ACB (Aire), Fusible">
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -473,7 +473,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
           Características del Cable
         </h4>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <Tooltip text="Tipo de Aislamiento - PVC (Policloruro de Vinilo), XLPE (Polietileno Reticulado), EPR (Etileno Propileno)">
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -688,7 +688,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
           Resultados de Cortocircuito (IEC 60909)
         </h4>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <Tooltip text="Impedancia Equivalente - Impedancia total del circuito (red + trafo + cable)">
               <label className="block text-sm font-medium text-gray-700 mb-2">
