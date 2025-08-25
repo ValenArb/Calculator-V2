@@ -21,8 +21,8 @@ const DocumentTypeSidebar = ({ onDocumentTypeSelect, selectedType, defaultCollap
     },
     {
       id: 'calculos-cortocircuito',
-      name: 'Cálculos de Cortocircuito',
-      description: 'Análisis de corrientes de cortocircuito y protecciones',
+      name: 'Planilla de Cargas',
+      description: 'Planilla de cargas eléctricas del proyecto',
       icon: FileText,
       color: 'bg-red-100 text-red-700 border-red-200'
     },

@@ -36,7 +36,9 @@
       "Bash(npm run:*)",
       "Bash(sqlite3:*)",
       "Bash(git revert:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(move:*)",
+      "Bash(ren:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits",

@@ -5,7 +5,7 @@ import { Loading, AccessTimer } from '../../components/ui';
 import projectsService from '../../services/firebase/projects';
 import calculationService from '../../services/calculations';
 import pdfExportService from '../../utils/pdfExport';
-import CalculosCortocircuito from '../../components/documents/CalculosCortocircuito';
+import PlanillaCargas from '../../components/documents/PlanillaCargas';
 import toast from 'react-hot-toast';
 
 const PublicProjectView = () => {
@@ -216,8 +216,8 @@ const PublicProjectView = () => {
     },
     {
       id: 'calculos-cortocircuito',
-      name: 'Cálculos de Cortocircuito',
-      description: 'Análisis de corrientes de cortocircuito',
+      name: 'Planilla de Cargas',
+      description: 'Planilla de cargas eléctricas',
       color: 'bg-red-100 text-red-700 border-red-200'
     }
   ];
@@ -867,7 +867,7 @@ const PublicProjectView = () => {
                 </div>
               ) : selectedDocumentType.id === 'calculos-cortocircuito' ? (
                 // Short-circuit calculations
-                <CalculosCortocircuito
+                <PlanillaCargas
                   projectData={project}
                   readOnly={true}
                 />

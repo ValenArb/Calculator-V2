@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Calculator, Plus, Minus, Save, Download, AlertTriangle, Zap, FileText, Settings } from 'lucide-react';
+import { Calculator, Plus, Minus, Save, Download, AlertTriangle, Zap, FileText, Settings, Lock, Unlock } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { updateProject } from '../../services/api.js';
@@ -107,7 +107,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
               {carga.denominacion || 'Nueva Carga'}
             </h3>
             <p className="text-sm text-gray-500">
-              Configuración completa de la carga eléctrica y cálculo de cortocircuito
+              Configuración completa de la carga eléctrica y planilla de cargas
             </p>
           </div>
           <button 
@@ -505,15 +505,35 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
           </div>
 
           <div>
-            <Tooltip text="Calibre - Corriente nominal del interruptor en amperios (seleccionado automáticamente)">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Calibre <span className="text-green-600 text-xs">(Auto)</span>
-              </label>
+            <Tooltip text="Calibre - Corriente nominal del interruptor en amperios">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Calibre 
+                  {!carga.interruptor.bloqueado && <span className="text-green-600 text-xs ml-1">(Auto)</span>}
+                  {carga.interruptor.bloqueado && <span className="text-red-600 text-xs ml-1">(Manual)</span>}
+                </label>
+                <button
+                  onClick={() => onUpdate(carga.id, 'interruptor.bloqueado', !carga.interruptor.bloqueado)}
+                  className={`p-1 rounded transition-colors ${
+                    carga.interruptor.bloqueado 
+                      ? 'bg-red-100 text-red-600 hover:bg-red-200' 
+                      : 'bg-green-100 text-green-600 hover:bg-green-200'
+                  }`}
+                  title={carga.interruptor.bloqueado ? 'Desbloquear actualización automática' : 'Bloquear actualización automática'}
+                  disabled={readOnly}
+                >
+                  {carga.interruptor.bloqueado ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+                </button>
+              </div>
             </Tooltip>
             <select
               value={carga.interruptor.calibre || ''}
               onChange={(e) => onUpdate(carga.id, 'interruptor.calibre', e.target.value)}
-              className="w-full px-3 py-2 border border-green-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-green-50"
+              className={`w-full px-3 py-2 border rounded-md focus:ring-2 ${
+                carga.interruptor.bloqueado 
+                  ? 'border-red-300 focus:ring-red-500 focus:border-red-500 bg-red-50' 
+                  : 'border-green-300 focus:ring-green-500 focus:border-green-500 bg-green-50'
+              }`}
               disabled={readOnly}
             >
               <option value="">Seleccionar calibre</option>
@@ -563,15 +583,26 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
           </div>
 
           <div>
-            <Tooltip text="Número de Polos - Cantidad de fases que interrumpe el dispositivo (seleccionado automáticamente según tipo de carga)">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Número de Polos <span className="text-green-600 text-xs">(Auto)</span>
-              </label>
+            <Tooltip text="Número de Polos - Cantidad de fases que interrumpe el dispositivo">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Número de Polos 
+                  {!carga.interruptor.bloqueado && <span className="text-green-600 text-xs ml-1">(Auto)</span>}
+                  {carga.interruptor.bloqueado && <span className="text-red-600 text-xs ml-1">(Manual)</span>}
+                </label>
+                <span className="text-xs text-gray-500">
+                  {carga.interruptor.bloqueado ? 'Bloqueado' : 'Automático'}
+                </span>
+              </div>
             </Tooltip>
             <select
               value={carga.interruptor.polos}
               onChange={(e) => onUpdate(carga.id, 'interruptor.polos', e.target.value)}
-              className="w-full px-3 py-2 border border-green-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-green-50"
+              className={`w-full px-3 py-2 border rounded-md focus:ring-2 ${
+                carga.interruptor.bloqueado 
+                  ? 'border-red-300 focus:ring-red-500 focus:border-red-500 bg-red-50' 
+                  : 'border-green-300 focus:ring-green-500 focus:border-green-500 bg-green-50'
+              }`}
               disabled={readOnly}
             >
               <option value="1">1P - Monofásico</option>
@@ -908,75 +939,15 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
       <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6">
         <h4 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
           <AlertTriangle className="w-5 h-5 text-red-500 mr-2" />
-          Resultados de Cortocircuito (IEC 60909)
+          Verificaciones de Seguridad
         </h4>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <Tooltip text="Impedancia Equivalente - Impedancia total del circuito (red + trafo + cable)">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Impedancia Equivalente (Ω)
-              </label>
-            </Tooltip>
-            <div className="w-full px-3 py-2 bg-blue-50 border border-blue-300 rounded-md text-gray-900 font-mono text-center">
-              {carga.resultadosICC.impedanciaEquivalente || '--'}
-            </div>
-          </div>
 
-          <div>
-            <Tooltip text="Corriente de Cortocircuito Trifásica - Máxima corriente de falla entre fases según IEC 60909">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Isc Trifásica (kA)
-              </label>
-            </Tooltip>
-            <div className="w-full px-3 py-2 bg-red-50 border border-red-300 rounded-md text-red-700 font-mono font-bold text-center text-lg">
-              {carga.resultadosICC.iccTrifasico || '--'}
-            </div>
-          </div>
 
-          <div>
-            <Tooltip text="Corriente de Cortocircuito Bifásica - Corriente de falla entre dos fases">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Isc Bifásica (kA)
-              </label>
-            </Tooltip>
-            <div className="w-full px-3 py-2 bg-blue-50 border border-blue-300 rounded-md text-gray-900 font-mono text-center">
-              {carga.resultadosICC.iccBifasico || '--'}
-            </div>
-          </div>
 
-          <div>
-            <Tooltip text="Corriente de Cortocircuito Monofásica - Corriente de falla fase-neutro/tierra">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Isc Monofásica (kA)
-              </label>
-            </Tooltip>
-            <div className="w-full px-3 py-2 bg-blue-50 border border-blue-300 rounded-md text-gray-900 font-mono text-center">
-              {carga.resultadosICC.iccMonofasico || '--'}
-            </div>
-          </div>
 
-          <div>
-            <Tooltip text="Corriente de Pico - Máximo valor instantáneo de corriente considerando factor κ (kappa)">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Corriente de Pico (kA)
-              </label>
-            </Tooltip>
-            <div className="w-full px-3 py-2 bg-yellow-50 border border-yellow-300 rounded-md text-gray-900 font-mono text-center">
-              {carga.resultadosICC.corrientePico || '--'}
-            </div>
-          </div>
 
-          <div>
-            <Tooltip text="Potencia de Cortocircuito - Potencia aparente de cortocircuito trifásico">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Potencia CC (MVA)
-              </label>
-            </Tooltip>
-            <div className="w-full px-3 py-2 bg-blue-50 border border-blue-300 rounded-md text-gray-900 font-mono text-center">
-              {carga.resultadosICC.potenciaCC || '--'}
-            </div>
-          </div>
 
           <div>
             <Tooltip text="Verificación de Interruptor - Compara ICC con capacidades Icu/Ics del interruptor">
@@ -997,7 +968,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
           </div>
 
           <div>
-            <Tooltip text="Verificación de Cable - Compara corrientes con capacidad admisible del cable">
+            <Tooltip text="Verificación de Cable - Verifica que la capacidad del cable sea mayor al calibre del interruptor que lo protege">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Verificación Cable
               </label>
@@ -1019,7 +990,7 @@ const CargaDetailPanel = ({ carga, onUpdate, onCalculate, readOnly, calcularPote
   );
 };
 
-const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) => {
+const PlanillaCargas = ({ projectData, onDataChange, readOnly = false }) => {
   const user = useSelector(state => state.auth.user);
   const [cortocircuitoData, setCortocircuitoData] = useState({
     // Planilla de cargas integrada con datos de ICC
@@ -1151,6 +1122,56 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
     };
   }, []);
 
+  // Fix automático del calibre y polos - detectar cambios en corrienteNominal y tipoCarga
+  useEffect(() => {
+    cortocircuitoData.cargas.forEach(carga => {
+      if (carga.corrienteNominal && parseFloat(carga.corrienteNominal) > 0) {
+        const currentCalibre = parseFloat(carga.interruptor?.calibre || 0);
+        const currentPolos = carga.interruptor?.polos || '';
+        const corriente = parseFloat(carga.corrienteNominal);
+        const porcentajeReserva = parseFloat(carga.porcentajeReserva || 20) || 20;
+        const factorReserva = 1 + (porcentajeReserva / 100);
+        const corrienteConReserva = corriente * factorReserva;
+        
+        // Calibres disponibles
+        const calibresDisponibles = [6, 10, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630, 800, 1000];
+        const calibreNecesario = calibresDisponibles.find(calibre => calibre >= corrienteConReserva);
+        
+        // Calcular polos necesarios según tipo de carga
+        let polosNecesarios;
+        const tipoCarga = carga.tipoCarga || 'RSTN';
+        if (tipoCarga === 'R' || tipoCarga === 'S' || tipoCarga === 'T' || tipoCarga === 'DC') {
+          polosNecesarios = '1';
+        } else if (tipoCarga === 'RN' || tipoCarga === 'SN' || tipoCarga === 'TN') {
+          polosNecesarios = '2';
+        } else if (tipoCarga === 'RST') {
+          polosNecesarios = '3';
+        } else if (tipoCarga === 'RSTN') {
+          polosNecesarios = '4';
+        } else {
+          polosNecesarios = '1';
+        }
+        
+        console.log(`🔍 Carga: ${carga.denominacion}, Tipo: ${tipoCarga}, Corriente: ${corriente}A, Calibre: ${currentCalibre}→${calibreNecesario}A, Polos: ${currentPolos}→${polosNecesarios}`);
+        
+        // Si el calibre o polos no son correctos, actualizarlo (solo si no está bloqueado)
+        if (!carga.interruptor.bloqueado && ((calibreNecesario && currentCalibre !== calibreNecesario) || (currentPolos !== polosNecesarios))) {
+          console.log(`🔧 ACTUALIZANDO INTERRUPTOR - Calibre: ${currentCalibre}→${calibreNecesario}A, Polos: ${currentPolos}→${polosNecesarios}`);
+          setTimeout(() => {
+            seleccionarInterruptorAutomatico(carga.id);
+          }, 50);
+        } else if (carga.interruptor.bloqueado) {
+          console.log(`🔒 INTERRUPTOR BLOQUEADO - No se actualiza automáticamente`);
+        }
+      }
+    });
+  }, [
+    cortocircuitoData.cargas.map(c => c.corrienteNominal).join(','),
+    cortocircuitoData.cargas.map(c => c.tipoCarga).join(','),
+    cortocircuitoData.cargas.map(c => c.interruptor.bloqueado).join(',')
+  ]);
+
+
 
 
   const agregarCarga = () => {
@@ -1178,7 +1199,8 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
         curva: '',
         polos: '3',
         icu: '',
-        ics: ''
+        ics: '',
+        bloqueado: false // Control para bloquear actualización automática
       },
       
       // Datos de cableado
@@ -1256,6 +1278,47 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
         cargas: nuevasCargas
       };
     });
+    
+    // Verificar cable si se actualiza cualquier valor relacionado con cable o interruptor
+    const camposQueAfectanVerificacion = [
+      'interruptor.calibre',
+      'cable.capacidadAdmisible',
+      'cable.tipo',
+      'cable.seccionFase',
+      'cable.paralelo',
+      'cable.metodoInstalacion',
+      'cable.configuracionSintenax',
+      'cable.configuracionAfumex'
+    ];
+    
+    if (camposQueAfectanVerificacion.includes(campo)) {
+      console.log(`🔄 CAMPO ACTUALIZADO: ${campo} → Ejecutando verificarCable`);
+      // Ejecutar verificación inmediatamente con los valores actualizados
+      setTimeout(() => {
+        const cargaActualizada = cortocircuitoData.cargas.find(c => c.id === id);
+        if (cargaActualizada) {
+          // Aplicar la actualización manualmente para la verificación
+          let cargaConCambio;
+          if (campo.includes('.')) {
+            const [seccion, subcampo] = campo.split('.');
+            cargaConCambio = {
+              ...cargaActualizada,
+              [seccion]: {
+                ...cargaActualizada[seccion],
+                [subcampo]: valor
+              }
+            };
+          } else {
+            cargaConCambio = { ...cargaActualizada, [campo]: valor };
+          }
+          
+          // Ejecutar verificación con los valores actualizados
+          verificarCableConValores(id, cargaConCambio);
+        }
+      }, 10);
+    }
+    
+    // El fix del calibre se maneja ahora con useEffect
   };
 
   // Función para calcular potencia simulada (con valores específicos para evitar problemas de estado asíncrono)
@@ -1423,14 +1486,13 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
 
     actualizarCarga(id, 'corrientesConReserva', corrientesConReserva);
     
-    // Seleccionar automáticamente calibre y polos del interruptor
     seleccionarInterruptorAutomatico(id);
   };
 
   // Función para seleccionar automáticamente calibre y polos del interruptor
   const seleccionarInterruptorAutomatico = (id) => {
     const carga = cortocircuitoData.cargas.find(c => c.id === id);
-    if (!carga || !carga.corrienteNominal) return;
+    if (!carga || !carga.corrienteNominal || carga.interruptor.bloqueado) return;
 
     // Calcular corriente nominal con reserva
     const corrienteBase = parseFloat(carga.corrienteNominal || 0);
@@ -1468,6 +1530,9 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
       actualizarCarga(id, 'interruptor.calibre', calibreSeleccionado.toString());
     }
     actualizarCarga(id, 'interruptor.polos', polosSeleccionados);
+    
+    // Verificar cable después de actualizar calibre del interruptor
+    verificarCable(id);
   };
 
   // Función para calcular parámetros del cable según catálogo Prysmian 2012
@@ -1988,29 +2053,44 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
     actualizarCarga(id, 'resultadosICC.verificacionInterruptor', verificacion);
   };
 
-  // Verificación de aptitud del cable
-  const verificarCable = (id, corrientePico) => {
-    const carga = cortocircuitoData.cargas.find(c => c.id === id);
+  // Verificación de aptitud del cable (versión con valores actualizados)
+  const verificarCableConValores = (id, carga) => {
     if (!carga) return;
 
     const capacidadAdmisible = parseFloat(carga.cable.capacidadAdmisible);
-    const corrienteNominal = parseFloat(carga.corrienteNominal);
+    const calibreInterruptor = parseFloat(carga.interruptor.calibre);
+
+    console.log(`🔍 VERIFICACIÓN CABLE - Carga: ${carga.denominacion}`);
+    console.log(`📊 Valores - Capacidad Cable: "${carga.cable.capacidadAdmisible}" → ${capacidadAdmisible}A`);
+    console.log(`📊 Valores - Calibre Interruptor: "${carga.interruptor.calibre}" → ${calibreInterruptor}A`);
+    console.log(`🔢 Comparación: ${capacidadAdmisible} > ${calibreInterruptor} = ${capacidadAdmisible > calibreInterruptor}`);
 
     let verificacion = 'PENDIENTE';
     
-    if (capacidadAdmisible && corrienteNominal) {
-      // Verificar tanto corriente nominal como corriente de CC
-      const factorSeguridad = 1.25; // 25% de seguridad
+    if (capacidadAdmisible && calibreInterruptor) {
+      // La corriente admisible del cable debe ser MAYOR que el calibre del interruptor
+      // El cable debe soportar más corriente que la que puede pasar el interruptor
       
-      if (corrienteNominal * factorSeguridad <= capacidadAdmisible && 
-          corrientePico * 1000 <= capacidadAdmisible * 10) { // Factor aproximado para ICC
+      if (capacidadAdmisible > calibreInterruptor) {
         verificacion = 'OK';
+        console.log(`✅ CABLE OK - Capacidad ${capacidadAdmisible}A > Calibre ${calibreInterruptor}A`);
       } else {
         verificacion = 'NO_OK';
+        console.log(`❌ CABLE NO_OK - Capacidad ${capacidadAdmisible}A ≤ Calibre ${calibreInterruptor}A`);
       }
+    } else {
+      console.log(`⚠️ DATOS FALTANTES - Capacidad: ${capacidadAdmisible}A (${typeof capacidadAdmisible}), Calibre: ${calibreInterruptor}A (${typeof calibreInterruptor})`);
     }
 
+    console.log(`📝 Resultado final: ${verificacion}`);
     actualizarCarga(id, 'resultadosICC.verificacionCable', verificacion);
+  };
+
+  // Verificación de aptitud del cable (versión original para compatibilidad)
+  const verificarCable = (id, corrientePico) => {
+    const carga = cortocircuitoData.cargas.find(c => c.id === id);
+    if (!carga) return;
+    verificarCableConValores(id, carga);
   };
 
   // Función para calcular todos los ICC
@@ -2020,99 +2100,6 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
     });
   };
 
-  // Función para exportar a Excel
-  const exportarExcel = () => {
-    try {
-      // Crear datos para Excel
-      const excelData = [];
-      
-      // Encabezados principales
-      const headers = [
-        'Denominación',
-        // Datos de Carga
-        'P.Inst.(W)', 'Cs', 'cos φ', 'η (%)', 'P.Sim.(kW)', 'In (A)',
-        // Interruptor
-        'Tipo Int.', 'Calibre', 'Curva', 'Polos', 'Icu (kA)', 'Ics (kA)',
-        // Cable
-        'Tipo Cable', 'S.Fase (mm²)', 'S.N (mm²)', 'S.T (mm²)', 'Long.(m)', 'R (Ω)', 'X (Ω)', 'Iz (A)',
-        // Resultados ICC
-        'Z.eq (Ω)', 'Isc3φ (kA)', 'Isc2φ (kA)', 'Isc1φ (kA)', 'Ip (kA)', 'Scc (MVA)', 'Verif.Int.', 'Verif.Cable'
-      ];
-      
-      excelData.push(headers);
-      
-      // Datos de cada carga
-      cortocircuitoData.cargas.forEach(carga => {
-        const row = [
-          carga.denominacion,
-          // Datos de Carga
-          carga.potenciaInstalada,
-          carga.coefSimultaneidad,
-          carga.cosoPhi,
-          carga.eficiencia,
-          carga.potenciaSimulada,
-          carga.corrienteNominal,
-          // Interruptor
-          carga.interruptor.tipo,
-          carga.interruptor.calibre,
-          carga.interruptor.curva,
-          carga.interruptor.polos,
-          carga.interruptor.icu,
-          carga.interruptor.ics,
-          // Cable
-          carga.cable.tipo,
-          carga.cable.seccionFase,
-          carga.cable.longitud,
-          carga.cable.resistencia,
-          carga.cable.reactancia,
-          carga.cable.capacidadAdmisible,
-          // Resultados ICC
-          carga.resultadosICC.impedanciaEquivalente,
-          carga.resultadosICC.iccTrifasico,
-          carga.resultadosICC.iccBifasico,
-          carga.resultadosICC.iccMonofasico,
-          carga.resultadosICC.corrientePico,
-          carga.resultadosICC.potenciaCC,
-          carga.resultadosICC.verificacionInterruptor,
-          carga.resultadosICC.verificacionCable
-        ];
-        excelData.push(row);
-      });
-      
-      // Crear CSV (que Excel puede abrir)
-      const csvContent = excelData.map(row => 
-        row.map(cell => {
-          // Escapar comillas y comas
-          const cellStr = String(cell || '');
-          return cellStr.includes(',') || cellStr.includes('"') || cellStr.includes('\n') 
-            ? `"${cellStr.replace(/"/g, '""')}"` 
-            : cellStr;
-        }).join(',')
-      ).join('\n');
-      
-      // Agregar BOM para UTF-8
-      const BOM = '\uFEFF';
-      const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
-      
-      // Descargar archivo
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      const fechaActual = new Date().toLocaleDateString('es-ES').replace(/\//g, '-');
-      const fileName = `Planilla_Cargas_ICC_${projectData?.name || 'Proyecto'}_${fechaActual}.csv`;
-      link.setAttribute('download', fileName);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      console.log('Excel exportado exitosamente');
-      
-    } catch (error) {
-      console.error('Error exportando Excel:', error);
-      alert('Error al exportar a Excel. Intenta de nuevo.');
-    }
-  };
 
   // Función para exportar PDF
   const exportarPDF = async () => {
@@ -2121,7 +2108,7 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
       
       // Título
       doc.setFontSize(16);
-      doc.text('PLANILLA DE CARGAS + CÁLCULO DE CORTOCIRCUITO', 20, 20);
+      doc.text('PLANILLA DE CARGAS', 20, 20);
       
       // Información del proyecto
       if (projectData) {
@@ -2275,9 +2262,9 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
             <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Planilla de Cargas + Cálculo ICC</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Planilla de Cargas</h1>
             <p className="text-sm sm:text-base text-gray-600">
-              Planilla de cargas conforme a obra con cálculo de corrientes de cortocircuito
+              Planilla de cargas conforme a obra
               {/* Save status indicator */}
               {saveStatus && (
                 <span className={`ml-3 text-sm px-2 py-1 rounded-full ${
@@ -2354,15 +2341,6 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
               <div className="bg-white rounded-lg shadow-sm border p-3 sm:p-4 xl:sticky xl:top-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                   <h3 className="text-lg font-semibold text-gray-900">Cargas</h3>
-                  <div className="flex space-x-2">
-                    <button 
-                      onClick={() => exportarExcel()}
-                      className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
-                      title="Exportar Excel"
-                    >
-                      Excel
-                    </button>
-                  </div>
                 </div>
                 
                 <div className="space-y-2 max-h-64 xl:max-h-96 overflow-y-auto">
@@ -2382,12 +2360,7 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
                             {carga.denominacion || `Carga ${index + 1}`}
                           </p>
                           <div className="text-xs text-gray-500 mt-1">
-                            <span>{carga.potenciaInstalada ? `${carga.potenciaInstalada}W` : 'Sin potencia'}</span>
-                            {carga.resultadosICC.iccTrifasico && (
-                              <span className="ml-2 text-red-600 font-medium">
-                                Icc: {carga.resultadosICC.iccTrifasico}kA
-                              </span>
-                            )}
+                            <span>{carga.potenciaInstalada ? `${carga.potenciaInstalada}${carga.potenciaUnidad || 'W'}` : 'Sin potencia'}</span>
                           </div>
                         </div>
                         
@@ -2453,4 +2426,4 @@ const CalculosCortocircuito = ({ projectData, onDataChange, readOnly = false }) 
   );
 };
 
-export default CalculosCortocircuito;
+export default PlanillaCargas;
